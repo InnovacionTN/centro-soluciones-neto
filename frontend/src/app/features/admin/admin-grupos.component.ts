@@ -1,0 +1,132 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { AdminService } from '../../core/services/admin.service';
+
+@Component({
+  selector: 'app-admin-grupos',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="admin-section">
+      <div class="section-bar">
+        <h2 class="section-title">Grupos del Call Center</h2>
+        <button class="btn btn--primary btn--sm" (click)="openForm()">+ Nuevo grupo</button>
+      </div>
+
+      @if (showForm()) {
+        <div class="form-card slide-down">
+          <h3 class="form-title">{{ editId() ? 'Editar grupo' : 'Nuevo grupo' }}</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label class="field__label field__label--required">Nombre del grupo</label>
+              <input class="input" [(ngModel)]="form.nombre" placeholder="Ej: Sistemas SION" />
+            </div>
+            <div class="field">
+              <label class="field__label field__label--required">Área técnica</label>
+              <select class="input" [(ngModel)]="form.area_tecnica">
+                <option value="">Selecciona...</option>
+                @for (a of areas; track a) { <option [value]="a">{{ a }}</option> }
+              </select>
+            </div>
+            <div class="field">
+              <label class="field__label">Canal de Slack</label>
+              <input class="input" [(ngModel)]="form.slack_canal" placeholder="#cc-sistemas" />
+            </div>
+          </div>
+          @if (formError()) { <div class="form-error">⚠ {{ formError() }}</div> }
+          <div class="form-actions">
+            <button class="btn btn--ghost" (click)="closeForm()">Cancelar</button>
+            <button class="btn btn--primary" [class.btn--loading]="saving()" [disabled]="saving()" (click)="save()">
+              {{ saving() ? '' : (editId() ? 'Guardar' : 'Crear') }}
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (loading()) {
+        <div class="loading-msg">Cargando grupos...</div>
+      } @else {
+        <div class="admin-table">
+          <div class="table-head-g">
+            <span>Nombre</span><span>Área</span><span>Slack</span><span>Estado</span><span>Acciones</span>
+          </div>
+          @for (g of grupos(); track g.id) {
+            <div class="table-row-g">
+              <span class="font-medium">{{ g.nombre }}</span>
+              <span><span class="badge badge--purple">{{ g.area_tecnica }}</span></span>
+              <span class="text-sm text-muted">{{ g.slack_canal ?? '—' }}</span>
+              <span><span class="badge" [class]="g.activo ? 'badge--green' : 'badge--gray'">{{ g.activo ? 'Activo' : 'Inactivo' }}</span></span>
+              <span class="row-actions">
+                <button class="btn btn--ghost btn--sm" (click)="openEdit(g)">Editar</button>
+                <button class="btn btn--ghost btn--sm" (click)="toggleActivo(g)">{{ g.activo ? 'Desactivar' : 'Activar' }}</button>
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .admin-section { display: flex; flex-direction: column; gap: 16px; }
+    .section-bar { display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 17px; font-weight: 600; }
+    .form-card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 20px; }
+    .form-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px; }
+    .form-error { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .loading-msg { padding: 40px; text-align: center; color: var(--c-muted); }
+    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+    .table-head-g { display: grid; grid-template-columns: 1fr 130px 1fr 90px 160px; gap: 10px; padding: 10px 16px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); font-size: 11px; font-weight: 600; color: var(--c-muted); text-transform: uppercase; }
+    .table-row-g { display: grid; grid-template-columns: 1fr 130px 1fr 90px 160px; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--c-border); font-size: 13px; }
+    .table-row-g:last-child { border-bottom: none; }
+    .table-row-g:hover { background: var(--c-bg); }
+    .row-actions { display: flex; gap: 6px; }
+  `],
+})
+export class AdminGruposComponent implements OnInit {
+  grupos = signal<any[]>([]);
+  loading = signal(true);
+  showForm = signal(false);
+  saving = signal(false);
+  formError = signal('');
+  editId = signal<number | null>(null);
+  areas = ['ABASTO', 'SISTEMAS', 'MANTENIMIENTO', 'FINANZAS', 'COMERCIAL', 'RRHH'];
+  form = this.emptyForm();
+
+  constructor(private admin: AdminService) { }
+  ngOnInit() { this.load(); }
+
+  load() {
+    this.loading.set(true);
+    this.admin.getGrupos().subscribe({ next: gs => { this.grupos.set(gs); this.loading.set(false); }, error: () => this.loading.set(false) });
+  }
+
+  emptyForm() { return { nombre: '', area_tecnica: '', slack_canal: '' }; }
+  openForm() { this.form = this.emptyForm(); this.editId.set(null); this.formError.set(''); this.showForm.set(true); }
+  closeForm() { this.showForm.set(false); }
+
+  openEdit(g: any) {
+    this.form = { nombre: g.nombre, area_tecnica: g.area_tecnica, slack_canal: g.slack_canal ?? '' };
+    this.editId.set(g.id); this.formError.set(''); this.showForm.set(true);
+  }
+
+  save() {
+    if (!this.form.nombre || !this.form.area_tecnica) { this.formError.set('Nombre y área son obligatorios'); return; }
+    this.saving.set(true);
+    const req = this.editId() ? this.admin.updateGrupo(this.editId()!, this.form) : this.admin.createGrupo(this.form);
+    req.subscribe({
+      next: g => {
+        if (this.editId()) { this.grupos.update(list => list.map(x => x.id === g.id ? g : x)); }
+        else { this.grupos.update(list => [...list, g]); }
+        this.saving.set(false); this.closeForm();
+      },
+      error: err => { this.saving.set(false); this.formError.set(err.error?.detail ?? 'Error'); },
+    });
+  }
+
+  toggleActivo(g: any) {
+    this.admin.updateGrupo(g.id, { activo: !g.activo }).subscribe({ next: updated => this.grupos.update(list => list.map(x => x.id === updated.id ? updated : x)) });
+  }
+}
