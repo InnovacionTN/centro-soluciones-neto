@@ -39,18 +39,18 @@ import { DashboardMetrics } from '../../core/models';
           <div class="metrics-grid">
             <div class="metric-card metric-card--blue">
               <span class="metric-val">{{ metrics()!.total_abiertos }}</span>
-              <span class="metric-label">Tickets abiertos</span>
-              <div class="metric-trend">activos en sistema</div>
+              <span class="metric-label">Pendientes de tomar</span>
+              <div class="metric-trend">NUEVO + ASIGNADO sin agente</div>
             </div>
             <div class="metric-card metric-card--purple">
               <span class="metric-val">{{ metrics()!.total_en_proceso }}</span>
               <span class="metric-label">En proceso</span>
-              <div class="metric-trend">analista trabajando</div>
+              <div class="metric-trend">trabajando + resp. tienda pendiente</div>
             </div>
             <div class="metric-card metric-card--amber">
               <span class="metric-val">{{ metrics()!.total_confirmar_solucion }}</span>
-              <span class="metric-label">Esperando confirmación</span>
-              <div class="metric-trend">pendientes de tienda</div>
+              <span class="metric-label">Esperando tienda</span>
+              <div class="metric-trend">solución enviada, tienda debe responder</div>
             </div>
             <div class="metric-card metric-card--green">
               <span class="metric-val">{{ metrics()!.total_cerrados_hoy }}</span>

@@ -90,19 +90,21 @@ import { AuthService } from '../../core/services/auth.service';
           </button>
         </form>
 
-        <!-- Test accounts hint (solo dev) -->
+        <!-- Cuentas de prueba -->
         <div class="login-hint">
-          <p class="text-sm text-muted" style="margin-bottom:8px;font-weight:500">
-            Cuentas de prueba
-          </p>
-          @for (acc of testAccounts; track acc.email) {
-            <button class="hint-chip" (click)="fillAccount(acc)">
-              <span class="hint-role" [class]="'hint-role--' + acc.rol">
-                {{ acc.rol }}
-              </span>
-              {{ acc.label }}
-            </button>
-          }
+          <div class="hint-header">
+            <span class="hint-title">Cuentas de prueba</span>
+          </div>
+          <div class="hint-grid">
+            @for (acc of testAccounts; track acc.email) {
+              <button class="hint-chip" (click)="fillAccount(acc)">
+                <span class="hint-role" [class]="'hint-role--' + acc.rol">
+                  {{ acc.rol === 'ADMIN' ? '⚙' : acc.rol === 'TIENDA' ? '🏪' : '🎧' }}
+                </span>
+                <span class="hint-label">{{ acc.label }}</span>
+              </button>
+            }
+          </div>
         </div>
 
       </div>
@@ -177,6 +179,35 @@ import { AuthService } from '../../core/services/auth.service';
       padding-top: 20px;
       border-top: 1px solid var(--c-border);
     }
+    .login-hint {
+      margin-top: 20px;
+      border-top: 1px solid var(--c-border);
+      padding-top: 16px;
+    }
+    .hint-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .hint-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--c-muted);
+    }
+    .hint-pwd {
+      font-size: 11px;
+      color: var(--c-muted);
+    }
+    .hint-pwd strong { color: var(--c-text); }
+    .hint-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .hint-label { font-size: 11px; truncate: ellipsis; overflow: hidden; white-space: nowrap; }
     .hint-chip {
       display: flex;
       align-items: center;
@@ -214,9 +245,12 @@ export class LoginComponent {
   showPwd = signal(false);
 
   testAccounts = [
+    { rol: 'ADMIN', label: 'Administrador Sistema', email: 'admin@soyneto.com', password: 'Neto2024!' },
     { rol: 'TIENDA', label: 'Tienda 749 — PANZACOLA', email: 't749@soyneto.com', password: 'Neto2024!' },
     { rol: 'AGENTE', label: 'Sistemas — Christian', email: 'christian.gutierrez@soyneto.com', password: 'Neto2024!' },
-    { rol: 'ADMIN', label: 'Administrador', email: 'admin@soyneto.com', password: 'Neto2024!' },
+    { rol: 'AGENTE', label: 'Mantto — Everardo', email: 'everardo.mtz@soyneto.com', password: 'Neto2024!' },
+    { rol: 'AGENTE', label: 'Abasto — Alejandra', email: 'alejandra.sanchez@soyneto.com', password: 'Neto2024!' },
+    { rol: 'AGENTE', label: 'Finanzas — Brenda', email: 'brenda.alvarez@soyneto.com', password: 'Neto2024!' },
   ];
 
   constructor(private auth: AuthService, private router: Router) {

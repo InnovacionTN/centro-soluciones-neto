@@ -7,6 +7,15 @@ import {
   Tipificacion, DashboardMetrics,
 } from '../models';
 
+export interface Plantilla {
+  id: number;
+  titulo: string;
+  contenido: string;
+  area_tecnica: string | null;
+  activo: boolean;
+}
+
+
 export interface Grupo {
   id: number;
   nombre: string;
@@ -17,7 +26,7 @@ export interface Grupo {
 export class TicketService {
   private readonly api = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // ─── IA ──────────────────────────────────────────────────────────────────────
 
@@ -78,6 +87,35 @@ export class TicketService {
     return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/escalar`, {
       grupo_destino_id: grupoDesinoId,
       motivo,
+    });
+  }
+  // ─── Plantillas ──────────────────────────────────────────────────────────
+  getPlantillas(area?: string) {
+    const url = area
+      ? `${this.api}/plantillas?area=${encodeURIComponent(area)}`
+      : `${this.api}/plantillas`;
+    return this.http.get<Plantilla[]>(url);
+  }
+
+  createPlantilla(titulo: string, contenido: string, area_tecnica?: string) {
+    return this.http.post<Plantilla>(`${this.api}/plantillas`, { titulo, contenido, area_tecnica });
+  }
+
+  deletePlantilla(id: number) {
+    return this.http.delete(`${this.api}/plantillas/${id}`);
+  }
+
+  // ─── CSAT ────────────────────────────────────────────────────────────────
+  uploadEvidencia(ticketId: number, formData: FormData) {
+    return this.http.post<{ id: number; url: string; nombre_archivo: string }>(
+      `${this.api}/tickets/${ticketId}/evidencias`, formData
+    );
+  }
+
+  enviarCsat(ticketId: number, score: number, comentario?: string) {
+    return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/csat`, {
+      score,
+      comentario,
     });
   }
 }

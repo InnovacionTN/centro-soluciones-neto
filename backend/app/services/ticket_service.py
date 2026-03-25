@@ -6,29 +6,40 @@ Servicio central de tickets:
 - Cálculo de SLA
 - Bitácora de eventos
 """
+
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.models import (
-    Ticket, BitacoraEvento, ReglaRuteo, Tipificacion,
-    Usuario, Grupo, EstatusTicket, PrioridadTicket,
-    RolUsuario, UrgenciaTipificacion
+    Ticket,
+    BitacoraEvento,
+    ReglaRuteo,
+    Tipificacion,
+    Usuario,
+    Grupo,
+    EstatusTicket,
+    PrioridadTicket,
+    RolUsuario,
+    UrgenciaTipificacion,
 )
 
 
 # ─── Folio ─────────────────────────────────────────────────────────────────────
 
+
 def generate_folio(db: Session) -> str:
     year = datetime.now().year
     prefix = f"TKT-{year}-"
-    count = db.query(func.count(Ticket.id)).filter(
-        Ticket.folio.like(f"{prefix}%")
-    ).scalar() or 0
+    count = (
+        db.query(func.count(Ticket.id)).filter(Ticket.folio.like(f"{prefix}%")).scalar()
+        or 0
+    )
     return f"{prefix}{str(count + 1).zfill(5)}"
 
 
 # ─── Ruteo ─────────────────────────────────────────────────────────────────────
+
 
 def find_group(tipificacion_id: int, zona_id: int, db: Session) -> Optional[Grupo]:
     """
@@ -81,9 +92,7 @@ def assign_agent_round_robin(grupo: Grupo, db: Session) -> Optional[Usuario]:
 
     # Total histórico de tickets en este grupo → índice del ciclo
     total = (
-        db.query(func.count(Ticket.id))
-        .filter(Ticket.grupo_id == grupo.id)
-        .scalar()
+        db.query(func.count(Ticket.id)).filter(Ticket.grupo_id == grupo.id).scalar()
     ) or 0
 
     return agentes[total % len(agentes)]
@@ -105,6 +114,7 @@ def calculate_sla(tipificacion: Tipificacion) -> datetime:
 
 # ─── Bitácora ──────────────────────────────────────────────────────────────────
 
+
 def log_event(
     db: Session,
     ticket: Ticket,
@@ -114,6 +124,7 @@ def log_event(
     estado_nuevo: Optional[str] = None,
     comentario: Optional[str] = None,
     tipo_comentario: str = "PUBLICO",
+    evidencia_id: Optional[int] = None,
 ):
     evento = BitacoraEvento(
         ticket_id=ticket.id,
@@ -123,11 +134,13 @@ def log_event(
         estado_nuevo=estado_nuevo,
         comentario=comentario,
         tipo_comentario=tipo_comentario.upper(),
+        evidencia_id=evidencia_id,
     )
     db.add(evento)
 
 
 # ─── Creación de Ticket ───────────────────────────────────────────────────────
+
 
 def create_ticket_in_db(
     db: Session,
@@ -143,11 +156,16 @@ def create_ticket_in_db(
     metadata_extra: Optional[dict],
 ) -> Ticket:
     from app.models.models import Tienda
+
     tienda = db.query(Tienda).filter(Tienda.id == tienda_id).first()
 
     # Usar tipificación confirmada o la sugerida por IA
     tip_id = tipificacion_id or ia_tipificacion_id
-    tipificacion = db.query(Tipificacion).filter(Tipificacion.id == tip_id).first() if tip_id else None
+    tipificacion = (
+        db.query(Tipificacion).filter(Tipificacion.id == tip_id).first()
+        if tip_id
+        else None
+    )
 
     # Ruteo
     grupo = None
@@ -159,7 +177,11 @@ def create_ticket_in_db(
 
     # SLA y prioridad
     sla = calculate_sla(tipificacion) if tipificacion else None
-    prioridad = URGENCY_PRIORITY_MAP.get(tipificacion.urgencia, PrioridadTicket.MEDIA) if tipificacion else PrioridadTicket.MEDIA
+    prioridad = (
+        URGENCY_PRIORITY_MAP.get(tipificacion.urgencia, PrioridadTicket.MEDIA)
+        if tipificacion
+        else PrioridadTicket.MEDIA
+    )
 
     ticket = Ticket(
         folio=generate_folio(db),
@@ -182,7 +204,9 @@ def create_ticket_in_db(
     db.flush()  # obtener el ID antes del commit
 
     log_event(
-        db, ticket, usuario_id,
+        db,
+        ticket,
+        usuario_id,
         accion="CREACION",
         estado_nuevo=ticket.estatus.value,
         comentario=f"Ticket creado. Área: {ia_area or 'sin clasificar'}. Confianza IA: {ia_confianza or 0}%",
@@ -190,7 +214,9 @@ def create_ticket_in_db(
 
     if agente:
         log_event(
-            db, ticket, usuario_id,
+            db,
+            ticket,
+            usuario_id,
             accion="ASIGNACION_AUTO",
             comentario=f"Asignado automáticamente a {agente.nombre} del grupo {grupo.nombre}",
         )

@@ -7,6 +7,7 @@ export type EstatusTicket =
   | 'ASIGNADO'
   | 'EN_PROCESO'
   | 'ESPERANDO_TIENDA'
+  | 'ESPERANDO_AGENTE'
   | 'RESUELTO'
   | 'CERRADO'
   | 'RECHAZADO'
@@ -29,6 +30,7 @@ export interface TokenResponse {
   rol: Rol;
   nombre: string;
   tienda_id: number | null;
+  tienda_nombre: string | null;
 }
 
 export interface CurrentUser {
@@ -37,7 +39,9 @@ export interface CurrentUser {
   nombre: string;
   rol: Rol;
   tienda_id: number | null;
+  tienda_nombre: string | null;
   grupo_id: number | null;
+  grupo_nombre: string | null;
 }
 
 // ─── Tipificación ──────────────────────────────────────────────────────────────
@@ -83,6 +87,15 @@ export interface TicketUpdate {
   solucion_propuesta?: string;
   comentario?: string;
   tipo_comentario?: 'PUBLICO' | 'INTERNO';
+  evidencia_id?: number | null;
+}
+
+export interface EvidenciaMin {
+  id: number;
+  nombre_archivo: string;
+  url: string;
+  tipo_mime: string | null;
+  tamanio_bytes: number | null;
 }
 
 export interface EventoTicket {
@@ -92,6 +105,7 @@ export interface EventoTicket {
   estado_nuevo: string | null;
   comentario: string | null;
   tipo_comentario: 'PUBLICO' | 'INTERNO';
+  evidencia: EvidenciaMin | null;
   timestamp: string;
   usuario: { id: number; nombre: string; rol: Rol } | null;
 }
@@ -109,8 +123,11 @@ export interface Ticket {
   ia_clasificacion_aceptada: boolean | null;
   sla_limite: string | null;
   sla_vencido: boolean;
+  sla_porcentaje: number | null;
   fecha_apertura: string;
   fecha_primera_respuesta: string | null;
+  csat_score: number | null;
+  csat_comentario: string | null;
   fecha_cierre: string | null;
   tienda_id: number;
   agente_id: number | null;
@@ -128,8 +145,10 @@ export interface TicketListItem {
   agente_id: number | null;
   sla_limite: string | null;
   sla_vencido: boolean;
+  sla_porcentaje: number | null;
   fecha_apertura: string;
   tipificacion: Tipificacion | null;
+  fecha_cierre: string | null;
 }
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────────

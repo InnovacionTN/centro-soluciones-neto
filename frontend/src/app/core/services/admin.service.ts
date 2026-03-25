@@ -2,6 +2,20 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
 
+export interface KpiAgente {
+  agente_id: number;
+  nombre: string;
+  email: string;
+  grupo: string | null;
+  tickets_cerrados: number;
+  tickets_activos: number;
+  tiempo_promedio_horas: number | null;
+  sla_cumplido_pct: number | null;
+  csat_promedio: number | null;
+  total_escalados: number;
+}
+
+
 const API = environment.apiUrl + '/admin';
 
 export interface UsuarioAdmin {
@@ -26,7 +40,7 @@ export interface TiendaAdmin {
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   // Usuarios
   getUsuarios(rol?: string, activo?: boolean) {
@@ -35,7 +49,7 @@ export class AdminService {
     if (activo !== undefined) params['activo'] = activo;
     return this.http.get<UsuarioAdmin[]>(`${API}/usuarios`, { params });
   }
-  createUsuario(body: any)  { return this.http.post<UsuarioAdmin>(`${API}/usuarios`, body); }
+  createUsuario(body: any) { return this.http.post<UsuarioAdmin>(`${API}/usuarios`, body); }
   updateUsuario(id: number, body: any) { return this.http.patch<UsuarioAdmin>(`${API}/usuarios/${id}`, body); }
 
   // Tipificaciones
@@ -44,21 +58,26 @@ export class AdminService {
     if (activo !== undefined) params['activo'] = activo;
     return this.http.get<TipAdmin[]>(`${API}/tipificaciones`, { params });
   }
-  createTipificacion(body: any)  { return this.http.post<TipAdmin>(`${API}/tipificaciones`, body); }
+  createTipificacion(body: any) { return this.http.post<TipAdmin>(`${API}/tipificaciones`, body); }
   updateTipificacion(id: number, body: any) { return this.http.patch<TipAdmin>(`${API}/tipificaciones/${id}`, body); }
 
   // Grupos
   getGrupos() { return this.http.get<any[]>('/api/v1/grupos'); }
-  createGrupo(body: any)  { return this.http.post<any>(`${API}/grupos`, body); }
+  createGrupo(body: any) { return this.http.post<any>(`${API}/grupos`, body); }
   updateGrupo(id: number, body: any) { return this.http.patch<any>(`${API}/grupos/${id}`, body); }
 
   // Ruteo
-  getRuteo()  { return this.http.get<ReglaRuteo[]>(`${API}/ruteo`); }
-  createRegla(body: any)  { return this.http.post<ReglaRuteo>(`${API}/ruteo`, body); }
+  getRuteo() { return this.http.get<ReglaRuteo[]>(`${API}/ruteo`); }
+  createRegla(body: any) { return this.http.post<ReglaRuteo>(`${API}/ruteo`, body); }
   deleteRegla(id: number) { return this.http.delete(`${API}/ruteo/${id}`); }
 
   // Tiendas
   getTiendas() { return this.http.get<TiendaAdmin[]>(`${API}/tiendas`); }
   createTienda(body: any) { return this.http.post<TiendaAdmin>(`${API}/tiendas`, body); }
   updateTienda(id: number, body: any) { return this.http.patch<TiendaAdmin>(`${API}/tiendas/${id}`, body); }
+  // ─── KPIs por agente ─────────────────────────────────────────────────────
+  getKpisAgentes(params?: { desde?: string; hasta?: string; grupo_id?: number }) {
+    return this.http.get<KpiAgente[]>(`${API}/kpis-agentes`, { params: params as any });
+  }
+
 }

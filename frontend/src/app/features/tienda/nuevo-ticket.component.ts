@@ -22,7 +22,14 @@ import { ClasificacionResponse } from '../../core/models';
           ← Volver
         </button>
         <div>
-          <h1 class="form-title">Reportar un problema</h1>
+          <h1 class="form-title" style="display: flex; align-items: center; gap: 8px;">
+            Reportar un problema
+            @if (auth.currentUser()?.tienda_nombre) {
+              <span class="badge badge--blue" style="font-size: 13px; font-weight: 500;">
+                🏪 {{ auth.currentUser()!.tienda_nombre }}
+              </span>
+            }
+          </h1>
           <p class="form-sub">Describe lo que está pasando — el sistema te ayuda a clasificarlo</p>
         </div>
       </div>
@@ -117,7 +124,7 @@ import { ClasificacionResponse } from '../../core/models';
                   <span class="ia-detail__label">Urgencia</span>
                   <span class="ia-detail__val">
                     <span class="badge" [class]="urgenciaBadge(clasificacion()!.urgencia_sugerida)">
-                      {{ clasificacion()!.urgencia_sugerida }}
+                      {{ clasificacion()!.urgencia_sugerida === 'CRITICA' || clasificacion()!.urgencia_sugerida === 'ALTA' ? 'Alta urgencia' : 'Urgencia normal' }}
                     </span>
                   </span>
                 </div>
@@ -226,7 +233,7 @@ import { ClasificacionResponse } from '../../core/models';
             </div>
             <div class="summary-row">
               <span class="text-muted">Prioridad</span>
-              <span>{{ ticketCreado()!.prioridad }}</span>
+              <!-- Prioridad no visible para la tienda -->
             </div>
             @if (ticketCreado()!.sla_limite) {
               <div class="summary-row">
@@ -445,7 +452,7 @@ import { ClasificacionResponse } from '../../core/models';
 })
 export class NuevoTicketComponent implements OnDestroy {
   private ticket = inject(TicketService);
-  private auth = inject(AuthService);
+  public auth = inject(AuthService);
   private router = inject(Router);
 
   descripcion = '';

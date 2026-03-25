@@ -6,8 +6,9 @@ import { AdminUsuariosComponent } from './admin-usuarios.component';
 import { AdminTipificacionesComponent } from './admin-tipificaciones.component';
 import { AdminRuteoComponent } from './admin-ruteo.component';
 import { AdminGruposComponent } from './admin-grupos.component';
+import { AdminKpisComponent } from './admin-kpis.component';
 
-type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos';
+type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
 
 @Component({
   selector: 'app-admin-shell',
@@ -15,7 +16,7 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos';
   imports: [
     CommonModule, RouterModule, NavbarComponent,
     AdminUsuariosComponent, AdminTipificacionesComponent,
-    AdminRuteoComponent, AdminGruposComponent,
+    AdminRuteoComponent, AdminGruposComponent, AdminKpisComponent,
   ],
   template: `
     <div class="page">
@@ -45,6 +46,7 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos';
           @if (activeTab === 'tipificaciones') { <app-admin-tipificaciones /> }
           @if (activeTab === 'ruteo')          { <app-admin-ruteo /> }
           @if (activeTab === 'grupos')         { <app-admin-grupos /> }
+          @if (activeTab === 'kpis')           { <app-admin-kpis /> }
         </div>
 
       </div>
@@ -85,6 +87,7 @@ export class AdminShellComponent {
     { id: 'usuarios' as Tab, label: 'Usuarios', icon: '👤' },
     { id: 'tipificaciones' as Tab, label: 'Tipificaciones', icon: '🗂' },
     { id: 'ruteo' as Tab, label: 'Matriz de ruteo', icon: '🗺' },
-    { id: 'grupos' as Tab, label: 'Grupos CC', icon: '👥' },
+    { id: 'grupos'   as Tab, label: 'Grupos CC',    icon: '👥' },
+    { id: 'kpis'     as Tab, label: 'KPIs agentes', icon: '📊' },
   ];
 }

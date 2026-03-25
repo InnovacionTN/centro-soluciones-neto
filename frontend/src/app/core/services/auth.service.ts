@@ -6,7 +6,7 @@ import { environment } from '../../../environments/environment';
 import { LoginRequest, TokenResponse, CurrentUser, Rol } from '../models';
 
 const TOKEN_KEY = 'cs_token';
-const USER_KEY  = 'cs_user';
+const USER_KEY = 'cs_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -14,13 +14,13 @@ export class AuthService {
 
   // Signals — toda la app reacciona a estos
   readonly currentUser = signal<CurrentUser | null>(this.loadUser());
-  readonly isLoggedIn  = computed(() => !!this.currentUser());
-  readonly rol         = computed(() => this.currentUser()?.rol ?? null);
-  readonly isTienda    = computed(() => this.rol() === 'TIENDA');
-  readonly isAgente    = computed(() => this.rol() === 'AGENTE');
-  readonly isAdmin     = computed(() => this.rol() === 'ADMIN');
+  readonly isLoggedIn = computed(() => !!this.currentUser());
+  readonly rol = computed(() => this.currentUser()?.rol ?? null);
+  readonly isTienda = computed(() => this.rol() === 'TIENDA');
+  readonly isAgente = computed(() => this.rol() === 'AGENTE');
+  readonly isAdmin = computed(() => this.rol() === 'ADMIN');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) { }
 
   login(creds: LoginRequest) {
     return this.http.post<TokenResponse>(`${this.api}/auth/login`, creds).pipe(
@@ -71,7 +71,7 @@ export class AuthService {
     const routes: Record<Rol, string> = {
       TIENDA: '/tienda',
       AGENTE: '/agente',
-      ADMIN:  '/admin',
+      ADMIN: '/agente',
     };
     this.router.navigate([routes[rol] ?? '/']);
   }

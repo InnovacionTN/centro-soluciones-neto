@@ -67,6 +67,20 @@ const PRIORIDAD_ORDER: Record<string, number> = {
         </div>
 
         <!-- Filters -->
+        <!-- Buscador -->
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input
+            class="search-input"
+            type="text"
+            placeholder="Buscar por folio, descripción, tienda o área..."
+            [(ngModel)]="busqueda"
+          />
+          @if (busqueda) {
+            <button class="search-clear" (click)="busqueda = ''">✕</button>
+          }
+        </div>
+
         <div class="filter-row">
           <div class="filter-group">
             @for (f of statusFilters; track f.value) {
@@ -139,7 +153,7 @@ const PRIORIDAD_ORDER: Record<string, number> = {
               <a
                 class="ticket-row"
                 [class.ticket-row--critica]="t.prioridad === 'CRITICA'"
-                [class.ticket-row--vencido]="t.sla_vencido"
+                [class.ticket-row--vencido]="t.sla_vencido || (t.sla_limite && isVencido(t))"
                 [routerLink]="['/agente/ticket', t.id]"
               >
                 <span class="folio">{{ t.folio }}</span>
@@ -216,6 +230,39 @@ const PRIORIDAD_ORDER: Record<string, number> = {
     .kpi-val--green { color: var(--c-green); }
     .kpi-label { font-size: 12px; color: var(--c-muted); }
 
+    .search-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--c-surface);
+      border: 1.5px solid var(--c-border);
+      border-radius: 8px;
+      padding: 0 12px;
+      margin-bottom: 12px;
+      transition: border-color .15s;
+    }
+    .search-bar:focus-within { border-color: var(--c-blue); }
+    .search-icon { font-size: 14px; flex-shrink: 0; opacity: .5; }
+    .search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 13px;
+      padding: 10px 0;
+      color: var(--c-text);
+    }
+    .search-input::placeholder { color: var(--c-muted); }
+    .search-clear {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--c-muted);
+      font-size: 13px;
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+    .search-clear:hover { background: var(--c-border); }
     .filter-row {
       display: flex;
       justify-content: space-between;
@@ -332,6 +379,7 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
   filtroEstatus = signal('');
   soloMios = signal(false);
   filtroPrioridad = '';
+  busqueda = '';
   countdown = signal(30);
 
   private refreshSub?: Subscription;
@@ -339,12 +387,28 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
   counts = computed(() => {
     const ts = this.tickets();
     const userId = this.auth.currentUser()?.id;
+    const hoy = new Date().toDateString();
     return {
-      sin_asignar: ts.filter(t => !t.agente_id && ['NUEVO', 'ASIGNADO'].includes(t.estatus)).length,
-      mis_tickets: ts.filter(t => t.agente_id === userId && !['CERRADO', 'RESUELTO'].includes(t.estatus)).length,
+      // Tickets sin agente activo trabajando (pendientes de tomar)
+      sin_asignar: ts.filter(t => ['NUEVO', 'ASIGNADO'].includes(t.estatus) && !t.agente_id).length,
+      // Tickets asignados al agente actual activos
+      mis_tickets: ts.filter(t => t.agente_id === userId
+        && !['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus)).length,
+      // En proceso total (incluyendo ESPERANDO_AGENTE = tienda respondió)
+      en_proceso: ts.filter(t => ['EN_PROCESO', 'ESPERANDO_AGENTE'].includes(t.estatus)).length,
+      // Esperando respuesta de tienda
       confirmar: ts.filter(t => t.estatus === 'ESPERANDO_TIENDA').length,
-      vencidos: ts.filter(t => t.sla_vencido).length,
-      cerrados_hoy: 0, // requeriría filtro por fecha
+      // SLA vencidos: usar sla_vencido del backend (ya calculado dinámicamente)
+      // O recalcular en cliente como doble verificación
+      vencidos: ts.filter(t => {
+        if (['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus)) return false;
+        if (t.sla_vencido) return true; // backend ya lo calculó
+        if (t.sla_limite) return new Date(t.sla_limite) < new Date(); // fallback cliente
+        return false;
+      }).length,
+      // Cerrados o resueltos hoy
+      cerrados_hoy: ts.filter(t => ['CERRADO', 'RESUELTO'].includes(t.estatus)
+        && t.fecha_cierre && new Date(t.fecha_cierre).toDateString() === hoy).length,
     };
   });
 
@@ -352,9 +416,35 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
     let ts = [...this.tickets()];
     const f = this.filtroEstatus();
     const userId = this.auth.currentUser()?.id;
-    if (f) ts = ts.filter(t => t.estatus === f);
+    const hoy = new Date().toDateString();
+    // Filtros especiales
+    if (f === '__sin_asignar__') {
+      ts = ts.filter(t => ['NUEVO', 'ASIGNADO'].includes(t.estatus) && !t.agente_id);
+    } else if (f === '__vencidos__') {
+      ts = ts.filter(t => {
+        if (['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus)) return false;
+        if (t.sla_vencido) return true;
+        if (t.sla_limite) return new Date(t.sla_limite) < new Date();
+        return false;
+      });
+    } else if (f === 'EN_PROCESO') {
+      // En proceso incluye ESPERANDO_AGENTE (tienda respondió, agente debe actuar)
+      ts = ts.filter(t => ['EN_PROCESO', 'ESPERANDO_AGENTE'].includes(t.estatus));
+    } else if (f) {
+      ts = ts.filter(t => t.estatus === f);
+    }
     if (this.soloMios()) ts = ts.filter(t => t.agente_id === userId);
     if (this.filtroPrioridad) ts = ts.filter(t => t.prioridad === this.filtroPrioridad);
+    if (this.busqueda.trim()) {
+      const q = this.busqueda.trim().toLowerCase();
+      ts = ts.filter(t =>
+        t.folio.toLowerCase().includes(q) ||
+        t.descripcion.toLowerCase().includes(q) ||
+        String(t.tienda_id).includes(q) ||
+        (t.tipificacion?.area_tecnica ?? '').toLowerCase().includes(q) ||
+        (t.tipificacion?.problema ?? '').toLowerCase().includes(q)
+      );
+    }
     return ts.sort((a, b) =>
       (PRIORIDAD_ORDER[a.prioridad] ?? 9) - (PRIORIDAD_ORDER[b.prioridad] ?? 9)
     );
@@ -362,16 +452,16 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
 
   grupoNombre = computed(() => {
     const user = this.auth.currentUser();
-    return user?.grupo_id ? `Grupo #${user.grupo_id}` : 'Sin grupo';
+    return (user as any)?.grupo_nombre ?? (user?.grupo_id ? `Grupo #${user.grupo_id}` : 'Sin grupo');
   });
 
   statusFilters = [
     { label: 'Todos', value: '', count: (c: any) => 0 },
-    { label: 'Sin asignar', value: 'NUEVO', count: (c: any) => c.sin_asignar },
-    { label: 'Abiertos', value: 'ASIGNADO', count: (c: any) => 0 },
-    { label: 'En proceso', value: 'EN_PROCESO', count: (c: any) => 0 },
-    { label: 'Confirmar', value: 'ESPERANDO_TIENDA', count: (c: any) => c.confirmar },
-    { label: 'Vencidos', value: '__vencidos__', count: (c: any) => c.vencidos },
+    { label: 'Sin tomar', value: '__sin_asignar__', count: (c: any) => c.sin_asignar },
+    { label: 'En proceso', value: 'EN_PROCESO', count: (c: any) => c.en_proceso },
+    { label: 'Esp. agente', value: 'ESPERANDO_AGENTE', count: (c: any) => 0 },
+    { label: 'Esp. tienda', value: 'ESPERANDO_TIENDA', count: (c: any) => c.confirmar },
+    { label: 'SLA vencidos', value: '__vencidos__', count: (c: any) => c.vencidos },
   ];
 
   constructor(
@@ -400,4 +490,10 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
   }
 
   applyFilters() { /* reactive via computed */ }
+  isVencido(t: TicketListItem): boolean {
+    if (!t.sla_limite) return false;
+    if (['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus)) return false;
+    return new Date(t.sla_limite) < new Date();
+  }
+
 }

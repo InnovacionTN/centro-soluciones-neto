@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TicketService, Grupo } from '../../core/services/ticket.service';
+import { TicketService, Grupo, Plantilla } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
@@ -13,7 +13,13 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
   NUEVO: [{ label: 'Tomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   ASIGNADO: [{ label: 'Tomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   EN_PROCESO: [{ label: 'Enviar solución', estatus: 'ESPERANDO_TIENDA', cls: 'btn--success', requiresText: true }],
-  ESPERANDO_TIENDA: [],
+  ESPERANDO_TIENDA: [
+    { label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' }
+  ],
+  ESPERANDO_AGENTE: [
+    { label: 'Enviar solución', estatus: 'ESPERANDO_TIENDA', cls: 'btn--primary', requiresText: true },
+    { label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' }
+  ],
   RECHAZADO: [{ label: 'Retomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   RESUELTO: [{ label: 'Cerrar ticket', estatus: 'CERRADO', cls: 'btn--ghost' }],
 };
@@ -110,6 +116,22 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
                           {{ ev.comentario }}
                         </div>
                       }
+                      @if (ev.evidencia) {
+                        <div class="ev-inline">
+                          @if (isImg(ev.evidencia.tipo_mime)) {
+                            <a [href]="ev.evidencia.url" target="_blank">
+                              <img [src]="ev.evidencia.url" [alt]="ev.evidencia.nombre_archivo" class="ev-inline-img" />
+                            </a>
+                          } @else {
+                            <a [href]="ev.evidencia.url" target="_blank" class="ev-inline-file">
+                              📎 {{ ev.evidencia.nombre_archivo }}
+                              @if (ev.evidencia.tamanio_bytes) {
+                                <span class="text-muted"> ({{ (ev.evidencia.tamanio_bytes / 1024).toFixed(0) }} KB)</span>
+                              }
+                            </a>
+                          }
+                        </div>
+                      }
                     </div>
                   </div>
                 }
@@ -122,23 +144,62 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
         @if (ticket()) {
           <div class="action-col">
 
-            <!-- Sugerencia IA -->
-            @if (ticket()!.ia_sugerencia_solucion) {
-              <div class="ia-suggestion">
-                <div class="ia-suggestion__header">
-                  <span class="ia-chip"><span>✦</span> Sugerencia de la IA</span>
-                  <button class="btn btn--ghost btn--sm" (click)="usarSugerencia()">Usar →</button>
-                </div>
-                <p class="ia-suggestion__text">{{ ticket()!.ia_sugerencia_solucion }}</p>
-              </div>
-            }
-
             <!-- Área de respuesta -->
             <div class="card">
               <h3 class="section-h">Respuesta al ticket</h3>
 
+              @if (['NUEVO','ASIGNADO'].includes(ticket()!.estatus)) {
+                <div class="tomar-templates">
+                  <p class="tomar-templates__label">Selecciona un mensaje de confirmación para la tienda:</p>
+                  @for (tp of tomarPlantillas; track tp.id) {
+                    <button class="tomar-tpl-item" (click)="usarTomarPlantilla(tp.texto)">
+                      <span class="tomar-tpl-titulo">{{ tp.label }}</span>
+                      <span class="tomar-tpl-preview">{{ tp.preview }}</span>
+                    </button>
+                  }
+                </div>
+              }
+
               <div class="field mt-4">
-                <label class="field__label">Comentario / Solución</label>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+                  <label class="field__label">Comentario / Solución</label>
+  <button
+                    class="btn btn--ghost btn--sm"
+                    style="font-size:11px"
+                    (click)="togglePlantillas()"
+                  >
+                    {{ showPlantillas() ? '✕' : '⚡ Plantillas' }}
+                  </button>
+                  <label class="btn btn--ghost btn--sm" style="font-size:11px;cursor:pointer">
+                    📎
+                    <input type="file" style="display:none"
+                      accept=".jpg,.jpeg,.png,.webp,.pdf,.mp4"
+                      (change)="adjuntarArchivo($event)" />
+                  </label>
+                  @if (adjuntoSeleccionado()) {
+                    <span class="adj-chip">
+                      {{ adjuntoSeleccionado()!.nombre }}
+                      <button (click)="quitarAdjunto()">✕</button>
+                    </span>
+                  }
+                </div>
+
+                @if (showPlantillas() && plantillas().length > 0) {
+                  <div class="plantillas-list">
+                    @for (p of plantillas(); track p.id) {
+                      <button class="plantilla-item" (click)="usarPlantilla(p)">
+                        <span class="plantilla-titulo">{{ p.titulo }}</span>
+                        @if (p.area_tecnica) {
+                          <span class="badge badge--gray" style="font-size:10px">{{ p.area_tecnica }}</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+                @if (showPlantillas() && plantillas().length === 0) {
+                  <p class="text-sm text-muted" style="padding:8px 0">No hay plantillas para esta área.</p>
+                }
+
                 <textarea
                   class="input"
                   [(ngModel)]="comentario"
@@ -178,7 +239,12 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
                 }
 
                 @if (!nextActions().length && ticket()!.estatus === 'ESPERANDO_TIENDA') {
-                  <div class="esperando-box">⏳ Esperando confirmación de la tienda</div>
+                  <div class="esperando-box">⏳ Esperando respuesta de la tienda</div>
+                }
+                @if (ticket()!.estatus === 'ESPERANDO_AGENTE') {
+                  <div class="esperando-box" style="background:var(--c-teal-lt);border-color:var(--c-teal-md);color:var(--c-teal)">
+                    ↩ La tienda respondió — continúa la atención
+                  </div>
                 }
               </div>
             </div>
@@ -287,15 +353,6 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
     .sla-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
     .sla-vencido { color: var(--c-red); font-weight: 500; }
     .ia-badge-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .ia-suggestion {
-      background: var(--c-teal-lt);
-      border: 1px solid var(--c-teal-md);
-      border-radius: var(--radius-lg);
-      padding: 14px 16px;
-      margin-bottom: 12px;
-    }
-    .ia-suggestion__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .ia-suggestion__text { font-size: 13px; line-height: 1.6; color: var(--c-teal); }
     .action-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
     .error-msg {
       background: var(--c-red-lt);
@@ -321,6 +378,69 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
       border-radius: var(--radius-md);
       font-size: 13px; color: var(--c-amber); text-align: center;
     }
+    .tomar-templates {
+      background: var(--c-blue-lt);
+      border: 1px solid var(--c-blue-md);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .tomar-templates__label {
+      font-size: 11px; font-weight: 600; color: var(--c-blue);
+      text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px;
+    }
+    .tomar-tpl-item {
+      display: flex; flex-direction: column; gap: 2px;
+      width: 100%; padding: 8px 12px;
+      background: white; border: 1px solid var(--c-blue-md);
+      border-radius: var(--radius-sm); text-align: left;
+      cursor: pointer; transition: background .1s;
+    }
+    .tomar-tpl-item:hover { background: var(--c-blue-lt); }
+    .tomar-tpl-titulo { font-size: 12px; font-weight: 600; color: var(--c-blue); }
+    .tomar-tpl-preview { font-size: 11px; color: var(--c-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .plantillas-list {
+      max-height: 160px;
+      overflow-y: auto;
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      margin-bottom: 8px;
+      background: var(--c-surface);
+    }
+    .plantilla-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      border-bottom: 0.5px solid var(--c-border);
+      text-align: left;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--c-text);
+      transition: background .1s;
+    }
+    .plantilla-item:last-child { border-bottom: none; }
+    .plantilla-item:hover { background: var(--c-blue-lt); }
+    .plantilla-titulo { font-weight: 500; }
+    .adj-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      background: var(--c-blue-lt);
+      color: var(--c-blue);
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+    .adj-chip button { background:none;border:none;cursor:pointer;color:inherit;font-size:12px;padding:0; }
     .escalacion-section { margin-top: 12px; }
     .escalacion-btn { border-color: var(--c-amber-md); color: var(--c-amber); font-size: 13px; }
     .escalacion-btn:hover { background: var(--c-amber-lt); }
@@ -338,6 +458,28 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
     }
     .meta-row:last-child { border-bottom: none; }
     .meta-label { color: var(--c-muted); font-size: 12px; }
+    .ev-inline { margin-top: 8px; }
+    .ev-inline-img {
+      max-width: 220px;
+      max-height: 140px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--c-border);
+      cursor: pointer;
+      display: block;
+    }
+    .ev-inline-file {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--c-blue);
+      text-decoration: none;
+      padding: 4px 8px;
+      background: var(--c-blue-lt);
+      border-radius: 4px;
+    }
+    .ev-inline-file:hover { text-decoration: underline; }
     .badge-interno {
       display: inline-block; font-size: 10px; font-weight: 600;
       padding: 1px 6px; border-radius: 8px;
@@ -364,8 +506,32 @@ export class AgenteTicketComponent implements OnInit {
   grupos = signal<Grupo[]>([]);
   grupoSeleccionado = '';
   motivoEscalacion = '';
+  plantillas = signal<Plantilla[]>([]);
+  showPlantillas = signal(false);
+  adjuntoSeleccionado = signal<{ id: number; nombre: string } | null>(null);
 
   nextActions = () => NEXT_ACTIONS[this.ticket()?.estatus ?? ''] ?? [];
+
+  readonly tomarPlantillas = [
+    {
+      id: 1,
+      label: 'Confirmación estándar',
+      preview: 'Hemos recibido tu reporte y ya lo estamos atendiendo...',
+      texto: 'Hemos recibido tu reporte y ya lo estamos atendiendo. Te mantendremos informado sobre el avance y cualquier actualización.',
+    },
+    {
+      id: 2,
+      label: 'En revisión con el equipo',
+      preview: 'Entendido. Hemos tomado tu caso y nuestro equipo está trabajando...',
+      texto: 'Entendido. Hemos tomado tu caso y nuestro equipo ya está trabajando en ello. Te contactaremos a la brevedad con una solución.',
+    },
+    {
+      id: 3,
+      label: 'Atención prioritaria',
+      preview: 'Tu reporte ha sido tomado con prioridad. Estamos en proceso...',
+      texto: 'Tu reporte ha sido tomado con prioridad. Estamos en proceso de diagnóstico y resolución. Nos pondremos en contacto contigo muy pronto.',
+    },
+  ];
 
   constructor(
     private route: ActivatedRoute,
@@ -382,8 +548,8 @@ export class AgenteTicketComponent implements OnInit {
     });
   }
 
-  usarSugerencia() {
-    this.comentario = this.ticket()?.ia_sugerencia_solucion ?? '';
+  usarTomarPlantilla(texto: string) {
+    this.comentario = texto;
   }
 
   executeAction(action: { estatus: EstatusTicket; requiresText?: boolean }) {
@@ -401,6 +567,7 @@ export class AgenteTicketComponent implements OnInit {
       solucion_propuesta: action.estatus === 'ESPERANDO_TIENDA' ? this.comentario : undefined,
       comentario: this.comentario || undefined,
       tipo_comentario: this.esNotaInterna ? 'INTERNO' : 'PUBLICO',
+      evidencia_id: this.adjuntoSeleccionado()?.id ?? undefined,
     }).subscribe({
       next: t => {
         this.ticket.set(t);
@@ -408,6 +575,7 @@ export class AgenteTicketComponent implements OnInit {
         this.pendingStatus.set(null);
         this.comentario = '';
         this.esNotaInterna = false;
+        this.adjuntoSeleccionado.set(null);
       },
       error: err => {
         this.updating.set(false);
@@ -420,6 +588,21 @@ export class AgenteTicketComponent implements OnInit {
   canEscalar() {
     const s = this.ticket()?.estatus;
     return s && ['NUEVO', 'ASIGNADO', 'EN_PROCESO', 'RECHAZADO'].includes(s);
+  }
+
+  togglePlantillas() {
+    const next = !this.showPlantillas();
+    this.showPlantillas.set(next);
+    if (next && this.plantillas().length === 0) {
+      const area = this.ticket()?.tipificacion?.area_tecnica;
+      this.ticketSvc.getPlantillas(area ?? undefined)
+        .subscribe(ps => this.plantillas.set(ps));
+    }
+  }
+
+  usarPlantilla(p: Plantilla) {
+    this.comentario = p.contenido;
+    this.showPlantillas.set(false);
   }
 
   toggleEscalacion() {
@@ -472,9 +655,28 @@ export class AgenteTicketComponent implements OnInit {
       CREACION: 'Reporte creado', ASIGNACION_AUTO: 'Asignado automáticamente (IA)',
       ASIGNACION: 'Reasignado', CAMBIO_ESTADO: 'Cambio de estado',
       ACTUALIZACION: 'Actualización', ESCALACION: 'Escalado a otro grupo',
+      RESPUESTA_TIENDA: 'Tienda respondió',
     };
     return map[a] ?? a;
   }
+
+  adjuntarArchivo(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    // Subir el archivo y guardar el ID devuelto
+    const fd = new FormData();
+    fd.append('file', file);
+    this.ticketSvc.uploadEvidencia(this.ticket()!.id, fd).subscribe({
+      next: ev => this.adjuntoSeleccionado.set({ id: ev.id, nombre: file.name }),
+      error: () => { },
+    });
+    input.value = '';
+  }
+
+  quitarAdjunto() { this.adjuntoSeleccionado.set(null); }
+
+  isImg(mime: string | null) { return mime?.startsWith('image/') ?? false; }
 
   dotClass(a: string) {
     if (a === 'ASIGNACION_AUTO') return 'timeline__dot--teal';
