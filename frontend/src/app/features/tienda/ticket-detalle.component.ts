@@ -219,6 +219,45 @@ const ACCION_ICON: Record<string, string> = {
             </div>
           }
 
+          <!-- Opción de reabrir para tickets RESUELTOS -->
+          @if (ticket()!.estatus === 'RESUELTO') {
+            <div class="card mt-4" style="border-left: 4px solid var(--c-amber)">
+              <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                  <h3 class="section-h" style="margin-bottom:2px; font-size:15px; font-weight:600;">¿El problema persiste?</h3>
+                  <p class="text-sm text-muted">Aún puedes reabrir este reporte si la solución no fue efectiva.</p>
+                </div>
+                <button
+                  class="btn btn--ghost"
+                  (click)="showRejection.set(!showRejection())"
+                >
+                  ✕ Reabrir reporte
+                </button>
+              </div>
+
+              @if (showRejection()) {
+                <div class="mt-4 slide-down">
+                  <div class="field">
+                    <label class="field__label field__label--required">Motivo de reapertura</label>
+                    <textarea
+                      class="input"
+                      placeholder="Explica qué ocurrió..."
+                      [(ngModel)]="rechazarMotivo"
+                    ></textarea>
+                  </div>
+                  <button
+                    class="btn btn--danger mt-4"
+                    [class.btn--loading]="updatingStatus()"
+                    (click)="rechazar()"
+                    [disabled]="updatingStatus() || !rechazarMotivo"
+                  >
+                    Confirmar reapertura
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
           <!-- CSAT — botón que abre modal -->
           @if ((ticket()!.estatus === 'RESUELTO' || ticket()!.estatus === 'CERRADO') && !ticket()!.csat_score) {
             <div class="card mt-4 csat-card">
@@ -342,7 +381,6 @@ const ACCION_ICON: Record<string, string> = {
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; }
     .detail-header {
       display: flex;
       justify-content: space-between;

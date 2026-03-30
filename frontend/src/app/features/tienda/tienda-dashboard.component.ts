@@ -5,6 +5,7 @@ import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+import { DanyChatComponent } from './dany-chat.component';
 import { TicketListItem } from '../../core/models';
 
 const STATUS_FILTERS: { label: string; value: string }[] = [
@@ -19,49 +20,51 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
 @Component({
   selector: 'app-tienda-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, NavbarComponent, StatusBadgeComponent],
+  imports: [CommonModule, RouterModule, NavbarComponent, StatusBadgeComponent, DanyChatComponent],
   template: `
     <div class="page">
       <app-navbar section="Mi tienda" />
 
-      <div class="content">
+      <div class="t-layout">
 
-        <!-- Top bar -->
-        <div class="top-bar">
-          <div>
-            <h1 class="page-title">Mis reportes</h1>
-            <p class="page-sub">Tienda #{{ auth.currentUser()?.tienda_id }}</p>
+        <!-- ── Topbar ── -->
+        <header class="t-topbar">
+          <div class="t-topbar-left">
+            <span class="t-topbar-title">Mis reportes</span>
+            <span class="t-topbar-sub">Tienda #{{ auth.currentUser()?.tienda_id }}</span>
           </div>
-          <a routerLink="/tienda/nuevo" class="btn btn--primary">
-            + Nuevo reporte
-          </a>
-        </div>
+          <div class="t-topbar-actions">
+            <a routerLink="/tienda/nuevo" class="btn btn--primary btn--sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Nuevo reporte
+            </a>
+          </div>
+        </header>
 
-        <!-- KPIs -->
-        <div class="kpi-row">
-          <div class="kpi-card">
-            <span class="kpi-val">{{ counts().abiertos }}</span>
-            <span class="kpi-label">Abiertos</span>
-          </div>
-          <div class="kpi-card kpi-card--purple">
-            <span class="kpi-val">{{ counts().proceso }}</span>
-            <span class="kpi-label">En proceso</span>
-          </div>
-          <div class="kpi-card kpi-card--amber">
-            <span class="kpi-val">{{ counts().confirmar }}</span>
-            <span class="kpi-label">Por confirmar</span>
-          </div>
-          <div class="kpi-card kpi-card--green">
-            <span class="kpi-val">{{ counts().resueltos }}</span>
-            <span class="kpi-label">Resueltos</span>
-          </div>
-        </div>
+        <!-- ── Body: contenido + handle + Dany ── -->
+        <div class="t-body">
 
-        <!-- Layout 2 columnas: tabla | Daby -->
-        <div class="main-grid">
-
-          <!-- Columna izquierda: tabla de tickets -->
-          <div class="tickets-col">
+          <!-- Left: scrollable -->
+          <div class="t-main">
+            <!-- KPIs -->
+            <div class="kpi-row">
+              <div class="kpi-card">
+                <span class="kpi-val">{{ counts().abiertos }}</span>
+                <span class="kpi-label">Abiertos</span>
+              </div>
+              <div class="kpi-card kpi-card--purple">
+                <span class="kpi-val">{{ counts().proceso }}</span>
+                <span class="kpi-label">En proceso</span>
+              </div>
+              <div class="kpi-card kpi-card--amber">
+                <span class="kpi-val">{{ counts().confirmar }}</span>
+                <span class="kpi-label">Por confirmar</span>
+              </div>
+              <div class="kpi-card kpi-card--green">
+                <span class="kpi-val">{{ counts().resueltos }}</span>
+                <span class="kpi-label">Resueltos</span>
+              </div>
+            </div>
 
             <!-- Filtros -->
             <div class="filter-bar">
@@ -120,115 +123,111 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
             }
           </div>
 
-          <!-- Columna derecha: Daby -->
-          <aside class="daby-col">
-            <div class="daby-card">
+          <!-- Handle Dany -->
+          <button class="t-dany-handle" (click)="danyVisible.set(!danyVisible())"
+            [title]="danyVisible() ? 'Ocultar Dany' : 'Mostrar Dany'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              @if (danyVisible()) {
+                <polyline points="15 18 9 12 15 6"/>
+              } @else {
+                <polyline points="9 18 15 12 9 6"/>
+              }
+            </svg>
+          </button>
 
-              <!-- Header -->
-              <div class="daby-header">
-                <div class="daby-avatar-wrap">
-                  <div class="daby-avatar">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L14.5 9.5H22L16 14L18.5 21.5L12 17L5.5 21.5L8 14L2 9.5H9.5L12 2Z"
-                        fill="white" opacity=".9"/>
-                    </svg>
-                  </div>
-                  <span class="daby-dot"></span>
-                </div>
-                <div class="daby-title-wrap">
-                  <div class="daby-name-row">
-                    <span class="daby-name">Dany</span>
-                    <span class="daby-badge">IA</span>
-                  </div>
-                  <span class="daby-subtitle">Asistente de tienda · Slack</span>
-                </div>
-                <span class="daby-online">● En línea</span>
-              </div>
-
-              <div class="daby-divider"></div>
-
-              <!-- Descripción -->
-              <p class="daby-desc">
-                Hola, soy Dany. Estoy aquí para ayudarte de forma inmediata sin necesidad de abrir un reporte.
-              </p>
-
-              <!-- Capacidades -->
-              <p class="daby-section-label">Puedo ayudarte con:</p>
-              <ul class="daby-list">
-                <li>
-                  <span class="daby-list-icon">🔄</span>
-                  <div>
-                    <strong>Sincronizar precios</strong>
-                    <span>Actualiza precios y catálogo en tu sistema</span>
-                  </div>
-                </li>
-                <li>
-                  <span class="daby-list-icon">🏷</span>
-                  <div>
-                    <strong>Aplicar promociones</strong>
-                    <span>Activa descuentos y ofertas vigentes</span>
-                  </div>
-                </li>
-                <li>
-                  <span class="daby-list-icon">📋</span>
-                  <div>
-                    <strong>Info de soporte</strong>
-                    <span>Consulta procedimientos y guías</span>
-                  </div>
-                </li>
-                <li>
-                  <span class="daby-list-icon">❓</span>
-                  <div>
-                    <strong>Dudas operativas</strong>
-                    <span>Preguntas del día a día en tienda</span>
-                  </div>
-                </li>
-              </ul>
-
-              <div class="daby-divider"></div>
-
-              <!-- CTA -->
-              <div class="daby-cta-wrap">
-                <a href="https://tiendasnetooperacion.slack.com/archives/D0ANSCLTY14" class="daby-slack-btn">
-                  <svg width="18" height="18" viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M19.7 33.6a3.5 3.5 0 01-3.5 3.5 3.5 3.5 0 01-3.5-3.5 3.5 3.5 0 013.5-3.5H19.7v3.5z" fill="#E01E5A"/>
-                    <path d="M21.4 33.6a3.5 3.5 0 013.5-3.5 3.5 3.5 0 013.5 3.5v8.7a3.5 3.5 0 01-3.5 3.5 3.5 3.5 0 01-3.5-3.5v-8.7z" fill="#E01E5A"/>
-                    <path d="M24.9 19.7a3.5 3.5 0 01-3.5-3.5 3.5 3.5 0 013.5-3.5 3.5 3.5 0 013.5 3.5V19.7H24.9z" fill="#36C5F0"/>
-                    <path d="M24.9 21.4a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5h-8.7a3.5 3.5 0 01-3.5-3.5 3.5 3.5 0 013.5-3.5h8.7z" fill="#36C5F0"/>
-                    <path d="M38.8 24.9a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5 3.5 3.5 0 01-3.5-3.5V24.9h3.5z" fill="#2EB67D"/>
-                    <path d="M37.1 24.9a3.5 3.5 0 01-3.5 3.5 3.5 3.5 0 01-3.5-3.5v-8.7a3.5 3.5 0 013.5-3.5 3.5 3.5 0 013.5 3.5v8.7z" fill="#2EB67D"/>
-                    <path d="M33.6 38.8a3.5 3.5 0 013.5-3.5 3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5H33.6v-3.5z" fill="#ECB22E"/>
-                    <path d="M33.6 37.1a3.5 3.5 0 01-3.5-3.5 3.5 3.5 0 013.5-3.5h8.7a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5H33.6z" fill="#ECB22E"/>
-                  </svg>
-                  <span>Necesito ayuda · Háblame</span>
-                </a>
-              </div>
-
-              <p class="daby-footer">
-                Ganando nuevas funciones continuamente. Si tu problema es más complejo, usa el botón <strong>+ Nuevo reporte</strong>.
-              </p>
-            </div>
-          </aside>
+          <!-- Right: Dany full-height -->
+          <div class="t-dany" [class.t-dany--hidden]="!danyVisible()">
+            <app-dany-chat />
+          </div>
 
         </div>
       </div>
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; background: var(--c-bg); }
-    .content { max-width: 1300px; margin: 0 auto; padding: 28px 24px; width: 100%; }
+    /* ── Layout principal ── */
+    .t-layout {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      min-width: 0;
+    }
 
-    /* Top bar */
-    .top-bar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
-    .page-title { font-size: 22px; font-weight: 600; }
-    .page-sub   { font-size: 13px; color: var(--c-muted); margin-top: 2px; }
+    /* ── Topbar ── */
+    .t-topbar {
+      height: 56px;
+      flex-shrink: 0;
+      background: var(--c-surface);
+      border-bottom: 1px solid var(--c-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      gap: 16px;
+    }
+    .t-topbar-left { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+    .t-topbar-title { font-size: 16px; font-weight: 700; color: var(--c-text); white-space: nowrap; }
+    .t-topbar-sub { font-size: 12px; color: var(--c-muted); white-space: nowrap; }
+    .t-topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .btn--sm { padding: 7px 14px; font-size: 13px; }
+
+    /* ── Body row ── */
+    .t-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .t-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 28px;
+      min-width: 0;
+    }
+
+    /* ── Handle toggle Dany ── */
+    .t-dany-handle {
+      width: 24px;
+      flex-shrink: 0;
+      background: var(--c-blue);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: filter .15s;
+      color: white;
+      padding: 0;
+    }
+    .t-dany-handle:hover { filter: brightness(0.85); }
+
+    /* ── Panel Dany ── */
+    .t-dany {
+      width: 380px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--c-border);
+      transition: width .25s ease, opacity .2s ease;
+      overflow: hidden;
+    }
+    .t-dany--hidden { width: 0; opacity: 0; border-left: none; pointer-events: none; }
+    @media (max-width: 1200px) { .t-dany { width: 340px; } }
+    @media (max-width: 900px) {
+      .t-layout { height: 100vh; }
+      .t-body { flex-direction: column; overflow: auto; }
+      .t-dany-handle { display: none; }
+      .t-dany { width: 100%; height: 480px; border-left: none; border-top: 1px solid var(--c-border); }
+      .t-dany--hidden { width: 100%; height: 0; }
+    }
 
     /* KPIs */
     .kpi-row {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
     .kpi-card {
       background: var(--c-surface);
@@ -243,21 +242,6 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
     .kpi-val   { font-size: 28px; font-weight: 600; line-height: 1; }
     .kpi-label { font-size: 12px; color: var(--c-muted); }
     @media (max-width: 600px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
-
-    /* ── Main 2-col grid ── */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-      align-items: start;
-    }
-    @media (max-width: 900px) {
-      .main-grid { grid-template-columns: 1fr; }
-      .daby-col  { order: -1; }  /* Daby arriba en mobile */
-    }
-
-    /* Columna tickets */
-    .tickets-col { min-width: 0; }
 
     /* Filtros */
     .filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -310,109 +294,13 @@ const STATUS_FILTERS: { label: string; value: string }[] = [
     .skeleton { background: var(--c-border); animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 
-    /* ══════════ DABY CARD ══════════ */
-    .daby-col { position: sticky; top: 72px; }
-    .daby-card {
-      background: #FAFAFE;
-      border: 1px solid #C7D2FE;
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 2px 12px rgba(79,70,229,.08);
-    }
-
-    .daby-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 16px 18px 14px;
-      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-    }
-    .daby-avatar-wrap { position: relative; flex-shrink: 0; }
-    .daby-avatar {
-      width: 44px; height: 44px;
-      border-radius: 50%;
-      background: rgba(255,255,255,.2);
-      border: 2px solid rgba(255,255,255,.4);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .daby-dot {
-      position: absolute; bottom: 0; right: 0;
-      width: 11px; height: 11px;
-      background: #4ADE80;
-      border-radius: 50%;
-      border: 2px solid white;
-    }
-    .daby-title-wrap { flex: 1; min-width: 0; }
-    .daby-name-row { display: flex; align-items: center; gap: 7px; }
-    .daby-name { font-size: 16px; font-weight: 700; color: white; }
-    .daby-badge {
-      font-size: 10px; font-weight: 700;
-      background: rgba(255,255,255,.25);
-      color: white;
-      padding: 1px 7px; border-radius: 8px;
-      letter-spacing: .06em;
-    }
-    .daby-subtitle { font-size: 11px; color: rgba(255,255,255,.75); }
-    .daby-online { font-size: 11px; color: #4ADE80; font-weight: 600; white-space: nowrap; }
-
-    .daby-divider { height: 1px; background: #E0E7FF; margin: 0; }
-
-    .daby-desc {
-      font-size: 13px; color: #3730A3; line-height: 1.5;
-      padding: 14px 18px 10px;
-    }
-    .daby-section-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: .07em; color: #6366F1;
-      padding: 0 18px 8px;
-    }
-
-    .daby-list {
-      list-style: none; padding: 0 18px; margin: 0 0 4px;
-      display: flex; flex-direction: column; gap: 10px;
-    }
-    .daby-list li {
-      display: flex; align-items: flex-start; gap: 10px;
-    }
-    .daby-list-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-    .daby-list strong { display: block; font-size: 12px; color: #312E81; font-weight: 600; }
-    .daby-list span   { display: block; font-size: 11px; color: #6366F1; line-height: 1.3; }
-
-    .daby-cta-wrap {
-      margin: 14px 18px 0;
-    }
-    .daby-slack-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 11px 16px;
-      background: #4A154B;
-      color: white;
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 10px;
-      border: none;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background .15s, transform .1s;
-    }
-    .daby-slack-btn:hover { background: #3a1039; transform: translateY(-1px); }
-    .daby-slack-btn:active { transform: translateY(0); }
-
-    .daby-footer {
-      font-size: 11px; color: #818CF8; line-height: 1.4;
-      padding: 10px 18px 16px;
-      text-align: center;
-    }
-    .daby-footer strong { color: #4F46E5; }
   `],
 })
 export class TiendaDashboardComponent implements OnInit {
   tickets = signal<TicketListItem[]>([]);
   loading = signal(true);
   filtroActivo = signal('');
+  danyVisible = signal(true);
   statusFilters = STATUS_FILTERS;
 
   counts = computed(() => {

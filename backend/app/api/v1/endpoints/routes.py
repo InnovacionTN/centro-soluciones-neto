@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
@@ -13,6 +14,7 @@ from app.core.security import (
     verify_password,
     hash_password,
 )
+from app.core.config import get_settings
 from app.models.models import (
     Ticket,
     Usuario,
@@ -31,6 +33,7 @@ from app.models.models import (
     TipoTicket,
     PlantillaRespuesta,
     PrioridadTicket,
+    IncidenteMasivo,
 )
 from app.schemas.schemas import (
     LoginRequest,
@@ -61,6 +64,14 @@ from app.schemas.schemas import (
     PlantillaOut,
     KpiAgente,
     CsatRequest,
+    TicketSimilarOut,
+    TicketIntakeRequest,
+    TicketIntakeResponse,
+    TorreAlertaItem,
+    IncidenteMasivoCreate,
+    IncidenteMasivoOut,
+    IncidenteMasivoUpdate,
+    AgentDisponibilidadUpdate,
 )
 from app.services.ia_service import classify_with_ai, suggest_solution
 from app.services.ticket_service import (
@@ -171,6 +182,7 @@ def me(
         "grupo_id": current_user.grupo_id,
         "grupo_nombre": grupo_nombre,
         "activo": current_user.activo,
+        "disponible": current_user.disponible,
     }
 
 
@@ -267,6 +279,113 @@ async def create_ticket(
         )
         .filter(Ticket.id == ticket.id)
         .first()
+    )
+
+
+@router.post("/tickets/intake", response_model=TicketIntakeResponse, status_code=201)
+async def ticket_intake(
+    body: TicketIntakeRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN, RolUsuario.AGENTE)),
+):
+    """
+    Endpoint de ingesta para agentes externos (Javier/WhatsApp).
+    Acepta el formato nativo de Javier y hace el mapeo internamente:
+    - store_name → tienda_id (lookup por nombre)
+    - priority  → PrioridadTicket
+    - status    → si "completo" → marca RESUELTO y registra CSAT si rating presente
+    - area      → ignorado, la IA determina el área
+    """
+    # 1. Buscar tienda por nombre (insensible a mayúsculas, match parcial)
+    store_name_clean = body.store_name.strip()
+    tienda = (
+        db.query(Tienda)
+        .filter(Tienda.nombre.ilike(f"%{store_name_clean}%"))
+        .first()
+    )
+    if not tienda:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Tienda no encontrada: '{store_name_clean}'. Verifique el nombre exacto.",
+        )
+
+    # 2. Mapear prioridad
+    prioridad_map = {
+        "alta": PrioridadTicket.ALTA,
+        "media": PrioridadTicket.MEDIA,
+        "baja": PrioridadTicket.BAJA,
+        "critica": PrioridadTicket.CRITICA,
+    }
+    prioridad = prioridad_map.get((body.priority or "media").lower(), PrioridadTicket.MEDIA)
+
+    # 3. Descripción completa
+    descripcion = body.summary
+    if body.reason:
+        descripcion = f"{body.summary}\n\nContexto: {body.reason}"
+
+    # 4. Clasificación IA
+    clasificacion = await classify_with_ai(descripcion, db)
+    solucion_ia = await suggest_solution(
+        descripcion,
+        clasificacion.tipificacion_nombre,
+        clasificacion.area_tecnica.value,
+        db,
+    )
+
+    # 5. Metadata con datos originales de Javier
+    metadata_extra = {}
+    if body.javier_folio:
+        metadata_extra["javier_folio"] = body.javier_folio
+    if body.customer_phone:
+        metadata_extra["customer_phone"] = body.customer_phone
+    if body.sentiment:
+        metadata_extra["sentiment"] = body.sentiment
+
+    # 6. Crear ticket
+    ticket = create_ticket_in_db(
+        db=db,
+        tienda_id=tienda.id,
+        descripcion=descripcion,
+        usuario_id=current_user.id,
+        tipificacion_id=clasificacion.tipificacion_id,
+        ia_clasificacion_aceptada=True,
+        ia_area=clasificacion.area_tecnica.value,
+        ia_tipificacion_id=clasificacion.tipificacion_id,
+        ia_confianza=clasificacion.confianza,
+        ia_sugerencia_solucion=solucion_ia,
+        metadata_extra=metadata_extra or None,
+    )
+
+    # Sobreescribir prioridad si Javier envió una explícita
+    if prioridad != ticket.prioridad:
+        ticket.prioridad = prioridad
+        db.commit()
+
+    # 7. Si ya está resuelto, marcar RESUELTO
+    csat_registrado = False
+    if (body.status or "").lower() == "completo":
+        ticket.estatus = EstatusTicket.RESUELTO
+        ticket.fecha_primera_respuesta = ticket.fecha_primera_respuesta or datetime.utcnow()
+        ticket.fecha_resolucion = datetime.utcnow()
+        ticket.fecha_cierre = datetime.utcnow()
+        log_event(db, ticket, current_user.id, "RESUELTO", comentario="Resuelto por agente externo (Javier)")
+        db.commit()
+
+        # 7b. Registrar CSAT si Javier envió rating
+        if body.rating and 1 <= body.rating <= 5:
+            ticket.csat_score = body.rating
+            ticket.csat_fecha = datetime.utcnow()
+            csat_registrado = True
+            db.commit()
+
+    db.refresh(ticket)
+
+    return TicketIntakeResponse(
+        folio=ticket.folio,
+        ticket_id=ticket.id,
+        estatus=ticket.estatus.value,
+        tienda_encontrada=tienda.nombre,
+        csat_registrado=csat_registrado,
     )
 
 
@@ -373,6 +492,67 @@ def get_ticket(
     return ticket
 
 
+# ─── Copiloto del Agente — Soluciones históricas ───────────────────────────────
+
+
+@router.get("/tickets/{ticket_id}/similares", response_model=list[TicketSimilarOut])
+def get_tickets_similares(
+    ticket_id: int,
+    limit: int = Query(default=5, ge=1, le=10),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.AGENTE, RolUsuario.ADMIN)),
+):
+    """
+    Devuelve hasta {limit} tickets CERRADOS con la misma tipificación,
+    ordenados por CSAT descendente (mejores soluciones primero) y luego
+    por fecha de cierre. Excluye el ticket actual.
+    Uso: panel "Soluciones Anteriores" en la vista del agente.
+    """
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+
+    if not ticket.tipificacion_id:
+        return []
+
+    similares = (
+        db.query(Ticket)
+        .filter(
+            Ticket.tipificacion_id == ticket.tipificacion_id,
+            Ticket.estatus == EstatusTicket.CERRADO,
+            Ticket.solucion_propuesta.isnot(None),
+            Ticket.id != ticket_id,
+        )
+        .order_by(
+            Ticket.csat_score.desc().nullslast(),
+            Ticket.fecha_cierre.desc(),
+        )
+        .limit(limit)
+        .all()
+    )
+
+    result = []
+    for s in similares:
+        tiempo = None
+        if s.fecha_apertura and s.fecha_cierre:
+            tiempo = round(
+                (s.fecha_cierre - s.fecha_apertura).total_seconds() / 3600, 1
+            )
+        result.append(
+            TicketSimilarOut(
+                id=s.id,
+                folio=s.folio,
+                descripcion=(s.descripcion or "")[:150],
+                solucion_propuesta=s.solucion_propuesta,
+                csat_score=s.csat_score,
+                fecha_cierre=s.fecha_cierre,
+                tiempo_resolucion_horas=tiempo,
+            )
+        )
+
+    return result
+
+
 @router.patch("/tickets/{ticket_id}", response_model=TicketOut)
 def update_ticket(
     ticket_id: int,
@@ -420,8 +600,10 @@ def update_ticket(
             ],
             EstatusTicket.RECHAZADO: [EstatusTicket.EN_PROCESO]
             + ([EstatusTicket.RESUELTO] if es_tienda_o_admin else []),
-            EstatusTicket.RESUELTO: [EstatusTicket.CERRADO],
+            EstatusTicket.RESUELTO: [EstatusTicket.CERRADO]
+            + ([EstatusTicket.RECHAZADO] if es_tienda_o_admin else []),
         }
+
         # Admin puede cancelar desde cualquier estado activo
         estados_activos = [
             EstatusTicket.NUEVO,
@@ -1520,7 +1702,110 @@ def auto_cierre_tickets(
         cerrados += 1
 
     db.commit()
-    return {"cerrados": cerrados, "horas_limite": horas}
+
+    # ── Recordatorio 12h: tickets ESPERANDO_TIENDA sin respuesta ────────────────
+    # Busca tickets donde la solución fue enviada hace entre 12 y 13 horas
+    # (ventana de 1h para no duplicar notas en cada ejecución del job)
+    limite_12h = datetime.utcnow() - timedelta(hours=12)
+    limite_13h = datetime.utcnow() - timedelta(hours=13)
+
+    tickets_sin_respuesta = (
+        db.query(Ticket)
+        .filter(
+            Ticket.estatus == EstatusTicket.ESPERANDO_TIENDA,
+            Ticket.fecha_primera_respuesta.isnot(None),
+            Ticket.fecha_primera_respuesta < limite_12h,
+            Ticket.fecha_primera_respuesta > limite_13h,
+        )
+        .all()
+    )
+
+    recordatorios = 0
+    sistema = (
+        db.query(Usuario)
+        .filter(Usuario.rol == RolUsuario.ADMIN)
+        .order_by(Usuario.id)
+        .first()
+    )
+    if sistema:
+        for ticket in tickets_sin_respuesta:
+            log_event(
+                db,
+                ticket,
+                sistema.id,
+                accion="ACTUALIZACION",
+                comentario=(
+                    "⏰ Recordatorio: la solución fue enviada hace 12 horas "
+                    "y la tienda aún no ha confirmado. Considera hacer seguimiento."
+                ),
+                tipo_comentario="INTERNO",
+            )
+            recordatorios += 1
+
+    db.commit()
+
+    # ── Detección automática de incidentes masivos ───────────────────────────────
+    # Si ≥3 tickets con la misma tipificación se abrieron en las últimas 2h
+    # y NO tienen ya un incidente vinculado → crear incidente automáticamente
+    hace_2h = datetime.utcnow() - timedelta(hours=2)
+    incidentes_creados = 0
+
+    tipificaciones_recientes = (
+        db.query(Ticket.tipificacion_id, func.count(Ticket.id).label("total"))
+        .filter(
+            Ticket.fecha_apertura >= hace_2h,
+            Ticket.tipificacion_id.isnot(None),
+            Ticket.incidente_id.is_(None),
+            Ticket.estatus.notin_([EstatusTicket.CANCELADO]),
+        )
+        .group_by(Ticket.tipificacion_id)
+        .having(func.count(Ticket.id) >= 3)
+        .all()
+    )
+
+    sistema_admin = (
+        db.query(Usuario).filter(Usuario.rol == RolUsuario.ADMIN).order_by(Usuario.id).first()
+    )
+
+    for tip_id, total in tipificaciones_recientes:
+        tip = db.query(Tipificacion).filter(Tipificacion.id == tip_id).first()
+        titulo = f"Incidente masivo: {tip.problema if tip else f'tipificación #{tip_id}'} ({total} tickets)"
+
+        incidente = IncidenteMasivo(
+            titulo=titulo,
+            descripcion=f"Detección automática: {total} tickets con la misma tipificación en las últimas 2 horas.",
+            tipificacion_id=tip_id,
+            estado="ACTIVO",
+            creado_por=sistema_admin.id if sistema_admin else 1,
+        )
+        db.add(incidente)
+        db.flush()
+
+        tickets_afectados = (
+            db.query(Ticket)
+            .filter(
+                Ticket.fecha_apertura >= hace_2h,
+                Ticket.tipificacion_id == tip_id,
+                Ticket.incidente_id.is_(None),
+            )
+            .all()
+        )
+        tiendas = set()
+        for t in tickets_afectados:
+            t.incidente_id = incidente.id
+            tiendas.add(t.tienda_id)
+
+        incidente.impacto_tiendas = len(tiendas)
+        incidentes_creados += 1
+
+    db.commit()
+
+    return {
+        "cerrados": cerrados,
+        "horas_limite": horas,
+        "recordatorios_12h": recordatorios,
+        "incidentes_detectados": incidentes_creados,
+    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1710,3 +1995,219 @@ def get_kpis_agentes(
     # Ordenar por tickets cerrados desc
     result.sort(key=lambda x: x.tickets_cerrados, reverse=True)
     return result
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPRINT 2 — TORRE DE CONTROL
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/admin/torre", response_model=list[TorreAlertaItem])
+def torre_control(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """
+    Vista de alertas para la Torre de Control (solo ADMIN).
+    Retorna tickets que requieren atención inmediata:
+    - SLA_VENCIDO: el SLA ya expiró
+    - SLA_PROXIMO: vence en las próximas 2 horas
+    - SIN_AGENTE: más de 1 hora sin agente asignado
+    - ESTANCADO: más de 24h en el mismo estado activo sin bitácora reciente
+    """
+    ahora = datetime.utcnow()
+    en_dos_horas = ahora + timedelta(hours=2)
+    hace_una_hora = ahora - timedelta(hours=1)
+    hace_24h = ahora - timedelta(hours=24)
+
+    estados_activos = [
+        EstatusTicket.NUEVO,
+        EstatusTicket.ASIGNADO,
+        EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA,
+        EstatusTicket.ESPERANDO_AGENTE,
+        EstatusTicket.RECHAZADO,
+    ]
+
+    tickets = (
+        db.query(Ticket)
+        .options(
+            joinedload(Ticket.tienda),
+            joinedload(Ticket.agente),
+            joinedload(Ticket.tipificacion),
+            joinedload(Ticket.eventos),
+        )
+        .filter(Ticket.estatus.in_(estados_activos))
+        .all()
+    )
+
+    alertas = []
+    for t in tickets:
+        horas_abierto = round((ahora - t.fecha_apertura).total_seconds() / 3600, 1)
+        alerta = None
+
+        if t.sla_vencido or (t.sla_limite and t.sla_limite < ahora):
+            alerta = "SLA_VENCIDO"
+        elif t.sla_limite and t.sla_limite <= en_dos_horas:
+            alerta = "SLA_PROXIMO"
+        elif t.estatus == EstatusTicket.NUEVO and t.fecha_apertura < hace_una_hora:
+            alerta = "SIN_AGENTE"
+        else:
+            # Estancado: sin eventos en las últimas 24h
+            ultimo_evento = t.eventos[-1].timestamp if t.eventos else t.fecha_apertura
+            if ultimo_evento < hace_24h:
+                alerta = "ESTANCADO"
+
+        if alerta:
+            alertas.append(
+                TorreAlertaItem(
+                    ticket_id=t.id,
+                    folio=t.folio,
+                    tienda=t.tienda.nombre if t.tienda else str(t.tienda_id),
+                    agente=t.agente.nombre if t.agente else None,
+                    tipificacion=t.tipificacion.problema if t.tipificacion else None,
+                    estatus=t.estatus.value,
+                    prioridad=t.prioridad.value,
+                    sla_limite=t.sla_limite,
+                    sla_vencido=bool(t.sla_vencido or (t.sla_limite and t.sla_limite < ahora)),
+                    horas_abierto=horas_abierto,
+                    alerta=alerta,
+                )
+            )
+
+    # Orden: SLA_VENCIDO primero, luego prioridad y horas
+    orden_alerta = {"SLA_VENCIDO": 0, "SLA_PROXIMO": 1, "SIN_AGENTE": 2, "ESTANCADO": 3}
+    orden_prioridad = {"CRITICA": 0, "ALTA": 1, "MEDIA": 2, "BAJA": 3}
+    alertas.sort(
+        key=lambda a: (
+            orden_alerta.get(a.alerta, 9),
+            orden_prioridad.get(a.prioridad, 9),
+            -a.horas_abierto,
+        )
+    )
+    return alertas
+
+
+@router.patch("/admin/usuarios/{usuario_id}/disponibilidad", response_model=UsuarioAdminOut)
+def set_disponibilidad(
+    usuario_id: int,
+    body: AgentDisponibilidadUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN, RolUsuario.AGENTE)),
+):
+    """
+    El agente puede marcar su propia disponibilidad (pausar/reanudar).
+    El admin puede cambiarlo para cualquier usuario.
+    """
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(404, "Usuario no encontrado")
+    if current_user.rol == RolUsuario.AGENTE and current_user.id != usuario_id:
+        raise HTTPException(403, "Solo puedes modificar tu propia disponibilidad")
+
+    usuario.disponible = body.disponible
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SPRINT 2 — INCIDENTES MASIVOS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/admin/incidentes", response_model=list[IncidenteMasivoOut])
+def list_incidentes(
+    estado: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN, RolUsuario.AGENTE)),
+):
+    """Lista incidentes masivos. ADMIN y AGENTE pueden consultar."""
+    q = db.query(IncidenteMasivo)
+    if estado:
+        q = q.filter(IncidenteMasivo.estado == estado.upper())
+    return q.order_by(IncidenteMasivo.fecha_inicio.desc()).all()
+
+
+@router.post("/admin/incidentes", response_model=IncidenteMasivoOut, status_code=201)
+def create_incidente(
+    body: IncidenteMasivoCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Crea un incidente masivo y opcionalmente vincula tickets existentes."""
+    incidente = IncidenteMasivo(
+        titulo=body.titulo,
+        descripcion=body.descripcion,
+        tipificacion_id=body.tipificacion_id,
+        estado="ACTIVO",
+        creado_por=current_user.id,
+        impacto_tiendas=0,
+    )
+    db.add(incidente)
+    db.flush()  # get id before linking tickets
+
+    tiendas_afectadas = set()
+    if body.ticket_ids:
+        tickets = db.query(Ticket).filter(Ticket.id.in_(body.ticket_ids)).all()
+        for t in tickets:
+            t.incidente_id = incidente.id
+            tiendas_afectadas.add(t.tienda_id)
+
+    incidente.impacto_tiendas = len(tiendas_afectadas)
+    db.commit()
+    db.refresh(incidente)
+    return incidente
+
+
+@router.patch("/admin/incidentes/{incidente_id}", response_model=IncidenteMasivoOut)
+def update_incidente(
+    incidente_id: int,
+    body: IncidenteMasivoUpdate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Actualiza o cierra un incidente masivo."""
+    incidente = db.query(IncidenteMasivo).filter(IncidenteMasivo.id == incidente_id).first()
+    if not incidente:
+        raise HTTPException(404, "Incidente no encontrado")
+
+    if body.titulo is not None:
+        incidente.titulo = body.titulo
+    if body.descripcion is not None:
+        incidente.descripcion = body.descripcion
+    if body.estado is not None:
+        incidente.estado = body.estado.upper()
+        if incidente.estado == "CERRADO" and not incidente.fecha_cierre:
+            incidente.fecha_cierre = datetime.utcnow()
+
+    db.commit()
+    db.refresh(incidente)
+    return incidente
+
+
+# ── Proxy Dany / n8n ──────────────────────────────────────────────────────────
+
+@router.get("/dany/debug")
+def dany_debug():
+    s = get_settings()
+    return {"DANY_WEBHOOK_URL": s.DANY_WEBHOOK_URL}
+
+@router.post("/dany/chat")
+async def dany_chat_proxy(
+    payload: dict,
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Reenvía el mensaje al webhook de n8n evitando CORS en el navegador."""
+    webhook_url = get_settings().DANY_WEBHOOK_URL
+    if not webhook_url:
+        raise HTTPException(status_code=503, detail="DANY_WEBHOOK_URL no configurada")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(webhook_url, json=payload)
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"n8n respondió {e.response.status_code}")
+    except httpx.RequestError:
+        raise HTTPException(status_code=502, detail="No se pudo conectar con el agente Dany")

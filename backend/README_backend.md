@@ -58,6 +58,7 @@ centro-soluciones/
 ## Instalación (desarrollo sin Docker)
 
 ### Requisitos
+
 - Python 3.11+
 - PostgreSQL (o cuenta en [Neon.tech](https://neon.tech) — gratis)
 
@@ -67,8 +68,7 @@ centro-soluciones/
 # 1. Clonar y crear entorno virtual
 cd centro-soluciones
 python -m venv venv
-venv\Scripts\Activate.ps1      # Windows
-# source venv/bin/activate     # Linux/Mac
+source venv/Scripts/activate   
 
 # 2. Instalar dependencias
 pip install -r requirements.txt
@@ -119,18 +119,21 @@ SLACK_DEFAULT_CHANNEL=#centro-soluciones-dev
 ## Endpoints de la API
 
 ### Autenticación
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/api/v1/auth/login` | Login — devuelve JWT |
 | GET | `/api/v1/auth/me` | Perfil del usuario autenticado |
 
 ### IA / Clasificación
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/api/v1/ai/classify` | Clasificar texto libre con Gemini |
 | GET | `/api/v1/tipificaciones` | Catálogo de tipificaciones |
 
 ### Tickets
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/api/v1/tickets` | Crear ticket |
@@ -140,6 +143,7 @@ SLACK_DEFAULT_CHANNEL=#centro-soluciones-dev
 | POST | `/api/v1/tickets/{id}/escalar` | Escalar a otro grupo |
 
 ### Evidencias
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | POST | `/api/v1/tickets/{id}/evidencias` | Subir evidencia (imagen/video/PDF) |
@@ -148,12 +152,14 @@ SLACK_DEFAULT_CHANNEL=#centro-soluciones-dev
 | GET | `/api/v1/evidencias/{archivo}` | Servir archivo (solo en dev local) |
 
 ### Grupos y Dashboard
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET | `/api/v1/grupos` | Listar grupos del CC |
 | GET | `/api/v1/dashboard` | Métricas agregadas |
 
 ### Admin (requieren rol ADMIN)
+
 | Método | Ruta | Descripción |
 |---|---|---|
 | GET/POST/PATCH | `/api/v1/admin/usuarios` | CRUD de usuarios |

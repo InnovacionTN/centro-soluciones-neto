@@ -1,0 +1,675 @@
+{
+  "name": "A-dany CSN",
+  "nodes": [
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit_Fields_CSN').first().json.id_slack }}",
+        "tableName": "adanytest1234"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        1520,
+        1136
+      ],
+      "id": "04030ca2-0603-41a7-a862-3d73ae2586d1",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "FUPrhwvYBQgx1csz",
+          "name": "Postgres NetoBox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-pro",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1392,
+        1136
+      ],
+      "id": "6e8039bb-f75c-4851-9d30-d5b5bc36dc4b",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "AbLmXEpA98GqU1aj",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Consulta precios de productos en lenguaje natural. Usa esta tool cuando el usuario pregunte por precios de productos específicos SIN enviar imagen. El parámetro \\\"consulta\\\" es el mensaje completo del usuario (ej: \\\"precio del fabuloso en la tienda 791\\\"). El sistema interpreta automáticamente qué tienda y productos buscar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "kR8AXf16ODBRqzRL",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kR8AXf16ODBRqzRL",
+          "cachedResultName": "consultar-precios"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulta', ``, 'string') }}",
+            "channel_id": "={{ $json.slack_channel_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta",
+              "displayName": "consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        1136
+      ],
+      "id": "8492e63a-f550-43bb-a10e-7afa9726778c",
+      "name": "consultar-precios"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}\n{{ $json.imagen_url }}\n\nHora_fecha_cdmx: {{ $now.setLocale('es').format('EEEE HH:mm:ss yyyy-MM-dd') }}\n\nNO ME INVENTES DATOS, USA LA TOOL OBLIGATORIAMENTE, TIENES PROBIHIDO INVENTAR\n\n-> CONTESTA EN FORMATO SLACK OBLIGATORIO:\n- **PROHIBIDO**: # ## ### *texto* __texto__ [links]\n- **PERMITIDO**: *negritas* _cursivas_ ~tachado~ `código` > citas • listas",
+        "options": {
+          "systemMessage": "=# DANY - ASISTENTE DE TIENDA\n## FUNCIÓN\nAyudar a los equipos de tienda con dos tareas principales:\n1. Sincronizar artículos en el sistema SIAN\n2. Resolver problemas de hardware de equipos en tienda\n\n## PERSONALIDAD Y COMUNICACIÓN\n\n### Quién eres:\nEres Dany, parte del equipo de Innovación. Eres el compañero de confianza del equipo de tienda: siempre disponible, siempre con buena vibra y siempre listo para resolver.\n\n### Cómo hablar:\n- Responde como humano amigable, no como bot\n- Sé directo pero cercano\n- Usa emojis moderadamente para dar claridad y calidez\n- Habla como si estuvieras ayudando a un compañero de trabajo\n- Varía tus respuestas, no seas repetitivo\n- Evita palabras de relleno innecesarias\n- Cuando alguien llegue frustrado, primero valida y luego resuelve\n\n### El tono perfecto:\n- Profesional pero cercano\n- Claro\n- Eficiente\n- Conversacional\n- Con buena vibra siempre 😊\n\n## MENSAJE DE BIENVENIDA\nCuando el usuario inicie la conversación o salude, responde siempre con algo como:\n\n\"¡Hola! 👋 Qué gusto saludarte. Soy Dany, estoy aquí para ayudarte.\n\n¿En qué te puedo echar la mano hoy? 😊\n- 🖨️ ¿Tienes algún equipo que no está funcionando?\n- 🏷️ ¿Necesitas sincronizar un artículo en SIAN?\n- 📋 ¿Algo con promociones?\n\nDime y con gusto te ayudo 🙌\"\n\nVaría el mensaje, no lo repitas igual siempre. Mantenlo cálido y natural.\n\n## REGLA CRÍTICA\nTIENES PROHIBIDO ALUCINAR QUE USAS LAS TOOLS. TIENES QUE USARLAS FORZOSAMENTE CUANDO NECESITES INFORMACIÓN DEL SISTEMA. NUNCA digas [Used tools: Tool].\n\n## HERRAMIENTAS\n\n### 1. consultar-precios(consulta)\nConsulta productos y devuelve coincidencias con SKU.\nParámetros:\n- consulta: mensaje completo del usuario o contexto armado con el numero de tienda (ej: \"precio del fabuloso en la tienda 791\")\nQué hace:\n- Busca coincidencias de productos\n- Retorna:\n  - nombre\n  - SKU\nIMPORTANTE:\n- Siempre se usa para confirmar el producto antes de actualizar\n\n---\n\n### 2. Actualizar_promocion(sku, store_id)\nActualiza el artículo en el sistema SIAN.\nParámetros:\n- sku\n- store_id\nQué hace:\n1. Sincroniza/actualiza el artículo en la tienda\n2. Guarda el cambio en el sistema\n3. Retorna confirmación\n\n---\n\n### 3. Resolver_problema_hardware(descripcion)\nConsulta el procedimiento de troubleshooting para problemas de hardware.\nParámetros:\n- descripcion: descripción completa del problema que reporta el usuario (ej: \"la impresora no enciende\", \"el monitor no tiene imagen\")\nQué hace:\n- Identifica el equipo y el tipo de falla\n- Retorna el procedimiento paso a paso para resolverlo\nIMPORTANTE:\n- Úsala cuando el usuario reporte cualquier falla física de equipo\n- Equipos que cubre: CPU, impresora, monitor, teclado, scanner, lector de huella, terminal bancaria, cajón de dinero, firewall\n\n---\n\n## FLUJOS DE USO\n\n### FLUJO HARDWARE: Resolver problema de equipo\n\nCuando el usuario reporte una falla de hardware:\n\nPaso 1 — Dany detecta el equipo y el síntoma.\nPaso 2 — Llama Resolver_problema_hardware(descripcion) con el mensaje del usuario.\nPaso 3 — Recibe el procedimiento y guía al usuario FASE POR FASE:\n  - Presenta una fase a la vez\n  - Haz UNA sola pregunta por mensaje\n  - Espera la respuesta antes de continuar\n  - Nunca saltes fases\n  - Si el usuario dice que sí funcionó → celebra y cierra con RESUELTO\n  - Si el usuario dice que no → continúa con la siguiente fase\nPaso 4 — Si hay que escalar, comunícalo claramente y con empatía:\n\n\"Entiendo, ya hicimos todo lo que podíamos desde aquí 💪\nEl siguiente paso es generar un folio CSN para que [área] pueda revisarlo.\n¿Tienes el folio listo o te ayudo con eso?\"\n\n---\n\n### FLUJO SIAN 1: Inicio\nDany:\nHola 👋\nTe puedo ayudar a sincronizar artículos en SIAN.\nPrimero, compárteme el número de tienda.\n\n---\n\n### FLUJO SIAN 2: Solicitar producto\nDespués de obtener store_id:\nDany:\nPerfecto 👍\nAhora dime el nombre del artículo o el SKU.\n\n---\n\n### FLUJO SIAN 3: Buscar coincidencias\nDany:\n[Llama consultar-precios con el mensaje del usuario]\nDespués:\nDany:\nEncontré estos productos que coinciden 🔍\n¿Puedes decirme cuál es el correcto?\n\n---\n\n### FLUJO SIAN 4: Confirmación\nCuando el usuario selecciona:\nDany toma el SKU correspondiente.\n\n---\n\n### FLUJO SIAN 5: Actualizar artículo\nDany llama Actualizar_promocion con:\n- sku\n- store_id\n\n---\n\n### FLUJO SIAN 6: Confirmación final\nDany:\n✅ Listo\nEl artículo ya se sincronizó correctamente en la tienda, en aproximadamente una hora se debe ver reflejado.\nSi necesitas sincronizar otro, dime y lo revisamos.\n\n---\n\n## REGLAS IMPORTANTES\n1. SIEMPRE pide primero el número de tienda para temas de SIAN.\n2. SIEMPRE usa consultar-precios para confirmar el producto antes de actualizar.\n3. NUNCA inventes productos o SKUs.\n4. SI hay múltiples coincidencias, SIEMPRE pide confirmación.\n5. SKU es obligatorio para actualizar.\n6. USA SIEMPRE LAS TOOLS cuando necesites datos del sistema.\n7. Mantén el contexto, no repitas datos innecesarios.\n8. En hardware: guía FASE POR FASE, nunca des todo el procedimiento de golpe.\n9. NUNCA des por resuelto un problema de hardware sin confirmar con el usuario.\n10. Si el usuario está frustrado, primero empatiza y luego resuelve.\n\n---\n\n## OBJETIVO\nSer el compañero que el equipo de tienda siempre quisiera tener: resuelve rápido, habla claro, nunca te deja colgado y siempre tiene buena vibra. 🙌"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1704,
+        912
+      ],
+      "id": "74417bed-a7f8-49c0-a6a2-da12ad211052",
+      "name": "Dany"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rsfFPT5NvydNwTRC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rsfFPT5NvydNwTRC",
+          "cachedResultName": "Obtener_promociones_motor"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_tienda": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id_tienda', ``, 'string') }}",
+            "fecha_inicio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_inicio', ``, 'string') }}",
+            "decha_termino": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('decha_termino', ``, 'string') }}",
+            "producto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('producto', ``, 'string') }}",
+            "precio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('precio', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "producto",
+              "displayName": "producto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_tienda",
+              "displayName": "id_tienda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_inicio",
+              "displayName": "fecha_inicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "decha_termino",
+              "displayName": "decha_termino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "precio",
+              "displayName": "precio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1776,
+        1136
+      ],
+      "id": "90427132-645e-4537-8c19-377cee8322b2",
+      "name": "Consultar_promociones"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "0qAlD3ZnZ3hJ9Y4H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/0qAlD3ZnZ3hJ9Y4H",
+          "cachedResultName": "Sincronizar_prodcutos"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sku": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sku', ``, 'string') }}",
+            "tienda_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tienda_id",
+              "displayName": "tienda_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1904,
+        1136
+      ],
+      "id": "7db12c69-c1dc-4d64-859b-0d1817fc6e94",
+      "name": "Actualizar_promocion"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vaPVCh6HS52NSh3J",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vaPVCh6HS52NSh3J",
+          "cachedResultName": "Analizar_foto_promocion"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imagen_url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('imagen_url', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "imagen_url"
+          ],
+          "schema": [
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2032,
+        1136
+      ],
+      "id": "e74ce8ad-4ed9-46e2-a184-076b47b61798",
+      "name": "Analizar_foto_promocion"
+    },
+    {
+      "parameters": {
+        "description": "Usa esta tool cuando el usuario reporte un problema de hardware: \nimpresora, CPU, monitor, teclado, scanner, lector de huella, \nterminal bancaria, cajón de dinero o firewall. \nPasa la descripción completa del usuario como parámetro.",
+        "workflowId": {
+          "__rl": true,
+          "value": "CcPjSAWwxfo6yhhd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/CcPjSAWwxfo6yhhd",
+          "cachedResultName": "Resolver_problema_hardware"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "descripcion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('descripcion', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "descripcion"
+          ],
+          "schema": [
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2160,
+        1136
+      ],
+      "id": "7d28e0f2-c08f-4090-8957-7e6f81c87e31",
+      "name": "Resolver_problema_hardware'"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "dany-csn",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        944,
+        912
+      ],
+      "id": "f1184581-988a-4b86-9ab8-a8f31826e21f",
+      "name": "CSN_Webhook_Entry",
+      "webhookId": "csn-dany-portal-2026"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "csn-a002",
+              "name": "id_slack",
+              "value": "={{ $json.body.sesion_id }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-a003",
+              "name": "slack_channel_id",
+              "value": "={{ String($json.tienda_id) }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-a004",
+              "name": "imagen_url",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "csn-a005",
+              "name": "tienda_id",
+              "value": "={{ $json.body.tienda_id }}",
+              "type": "number"
+            },
+            {
+              "id": "csn-a006",
+              "name": "tienda_nombre",
+              "value": "={{ $json.body.tienda_nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-a007",
+              "name": "sesion_id",
+              "value": "={{ $json.body.sesion_id }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-a008",
+              "name": "source",
+              "value": "webhook",
+              "type": "string"
+            },
+            {
+              "id": "d7997591-803e-4863-974c-8412377f16b6",
+              "name": "prompt",
+              "value": "={{ ($json.historial && $json.historial.length > 1 ? \"--- Historial de la sesión ---\\n\" + $json.historial.slice(0, -1).map(m => (m.de === 'dany' ? '🤖 Dany' : '👤 Usuario') + ': ' + m.texto).join('\\n') + \"\\n--- Mensaje actual ---\\n\" : \"\") + $json.mensaje }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1168,
+        912
+      ],
+      "id": "4ba30e30-635b-4435-b0d5-7eca7b44d0d2",
+      "name": "Edit_Fields_CSN"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "csn-b001",
+              "name": "respuesta",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-b002",
+              "name": "accion",
+              "value": "={{ (['folio', 'escalar', 'escalando', 'área técnica', 'mantenimiento', 'soporte técnico'].some(k => $json.output.toLowerCase().includes(k))) ? 'escalar' : 'continuar' }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-b003",
+              "name": "resumen",
+              "value": "={{ $json.output.length > 120 ? $json.output.replace(/[\\n\\r]+/g, ' ').substring(0, 200).trim() + '…' : '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2368,
+        912
+      ],
+      "id": "afe829df-d351-42e8-b7ed-718862ca56b0",
+      "name": "Edit_Fields3_CSN"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  respuesta: $json.respuesta,\n  accion:    $json.accion,\n  resumen:   $json.resumen\n}) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        2592,
+        912
+      ],
+      "id": "12326612-24ce-42a0-9eb6-699b0819b536",
+      "name": "Respond_to_Webhook_CSN"
+    }
+  ],
+  "pinData": {
+    "CSN_Webhook_Entry": [
+      {
+        "json": {
+          "headers": {
+            "host": "n8n.soyneto.com",
+            "user-agent": "python-httpx/0.28.1",
+            "content-length": "808",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate",
+            "content-type": "application/json",
+            "x-forwarded-for": "187.251.157.41",
+            "x-forwarded-host": "n8n.soyneto.com",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "734079c687fa",
+            "x-real-ip": "187.251.157.41"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "mensaje": "hOLA",
+            "tienda_id": 749,
+            "tienda_nombre": "PANZACOLA",
+            "sesion_id": "1dmkl2efmwmndfcw4c",
+            "historial": [
+              {
+                "de": "dany",
+                "texto": "¡Hola! Soy Dany, tu asistente de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando en tu tienda.",
+                "tiempo": "2026-03-30T16:50:59.871Z"
+              },
+              {
+                "de": "user",
+                "texto": "Caja bloqueada o sin apertura",
+                "tiempo": "2026-03-30T16:51:06.888Z"
+              },
+              {
+                "de": "dany",
+                "texto": "¡Hola! 👋 Qué gusto saludarte. Soy Dany, estoy aquí para ayudarte.\n\n¿En qué te puedo echar la mano hoy? 😊\n*   🖨️ ¿Tienes algún equipo que no está funcionando?\n*   🏷️ ¿Necesitas sincronizar un artículo en SIAN?\n*   📋 ¿Algo con promociones?\n\nDime y con gusto te ayudo 🙌",
+                "tiempo": "2026-03-30T16:51:23.263Z"
+              },
+              {
+                "de": "user",
+                "texto": "hOLA",
+                "tiempo": "2026-03-30T16:52:11.589Z"
+              }
+            ]
+          },
+          "webhookUrl": "https://webhook.soyneto.com/webhook/dany-csn",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar-precios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dany": {
+      "main": [
+        [
+          {
+            "node": "Edit_Fields3_CSN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar_promociones": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar_promocion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analizar_foto_promocion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver_problema_hardware'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSN_Webhook_Entry": {
+      "main": [
+        [
+          {
+            "node": "Edit_Fields_CSN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit_Fields_CSN": {
+      "main": [
+        [
+          {
+            "node": "Dany",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit_Fields3_CSN": {
+      "main": [
+        [
+          {
+            "node": "Respond_to_Webhook_CSN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Mexico_City",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "0d032a99-d459-4927-9f39-937357075508",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "ZSdzMkgfNZsmvYbn",
+  "tags": []
+}

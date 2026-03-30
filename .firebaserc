@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "soyneto-csn-staging",
+    "staging": "soyneto-csn-staging",
+    "prod":    "soyneto-csn-prod"
+  },
+  "targets": {
+    "soyneto-csn-staging": {
+      "hosting": { "staging": ["csn-staging"] }
+    },
+    "soyneto-csn-prod": {
+      "hosting": { "prod": ["csn-prod"] }
+    }
+  }
+}

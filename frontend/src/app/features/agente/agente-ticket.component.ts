@@ -2,7 +2,7 @@ import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { TicketService, Grupo, Plantilla } from '../../core/services/ticket.service';
+import { TicketService, Grupo, Plantilla, TicketSimilar } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
@@ -249,6 +249,40 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
               </div>
             </div>
 
+            <!-- Copiloto: Soluciones Anteriores -->
+            @if (similares().length > 0 || loadingSimilares()) {
+              <div class="similares-section">
+                <div class="similares-header" (click)="toggleSimilares()">
+                  <span class="similares-title">✦ Soluciones anteriores ({{ similares().length }})</span>
+                  <span class="similares-toggle">{{ showSimilares() ? '▲' : '▼' }}</span>
+                </div>
+
+                @if (showSimilares()) {
+                  @if (loadingSimilares()) {
+                    <p class="similares-loading">Buscando soluciones...</p>
+                  }
+                  @for (s of similares(); track s.id) {
+                    <div class="similar-card">
+                      <div class="similar-meta">
+                        <span class="similar-folio">{{ s.folio }}</span>
+                        @if (s.csat_score) {
+                          <span class="similar-csat">{{ csatStars(s.csat_score) }}</span>
+                        }
+                        @if (s.tiempo_resolucion_horas) {
+                          <span class="similar-tiempo">{{ s.tiempo_resolucion_horas }}h</span>
+                        }
+                      </div>
+                      <p class="similar-desc">{{ s.descripcion }}</p>
+                      <div class="similar-solucion">{{ s.solucion_propuesta }}</div>
+                      <button class="btn btn--ghost btn--sm btn--full" style="margin-top:8px" (click)="usarSolucion(s.solucion_propuesta)">
+                        Usar esta solución
+                      </button>
+                    </div>
+                  }
+                }
+              </div>
+            }
+
             <!-- Sección de escalación -->
             @if (canEscalar()) {
               <div class="escalacion-section">
@@ -327,7 +361,6 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; }
     .agente-layout {
       display: grid;
       grid-template-columns: 1fr 360px;
@@ -441,6 +474,44 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
       border-radius: 8px;
     }
     .adj-chip button { background:none;border:none;cursor:pointer;color:inherit;font-size:12px;padding:0; }
+    /* ── Copiloto similares ───────────────────────────────── */
+    .similares-section {
+      margin-top: 12px;
+      border: 1px solid var(--c-purple);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+    .similares-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 14px;
+      background: color-mix(in srgb, var(--c-purple) 12%, white);
+      cursor: pointer;
+      user-select: none;
+    }
+    .similares-title { font-size: 13px; font-weight: 600; color: var(--c-purple); }
+    .similares-toggle { font-size: 10px; color: var(--c-purple); }
+    .similares-loading { padding: 10px 14px; font-size: 12px; color: var(--c-muted); }
+    .similar-card {
+      padding: 10px 14px;
+      border-top: 1px solid color-mix(in srgb, var(--c-purple) 25%, white);
+      background: var(--c-surface);
+    }
+    .similar-card:hover { background: color-mix(in srgb, var(--c-purple) 5%, white); }
+    .similar-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+    .similar-folio { font-family: monospace; font-size: 11px; font-weight: 700; color: var(--c-blue); }
+    .similar-csat { font-size: 11px; color: var(--c-amber); }
+    .similar-tiempo { font-size: 11px; color: var(--c-muted); margin-left: auto; }
+    .similar-desc {
+      font-size: 12px; color: var(--c-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    .similar-solucion {
+      font-size: 12px; color: var(--c-text); line-height: 1.5;
+      background: var(--c-bg); border-radius: var(--radius-sm);
+      padding: 6px 8px; border: 1px solid var(--c-border);
+      max-height: 80px; overflow-y: auto;
+    }
     .escalacion-section { margin-top: 12px; }
     .escalacion-btn { border-color: var(--c-amber-md); color: var(--c-amber); font-size: 13px; }
     .escalacion-btn:hover { background: var(--c-amber-lt); }
@@ -509,6 +580,9 @@ export class AgenteTicketComponent implements OnInit {
   plantillas = signal<Plantilla[]>([]);
   showPlantillas = signal(false);
   adjuntoSeleccionado = signal<{ id: number; nombre: string } | null>(null);
+  similares = signal<TicketSimilar[]>([]);
+  loadingSimilares = signal(false);
+  showSimilares = signal(true);
 
   nextActions = () => NEXT_ACTIONS[this.ticket()?.estatus ?? ''] ?? [];
 
@@ -543,9 +617,33 @@ export class AgenteTicketComponent implements OnInit {
   ngOnInit() {
     const id = Number(this.route.snapshot.paramMap.get('id'));
     this.ticketSvc.get(id).subscribe({
-      next: t => { this.ticket.set(t); this.loading.set(false); },
+      next: t => {
+        this.ticket.set(t);
+        this.loading.set(false);
+        this.loadSimilares(t.id);
+      },
       error: () => { this.loading.set(false); this.router.navigate(['/agente']); },
     });
+  }
+
+  private loadSimilares(ticketId: number) {
+    this.loadingSimilares.set(true);
+    this.ticketSvc.getSimilares(ticketId).subscribe({
+      next: s => { this.similares.set(s); this.loadingSimilares.set(false); },
+      error: () => { this.loadingSimilares.set(false); },
+    });
+  }
+
+  toggleSimilares() { this.showSimilares.set(!this.showSimilares()); }
+
+  usarSolucion(texto: string) {
+    this.comentario = texto;
+    this.showSimilares.set(false);
+  }
+
+  csatStars(score: number | null): string {
+    if (!score) return '';
+    return '★'.repeat(score) + '☆'.repeat(5 - score);
   }
 
   usarTomarPlantilla(texto: string) {

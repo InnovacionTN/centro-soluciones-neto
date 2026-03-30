@@ -24,6 +24,16 @@ from app.models.models import (
     UrgenciaTipificacion,
 )
 
+# Estados donde el agente es responsable de avanzar el ticket
+ESTADOS_ACTIVOS = [
+    EstatusTicket.NUEVO,
+    EstatusTicket.ASIGNADO,
+    EstatusTicket.EN_PROCESO,
+    EstatusTicket.ESPERANDO_TIENDA,
+    EstatusTicket.ESPERANDO_AGENTE,
+    EstatusTicket.RECHAZADO,
+]
+
 
 # ─── Folio ─────────────────────────────────────────────────────────────────────
 
@@ -72,8 +82,17 @@ def find_group(tipificacion_id: int, zona_id: int, db: Session) -> Optional[Grup
 
 def assign_agent_round_robin(grupo: Grupo, db: Session) -> Optional[Usuario]:
     """
-    Round Robin puro: cicla entre agentes usando el total histórico de tickets
-    del grupo como índice. Garantiza distribución secuencial siempre.
+    Smart Load Balancing: asigna al agente con menor carga ponderada.
+
+    Carga ponderada por ticket activo:
+      - Peso base 1.0 por ticket
+      - +0.5 adicional por cada 24h que lleva abierto (penaliza tickets estancados)
+      - Máximo peso por ticket: 3.0 (cap para no hundir a nadie por un caso difícil)
+
+    Resultado: un agente que acumula tickets sin cerrarlos se ve CADA VEZ MÁS
+    cargado, no menos — así no hay incentivo para dejar tickets abiertos.
+    Empate: gana quien lleva más tiempo sin recibir un ticket nuevo (last_login
+    se usa como proxy hasta tener campo dedicado).
     """
     agentes = (
         db.query(Usuario)
@@ -81,6 +100,7 @@ def assign_agent_round_robin(grupo: Grupo, db: Session) -> Optional[Usuario]:
             Usuario.grupo_id == grupo.id,
             Usuario.rol == RolUsuario.AGENTE,
             Usuario.activo == True,
+            Usuario.disponible == True,
         )
         .order_by(Usuario.id)
         .all()
@@ -90,12 +110,42 @@ def assign_agent_round_robin(grupo: Grupo, db: Session) -> Optional[Usuario]:
     if len(agentes) == 1:
         return agentes[0]
 
-    # Total histórico de tickets en este grupo → índice del ciclo
-    total = (
-        db.query(func.count(Ticket.id)).filter(Ticket.grupo_id == grupo.id).scalar()
-    ) or 0
+    ahora = datetime.utcnow()
 
-    return agentes[total % len(agentes)]
+    def carga_ponderada(agente: Usuario) -> float:
+        tickets_activos = (
+            db.query(Ticket)
+            .filter(
+                Ticket.agente_id == agente.id,
+                Ticket.estatus.in_(ESTADOS_ACTIVOS),
+            )
+            .all()
+        )
+        total = 0.0
+        for t in tickets_activos:
+            horas_abierto = (ahora - t.fecha_apertura).total_seconds() / 3600
+            peso = 1.0 + (horas_abierto / 24) * 0.5  # +0.5 por cada día abierto
+            total += min(peso, 3.0)                    # cap en 3.0
+        return total
+
+    cargas = [(agente, carga_ponderada(agente)) for agente in agentes]
+    min_carga = min(c for _, c in cargas)
+
+    # Candidatos empatados en carga mínima → elige quien lleva más sin recibir ticket
+    candidatos = [a for a, c in cargas if c == min_carga]
+    if len(candidatos) == 1:
+        return candidatos[0]
+
+    ultimo_ticket = {
+        a.id: (
+            db.query(func.max(Ticket.fecha_apertura))
+            .filter(Ticket.agente_id == a.id)
+            .scalar()
+            or datetime.min
+        )
+        for a in candidatos
+    }
+    return min(candidatos, key=lambda a: ultimo_ticket[a.id])
 
 
 # ─── SLA ───────────────────────────────────────────────────────────────────────

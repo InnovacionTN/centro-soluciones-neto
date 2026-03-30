@@ -1,49 +1,55 @@
-/* ─── Design Tokens ─────────────────────────────────────────── */
+/* ─── Web Fonts ────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+/* ─── Design Tokens (CSN Palette) ───────────────────────────── */
 :root {
-  --c-bg:        #F8F9FB;
-  --c-surface:   #FFFFFF;
-  --c-border:    #E4E7EE;
-  --c-border-md: #CDD2DC;
+  /* Escala de Grises y Semánticos */
+  --c-bg:        #FAFAFB; /* $gray-10 */
+  --c-surface:   #FFFFFF; /* $color-surface */
+  --c-border:    #E0E0E0; /* $gray-30 */
+  --c-border-md: #9D9D9C; /* $gray-60 */
 
-  --c-text:      #111827;
-  --c-muted:     #6B7280;
-  --c-subtle:    #9CA3AF;
+  --c-text:      #343434; /* $gray-90 */
+  --c-muted:     #757575; /* Mejor legibilidad que el gris #AAAAAA anterior */
+  --c-subtle:    #F3F4F6; /* $gray-20 */
 
-  --c-blue:      #2563EB;
-  --c-blue-lt:   #EFF4FF;
-  --c-blue-md:   #BFDBFE;
+  /* Colores Corporativos CSN */
+  --c-blue:      #0E3B83; /* Primary Blue */
+  --c-blue-lt:   #E6EDF8;
+  --c-blue-md:   #A0BAE2;
 
-  --c-green:     #16A34A;
-  --c-green-lt:  #F0FDF4;
-  --c-green-md:  #BBF7D0;
+  --c-amber:     #FF5100; /* Primary Orange (mapped to amber/actions) */
+  --c-amber-lt:  #FFF0E8;
+  --c-amber-md:  #FFB494;
 
-  --c-amber:     #D97706;
-  --c-amber-lt:  #FFFBEB;
-  --c-amber-md:  #FDE68A;
+  --c-purple:    #1ABC9C; /* Accent Cyan (mapped to purple/accent fields) */
+  --c-purple-lt: #E8F8F5;
+  --c-purple-md: #9CE3D5;
 
-  --c-red:       #DC2626;
-  --c-red-lt:    #FEF2F2;
-  --c-red-md:    #FECACA;
+  --c-green:     #27AE60; /* Success Green */
+  --c-green-lt:  #E9F7EF;
+  --c-green-md:  #A1DDBA;
 
-  --c-purple:    #7C3AED;
-  --c-purple-lt: #F5F3FF;
-  --c-purple-md: #DDD6FE;
+  --c-red:       #E74C3C; /* Alert Red */
+  --c-red-lt:    #FDEDEB;
+  --c-red-md:    #F5B7B1;
 
-  --c-teal:      #0F766E;
-  --c-teal-lt:   #F0FDFA;
-  --c-teal-md:   #99F6E4;
+  --c-teal:      #3498DB; /* Info Blue */
+  --c-teal-lt:   #EAF2F8;
+  --c-teal-md:   #A9CCE3;
 
-  --radius-sm:   6px;
-  --radius-md:   10px;
-  --radius-lg:   14px;
-  --radius-xl:   20px;
+  --radius-sm:   4px;
+  --radius-md:   6px;
+  --radius-lg:   10px;
+  --radius-xl:   16px;
 
-  --shadow-sm:   0 1px 3px 0 rgb(0 0 0 / .07), 0 1px 2px -1px rgb(0 0 0 / .05);
-  --shadow-md:   0 4px 12px 0 rgb(0 0 0 / .09);
-  --shadow-lg:   0 10px 30px 0 rgb(0 0 0 / .12);
+  --shadow-sm:   0 1px 2px 0 rgba(0,0,0,0.05);
+  --shadow-md:   0 4px 6px rgba(0,0,0,0.05);
+  --shadow-lg:   0 10px 15px -3px rgba(0,0,0,0.1);
 
-  --font:        'Inter', system-ui, -apple-system, sans-serif;
-  --transition:  150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --font:        'Montserrat', sans-serif;
+  --transition:  200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --c-dark-bg:   #1E293B;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────── */
@@ -53,8 +59,9 @@ body {
   font-family: var(--font);
   background: var(--c-bg);
   color: var(--c-text);
-  line-height: 1.5;
+  line-height: 1.6;
   min-height: 100vh;
+  font-size: 16px;
 }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font-family: inherit; }
@@ -66,23 +73,32 @@ input, textarea, select {
 
 /* ─── Layout ────────────────────────────────────────────────── */
 .page {
-  display: grid;
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex-direction: row;
   min-height: 100vh;
+  width: 100%;
 }
-.content { padding: 24px; max-width: 1200px; margin: 0 auto; width: 100%; }
-.content--wide { max-width: 1440px; }
-.content--narrow { max-width: 720px; }
+.content { 
+  flex: 1; 
+  padding: 32px 40px; 
+  max-width: 1200px; 
+  margin: 0 auto; 
+  width: 100%; 
+  min-width: 0;
+}
+.content--wide { max-width: 1600px; }
+.content--narrow { max-width: 800px; }
+.agente-layout { flex: 1; min-width: 0; }
 
 /* ─── Cards ─────────────────────────────────────────────────── */
 .card {
   background: var(--c-surface);
-  border: 1px solid var(--c-border);
+  border: 1px solid var(--c-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px 24px;
-  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  box-shadow: var(--shadow-md);
 }
-.card--flat { box-shadow: none; }
+.card--flat { box-shadow: none; border-color: var(--c-border); }
 .card--hover {
   transition: box-shadow var(--transition), transform var(--transition);
   cursor: pointer;
@@ -96,25 +112,28 @@ input, textarea, select {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 8px;
+  padding: 10px 20px;
   border-radius: var(--radius-md);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   border: none;
   transition: all var(--transition);
   white-space: nowrap;
 }
 .btn:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
 
-.btn--primary   { background: var(--c-blue);  color: #fff; }
-.btn--primary:hover   { background: #1d4ed8; }
+.btn--primary   { background: var(--c-blue); color: var(--c-surface); }
+.btn--primary:hover { background: #0A2F6E; box-shadow: 0 4px 8px rgba(14,59,131,0.25); transform: translateY(-1px); }
 
-.btn--success   { background: var(--c-green); color: #fff; }
-.btn--success:hover   { background: #15803d; }
+.btn--cyan      { background: #1ABC9C; color: var(--c-surface); }
+.btn--cyan:hover{ background: #148F77; box-shadow: 0 4px 8px rgba(26,188,156,0.25); transform: translateY(-1px); }
 
-.btn--danger    { background: var(--c-red);   color: #fff; }
-.btn--danger:hover    { background: #b91c1c; }
+.btn--success   { background: var(--c-green); color: var(--c-surface); }
+.btn--success:hover   { background: #1D8A4D; box-shadow: 0 4px 8px rgba(39,174,96,0.25); transform: translateY(-1px); }
+
+.btn--danger    { background: var(--c-red); color: var(--c-surface); }
+.btn--danger:hover    { background: #B93C30; box-shadow: 0 4px 8px rgba(231,76,60,0.25); transform: translateY(-1px); }
 
 .btn--ghost     { background: transparent; color: var(--c-muted); border: 1px solid var(--c-border); }
 .btn--ghost:hover     { background: var(--c-bg); color: var(--c-text); }
@@ -135,17 +154,17 @@ input, textarea, select {
 }
 
 /* ─── Form controls ─────────────────────────────────────────── */
-.field { display: flex; flex-direction: column; gap: 6px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
 .field__label { font-size: 13px; font-weight: 500; color: var(--c-text); }
-.field__label--required::after { content: ' *'; color: var(--c-red); }
-.field__hint  { font-size: 12px; color: var(--c-muted); }
-.field__error { font-size: 12px; color: var(--c-red); }
+.field__label--required::after { content: ' *'; color: var(--c-amber); }
+.field__hint  { font-size: 12px; color: var(--c-muted); margin-top: 2px; }
+.field__error { font-size: 12px; color: var(--c-red); margin-top: 2px; }
 
 .input {
   width: 100%;
-  padding: 9px 12px;
+  padding: 10px 15px;
   border: 1px solid var(--c-border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   font-size: 14px;
   color: var(--c-text);
   background: var(--c-surface);
@@ -154,12 +173,12 @@ input, textarea, select {
 }
 .input:focus {
   border-color: var(--c-blue);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, .12);
+  box-shadow: 0 0 0 3px rgba(14, 59, 131, 0.15);
 }
 .input:disabled { background: var(--c-bg); color: var(--c-muted); }
 .input--error { border-color: var(--c-red); }
 
-textarea.input { resize: vertical; min-height: 100px; }
+textarea.input { resize: vertical; min-height: 120px; line-height: 1.6; }
 
 /* ─── Badges / Pills ────────────────────────────────────────── */
 .badge {
@@ -180,14 +199,7 @@ textarea.input { resize: vertical; min-height: 100px; }
 .badge--teal   { background: var(--c-teal-lt);   color: var(--c-teal);   }
 .badge--gray   { background: var(--c-bg);        color: var(--c-muted);  border: 1px solid var(--c-border); }
 
-/* ─── Status badges ─────────────────────────────────────────── */
-.status--NUEVO              { @extend .badge; @extend .badge--blue; }
-.status--ABIERTO            { @extend .badge; @extend .badge--blue; }
-.status--EN_PROCESO         { @extend .badge; @extend .badge--purple; }
-.status--CONFIRMAR_SOLUCION { @extend .badge; @extend .badge--amber; }
-.status--RESUELTO           { @extend .badge; @extend .badge--green; }
-.status--CERRADO            { @extend .badge; @extend .badge--gray; }
-.status--RECHAZADO          { @extend .badge; @extend .badge--red; }
+/* ─── Status badges (Applies .badge inside the components) ───────────────── */
 
 /* ─── Priority dots ─────────────────────────────────────────── */
 .prio { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }

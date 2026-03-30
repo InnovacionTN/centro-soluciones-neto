@@ -20,185 +20,403 @@ interface Notificaciones {
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <nav class="navbar">
-      <div class="navbar__inner">
-
-        <!-- Logo + sección actual -->
-        <div class="navbar__brand">
-          <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
-            <rect width="28" height="28" rx="7" fill="#2563EB"/>
-            <path d="M14 11v6M11 14h6" stroke="white" stroke-width="2.2" stroke-linecap="round"/>
-          </svg>
-          <span class="navbar__name">Centro de Soluciones</span>
-          @if (section) {
-            <span class="navbar__sep">/</span>
-            <span class="navbar__section">{{ section }}</span>
-          }
+    <aside class="sidebar" [class.sidebar--collapsed]="collapsed()">
+      <!-- Marca / Logo -->
+      <div class="sidebar__brand">
+        <div class="brand-left">
+          <div class="brand-logo-csn">
+            <span class="csn-text">CSN</span>
+            <svg class="csn-arrow" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14m-6-6l6 6-6 6" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-title">Centro Soluciones</span>
+            <span class="brand-subtitle">Neto</span>
+            @if (section) {
+              <span class="brand-section">{{ section }}</span>
+            }
+          </div>
         </div>
+        <button class="sidebar-toggle" (click)="collapsed.set(!collapsed())" [title]="collapsed() ? 'Expandir menú' : 'Colapsar menú'">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </button>
+      </div>
 
-        <!-- Navegación central (solo agente y admin) -->
+      <!-- Navegación -->
+      <div class="sidebar__nav">
+        <div class="nav-section-title">MENÚ PRINCIPAL</div>
+
+        @if (auth.isTienda()) {
+          <a routerLink="/tienda" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
+             class="nav-item" data-tooltip="Mis Tickets">
+            <span class="nav-icon">📊</span>
+            <span>Mis Tickets</span>
+          </a>
+        }
+
         @if (auth.isAgente() || auth.isAdmin()) {
-          <div class="navbar__nav">
-            <a routerLink="/agente" routerLinkActive="nav-link--active" class="nav-link">
-              Dashboard
-            </a>
-            <a routerLink="/agente/cola" routerLinkActive="nav-link--active" class="nav-link">
-              Cola
-              @if (badgePendientes() > 0) {
-                <span class="nav-badge">{{ badgePendientes() }}</span>
-              }
-            </a>
-            @if (auth.isAdmin()) {
-              <a routerLink="/admin" routerLinkActive="nav-link--active" class="nav-link nav-link--admin">
-                ⚙ Configuración
-              </a>
+          <a routerLink="/agente" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
+             class="nav-item" data-tooltip="Dashboard">
+            <span class="nav-icon">📈</span>
+            <span>Dashboard</span>
+          </a>
+        }
+
+        @if (auth.isAdmin()) {
+          <div class="nav-section-title" style="margin-top: 32px">ADMINISTRACIÓN</div>
+          <a routerLink="/admin" routerLinkActive="nav-item--active"
+             class="nav-item" data-tooltip="Configuración">
+            <span class="nav-icon">⚙️</span>
+            <span>Configuración</span>
+          </a>
+        }
+      </div>
+
+      <div class="sidebar__spacer"></div>
+
+      <!-- Alertas & Usuario en la parte inferior -->
+      <div class="sidebar__footer">
+        @if (notif() && (auth.isAgente() || auth.isAdmin())) {
+          <div class="sidebar-alerts">
+            @if (slaVencidos() > 0) {
+              <div class="alert-item alert-item--red">
+                <span>SLA Vencidos</span>
+                <strong>{{ slaVencidos() }}</strong>
+              </div>
+            }
+            @if (esperandoRespuesta() > 0) {
+              <div class="alert-item alert-item--amber">
+                <span>Esperando Resp.</span>
+                <strong>{{ esperandoRespuesta() }}</strong>
+              </div>
             }
           </div>
         }
 
-        <!-- Acciones: notificaciones + usuario + salir -->
-        <div class="navbar__actions">
-
-          <!-- Badges de alertas -->
-          @if (notif()) {
-            <div class="notif-pills">
-              @if (slaVencidos() > 0) {
-                <span class="notif-pill notif-pill--red" title="SLA vencidos">
-                  ⚠ {{ slaVencidos() }}
-                </span>
-              }
-              @if (esperandoRespuesta() > 0) {
-                <span class="notif-pill notif-pill--amber" title="Esperando tu respuesta">
-                  ⏳ {{ esperandoRespuesta() }}
-                </span>
-              }
-              @if (sinAsignar() > 0) {
-                <span class="notif-pill notif-pill--blue" title="Sin asignar">
-                  📥 {{ sinAsignar() }}
-                </span>
-              }
-            </div>
-          }
-
-          <!-- Usuario -->
-          <div class="navbar__user">
-            <div class="avatar" [class]="avatarClass()">{{ initial() }}</div>
-            <div class="navbar__userinfo">
-              <span class="navbar__username">{{ auth.currentUser()?.nombre }}</span>
-              <span class="navbar__role">{{ roleLabel() }}</span>
-            </div>
+        <div class="user-card">
+          <div class="avatar" [class]="avatarClass()">{{ initial() }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ auth.currentUser()?.nombre }}</div>
+            <div class="user-role">{{ roleLabel() }}</div>
           </div>
-
-          <button class="btn btn--ghost btn--sm" (click)="auth.logout()">
-            Salir
-          </button>
         </div>
-
+        
+        <button class="btn-logout" (click)="auth.logout()" data-tooltip="Salir del sistema">
+          <span class="nav-icon">🚪</span> Salir del sistema
+        </button>
       </div>
-    </nav>
+    </aside>
   `,
   styles: [`
-    .navbar {
+    .sidebar {
+      width: 220px;
+      height: 100vh;
       background: var(--c-surface);
-      border-bottom: 1px solid var(--c-border);
+      border-right: 1px solid var(--c-border);
+      display: flex;
+      flex-direction: column;
       position: sticky;
       top: 0;
+      flex-shrink: 0;
       z-index: 100;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.02);
+      transition: width 0.25s ease;
+      overflow: hidden;
     }
-    .navbar__inner {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 0 24px;
-      height: 56px;
+    .sidebar--collapsed { width: 64px; }
+
+    .sidebar__brand {
+      padding: 16px 12px 16px 20px;
       display: flex;
+      flex-direction: row;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
+      gap: 8px;
+      border-bottom: 1px solid var(--c-border);
+      flex-shrink: 0;
+      min-height: 56px;
     }
-    .navbar__brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .navbar__name  { font-size: 15px; font-weight: 600; color: var(--c-text); }
-    .navbar__sep, .navbar__section { color: var(--c-muted); font-size: 14px; }
+    .brand-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow: hidden;
+      min-width: 0;
+      flex: 1;
+    }
+    .sidebar-toggle {
+      flex-shrink: 0;
+      width: 32px; height: 32px;
+      border: none; background: transparent;
+      border-radius: var(--radius-md);
+      color: var(--c-muted);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-toggle:hover { background: var(--c-blue-lt); color: var(--c-blue); }
 
-    /* Nav central */
-    .navbar__nav { display: flex; align-items: center; gap: 4px; }
-    .nav-link {
+    .sidebar--collapsed .sidebar__brand {
+      justify-content: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--c-border);
+    }
+    .sidebar--collapsed .brand-left { display: none; }
+    .sidebar--collapsed .sidebar__nav { padding: 16px 8px; align-items: center; }
+    .sidebar--collapsed .sidebar__footer { padding: 16px 8px; align-items: center; }
+    .brand-logo-csn {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 500;
+      position: relative;
+    }
+    .csn-text {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--c-blue);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .csn-arrow {
+      width: 24px;
+      height: 24px;
+      color: var(--c-amber);
+      margin-left: -6px;
+      margin-top: -12px;
+    }
+    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
+    .brand-title { font-size: 15px; font-weight: 700; color: var(--c-text); }
+    .brand-subtitle { font-size: 14px; font-weight: 500; color: var(--c-muted); }
+    .brand-section { font-size: 12px; color: var(--c-blue); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .sidebar__nav {
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .nav-section-title {
+      font-size: 11px;
+      font-weight: 700;
       color: var(--c-muted);
-      text-decoration: none;
-      transition: background .15s, color .15s;
-      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-left: 10px;
+      margin-bottom: 6px;
     }
-    .nav-link:hover { background: var(--c-bg); color: var(--c-text); }
-    .nav-link--active { background: var(--c-blue-lt); color: var(--c-blue); }
-    .nav-link--admin {
-      border: 1px solid var(--c-border);
-      margin-left: 8px;
-    }
-    .nav-link--admin.nav-link--active {
-      background: var(--c-purple-lt);
-      color: var(--c-purple);
-      border-color: var(--c-purple-md);
-    }
-    .nav-badge {
-      display: inline-flex;
+    .nav-item {
+      display: flex;
       align-items: center;
-      justify-content: center;
-      min-width: 18px;
-      height: 18px;
-      padding: 0 5px;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      color: var(--c-muted);
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .nav-item:hover {
+      background: var(--c-bg);
+      color: var(--c-text);
+      transform: translateX(2px);
+    }
+    .nav-item--active {
+      background: var(--c-blue-lt);
+      color: var(--c-blue);
+      font-weight: 600;
+    }
+    .nav-item--active:hover { transform: none; }
+    .nav-icon { font-size: 18px; display: flex; align-items: center; justify-content: center; width: 22px; }
+    
+    .nav-badge {
       background: var(--c-blue);
       color: white;
-      border-radius: 9px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+      min-width: 24px;
+      text-align: center;
     }
 
-    /* Pills de notificación */
-    .notif-pills { display: flex; gap: 6px; align-items: center; }
-    .notif-pill {
-      display: inline-flex;
+    .sidebar__spacer { flex: 1; min-height: 24px; }
+
+    .sidebar__footer {
+      padding: 20px 16px;
+      border-top: 1px solid var(--c-border);
+      background: var(--c-surface);
+    }
+
+    .sidebar-alerts {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .alert-item {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 4px;
-      padding: 3px 8px;
-      border-radius: 10px;
-      font-size: 11px;
-      font-weight: 600;
-      cursor: default;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
     }
-    .notif-pill--red   { background: var(--c-red-lt);   color: var(--c-red); }
-    .notif-pill--amber { background: var(--c-amber-lt);  color: var(--c-amber); }
-    .notif-pill--blue  { background: var(--c-blue-lt);   color: var(--c-blue); }
+    .alert-item span { font-weight: 500; }
+    .alert-item strong { font-size: 14px; }
+    .alert-item--red { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); }
+    .alert-item--amber { background: var(--c-amber-lt); color: var(--c-amber); border: 1px solid var(--c-amber-md); }
 
-    /* Usuario */
-    .navbar__actions  { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
-    .navbar__user     { display: flex; align-items: center; gap: 10px; }
-    .avatar {
-      width: 34px; height: 34px;
-      border-radius: 50%;
-      font-size: 14px; font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--c-bg);
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
     }
-    .avatar--tienda { background: var(--c-teal-lt); color: var(--c-teal); }
-    .avatar--agente { background: var(--c-purple-lt); color: var(--c-purple); }
-    .avatar--admin  { background: var(--c-amber-lt); color: var(--c-amber); }
-    .navbar__userinfo { display: flex; flex-direction: column; }
-    .navbar__username { font-size: 13px; font-weight: 500; line-height: 1.3; }
-    .navbar__role     { font-size: 11px; color: var(--c-muted); }
-    @media (max-width: 640px) {
-      .navbar__userinfo { display: none; }
-      .navbar__nav { display: none; }
-      .notif-pills { display: none; }
+    .user-info { display: flex; flex-direction: column; overflow: hidden; }
+    .user-name { font-size: 14px; font-weight: 600; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 12px; color: var(--c-muted); }
+
+    .btn-logout {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--c-border);
+      border-radius: var(--radius-md);
+      color: var(--c-muted);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-logout:hover {
+      background: var(--c-red-lt);
+      color: var(--c-red);
+      border-color: var(--c-red-md);
+    }
+    .btn-logout .nav-icon { font-size: 16px; }
+
+    /* Estilos del avatar */
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      font-size: 16px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .avatar--tienda { background: var(--c-teal-lt); color: var(--c-teal); border: 1px solid var(--c-teal-md); }
+    .avatar--agente { background: var(--c-purple-lt); color: var(--c-purple); border: 1px solid var(--c-purple-md); }
+    .avatar--admin  { background: var(--c-amber-lt); color: var(--c-amber); border: 1px solid var(--c-amber-md); }
+
+    /* ── Collapsed state ── */
+    .sidebar--collapsed .nav-section-title,
+    .sidebar--collapsed .nav-item span:not(.nav-icon),
+    .sidebar--collapsed .nav-badge,
+    .sidebar--collapsed .sidebar-alerts,
+    .sidebar--collapsed .user-info,
+    .sidebar--collapsed .btn-logout span:not(.nav-icon) {
+      display: none;
+    }
+    .sidebar--collapsed .nav-item { justify-content: center; padding: 12px; }
+    .sidebar--collapsed .btn-logout { border: none; padding: 12px; }
+    .sidebar--collapsed .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
+    .sidebar--collapsed .user-card { padding: 0; background: transparent; margin-bottom: 24px; }
+
+    /* ── Tooltip popover (visible when sidebar is collapsed) ── */
+    .nav-item[data-tooltip],
+    .btn-logout[data-tooltip] {
+      position: relative;
+    }
+    .sidebar--collapsed .nav-item[data-tooltip]:hover::after,
+    .sidebar--collapsed .btn-logout[data-tooltip]:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--c-text);
+      color: var(--c-surface);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      z-index: 200;
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+    }
+    .sidebar--collapsed .nav-item[data-tooltip]:hover::before,
+    .sidebar--collapsed .btn-logout[data-tooltip]:hover::before {
+      content: '';
+      position: absolute;
+      left: calc(100% + 6px);
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--c-text);
+      z-index: 200;
+      pointer-events: none;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 64px; }
+      .brand-left, .nav-section-title, .nav-item span:not(.nav-icon), .nav-badge,
+      .sidebar-alerts, .user-info, .btn-logout span:not(.nav-icon) {
+        display: none;
+      }
+      .sidebar__brand { justify-content: center; padding: 20px 8px; border-bottom: none; }
+      .sidebar-toggle { display: flex; }
+      .nav-item { justify-content: center; padding: 12px; }
+      .btn-logout { border: none; padding: 12px; }
+      .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
+      .user-card { padding: 0; background: transparent; margin-bottom: 24px; }
+      .nav-item[data-tooltip]:hover::after,
+      .btn-logout[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: calc(100% + 12px);
+        top: 50%;
+        transform: translateY(-50%);
+        background: var(--c-text);
+        color: var(--c-surface);
+        font-size: 12px;
+        font-weight: 500;
+        padding: 6px 10px;
+        border-radius: 6px;
+        white-space: nowrap;
+        z-index: 200;
+        pointer-events: none;
+        box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      }
+      .nav-item[data-tooltip]:hover::before,
+      .btn-logout[data-tooltip]:hover::before {
+        content: '';
+        position: absolute;
+        left: calc(100% + 6px);
+        top: 50%;
+        transform: translateY(-50%);
+        border: 5px solid transparent;
+        border-right-color: var(--c-text);
+        z-index: 200;
+        pointer-events: none;
+      }
     }
   `],
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   @Input() section = '';
+  collapsed = signal(false);
 
   notif = signal<Notificaciones | null>(null);
   private pollInterval?: ReturnType<typeof setInterval>;

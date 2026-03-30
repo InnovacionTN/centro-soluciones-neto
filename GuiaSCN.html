@@ -505,9 +505,9 @@
                 </svg>
             </div>
             <div>
-                <h1>Centro de Soluciones <span class="version-chip">v1.2</span></h1>
+                <h1>Centro de Soluciones <span class="version-chip">v1.3</span></h1>
                 <p class="subtitle" style="margin:0">Documentación operativa · Soluciones Neto · Actualizado marzo 2026
-                    &middot; v1.2</p>
+                    &middot; v1.3</p>
             </div>
         </div>
         <p class="subtitle" style="margin-top:16px">Guía completa del sistema para administradores, agentes y equipos de
@@ -521,7 +521,8 @@
             <button class="tab" onclick="show('estados')">🔄 Estados</button>
             <button class="tab" onclick="show('ia')">✦ Motor IA</button>
             <button class="tab" onclick="show('sla')">⏱ SLA</button>
-            <button class="tab" onclick="show('funciones')">⚡ Funciones v1.1</button>
+            <button class="tab" onclick="show('funciones')">⚡ Novedades v1.3</button>
+            <button class="tab" onclick="show('agentes')">🤖 Agentes IA</button>
         </div>
 
         <!-- ══════════════════════ ROLES ══════════════════════ -->
@@ -736,12 +737,9 @@
                 </div>
             </div>
 
-            <div class="ex-box" style="background:#fff;border-color:var(--blue-md)">
-                <div class="ex-label">¿Cómo se asigna el agente dentro del grupo? — Round Robin</div>
-                <div class="ex-val" style="margin-top:4px">El sistema distribuye los tickets entre todos los agentes
-                    activos del grupo en rotación. Si hay 4 agentes (A, B, C, D), los tickets se reparten A→B→C→D→A→...
-                    Se basa en el total histórico de tickets del grupo para que la rotación sea siempre justa, incluso
-                    si un agente entra o sale.</div>
+            <div class="ex-box" style="background:#fff;border-color:var(--teal-md)">
+                <div class="ex-label">¿Cómo se asigna el agente dentro del grupo? — Smart Load Balancing <span class="new-chip">v1.3</span></div>
+                <div class="ex-val" style="margin-top:4px">El sistema asigna el ticket al agente con <strong>menor carga ponderada activa</strong>. Cada ticket abierto vale 1.0 punto base, más 0.5 adicional por cada 24h que lleve sin cerrarse (máximo 3.0). Esto significa que un agente que acumula tickets sin resolverlos se ve progresivamente más cargado y recibe menos tickets nuevos — eliminando el incentivo de dejar tickets abiertos. En caso de empate de carga, gana quien lleva más tiempo sin recibir un ticket.</div>
             </div>
         </div>
 
@@ -1194,12 +1192,56 @@
                 hora actual. Por eso el dashboard y la cola siempre muestran el mismo número de vencidos.</div>
         </div>
 
-        <!-- ══════════════════════ FUNCIONES V1.1 ══════════════════════ -->
+        <!-- ══════════════════════ NOVEDADES V1.3 ══════════════════════ -->
         <div class="panel" id="p-funciones">
-            <p class="section-title">Funciones implementadas &mdash; v1.1 + v1.2 <span class="new-chip"
-                    style="font-size:12px">NUEVO</span></p>
-            <p class="section-desc">Funciones adicionales implementadas sobre el MVP base. Todas están activas en el
-                sistema actual.</p>
+            <p class="section-title">Novedades Sprint 1 &mdash; v1.3 <span class="new-chip" style="font-size:12px">NUEVO</span></p>
+            <p class="section-desc">Funciones nuevas del Sprint 1 más todas las funciones previas. Todas activas en el sistema actual.</p>
+
+            <div class="cards">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">⚖️</div>
+                        <div class="card-title">Smart Load Balancing <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">Distribución inteligente por carga real activa — no por rotación histórica. Elimina el incentivo de acumular tickets sin cerrar.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Cómo funciona</div>
+                        <div class="ex-val">Cada ticket abierto pesa 1.0 punto + 0.5 extra por cada día que lleva sin cerrarse (máx 3.0). El ticket nuevo siempre va al agente con menor puntuación. Empate → quien lleva más sin recibir ticket.</div>
+                        <div class="ex-label" style="margin-top:8px">Resultado práctico</div>
+                        <div class="ex-val">Agente A: 2 tickets frescos → 2.0 pts. Agente B: 2 tickets de 48h → 3.0+ pts. Nuevo ticket → Agente A.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">✦</div>
+                        <div class="card-title">Copiloto del Agente <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">Panel "Soluciones Anteriores" en la vista del ticket. Muestra hasta 5 resoluciones exitosas del mismo tipo, ordenadas por CSAT.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">¿Cómo aparece?</div>
+                        <div class="ex-val">Carga automáticamente al abrir el ticket (columna derecha). Muestra folio, descripción del caso, solución aplicada, estrellas CSAT y horas de resolución.</div>
+                        <div class="ex-label" style="margin-top:8px">Botón "Usar esta solución"</div>
+                        <div class="ex-val">Copia la solución histórica al área de texto del agente con un clic. Reduce el tiempo de resolución en problemas recurrentes ~40-60%.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--blue-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--blue-lt)">⏰</div>
+                        <div class="card-title">Recordatorio 12h <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">El job de auto-cierre detecta tickets en ESPERANDO_TIENDA sin respuesta durante 12 horas y agrega una nota interna de seguimiento.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Cuándo se activa</div>
+                        <div class="ex-val">Cuando el job <code>POST /internal/auto-cierre</code> detecta que la solución fue enviada hace entre 12 y 13 horas sin confirmación.</div>
+                        <div class="ex-label" style="margin-top:8px">Dónde se ve</div>
+                        <div class="ex-val">Nota interna en el historial del ticket (visible para agente y admin). La tienda no la ve.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin:20px 0 12px">Funciones previas (v1.1 — v1.2)</p>
 
             <div class="cards">
                 <div class="card" style="border-top:3px solid var(--teal-md)">
@@ -1342,6 +1384,186 @@
                 en la DB no se actualiza automáticamente. El backend recalcula el estado real en cada
                 <code>GET /tickets</code> comparando <code>sla_limite</code> con la hora actual. Esto garantiza que el
                 contador "SLA Vencidos" del dashboard y la cola siempre muestren el mismo número.</div>
+        </div>
+
+    </div>
+
+        <!-- ══════════════════════ AGENTES IA ══════════════════════ -->
+        <div class="panel" id="p-agentes">
+            <p class="section-title">Agentes IA — Dany &amp; Javier <span class="new-chip" style="font-size:12px">v1.3</span></p>
+            <p class="section-desc">Agentes conversacionales que interactúan con tiendas antes de generar un ticket humano. Pueden crear tickets resueltos (autoservicio exitoso) o tickets abiertos (escalación al Call Center). Ambos consumen el mismo backend REST.</p>
+
+            <div class="two-col" style="margin-bottom:18px">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">💬</div>
+                        <div>
+                            <div class="card-title">Dany — Slack</div>
+                            <span class="badge bt">n8n webhook</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Agente de primera línea accesible desde el portal web (panel derecho del dashboard de tienda). El backend actúa de proxy para evitar CORS.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Integración backend</div>
+                        <div class="ex-val"><code>POST /api/v1/dany/chat</code> → reenvía al webhook n8n configurado en <code>DANY_WEBHOOK_URL</code></div>
+                        <div class="ex-label" style="margin-top:8px">Respuestas esperadas del webhook</div>
+                        <div class="ex-val"><code>accion: "continuar"</code> → sigue el chat<br><code>accion: "resuelto"</code> → crea ticket en RESUELTO<br><code>accion: "escalar"</code> → crea ticket en NUEVO/ASIGNADO</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--purple-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--purple-lt)">📱</div>
+                        <div>
+                            <div class="card-title">Javier — WhatsApp</div>
+                            <span class="badge bp">API directa</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Agente conversacional por WhatsApp Business. Consume el backend directamente desde su propio servidor, sin proxy intermedio.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Integración</div>
+                        <div class="ex-val">Llama directamente a <code>POST /api/v1/tickets</code> con JWT de servicio. Identifica la tienda por número de teléfono → busca <code>tienda_id</code>.</div>
+                        <div class="ex-label" style="margin-top:8px">Sin proxy</div>
+                        <div class="ex-val">WhatsApp → servidor de Javier → backend CSN. No pasa por el frontend ni por n8n.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Flujo de creación de ticket desde agente externo</p>
+
+            <div style="margin-bottom:18px">
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--blue-lt);color:var(--blue)">1</div>
+                    <div>
+                        <div class="ia-title">Autenticación — obtener JWT</div>
+                        <div class="ia-desc"><code>POST /api/v1/auth/login</code> con las credenciales del usuario de servicio (rol TIENDA asignado a esa tienda). La respuesta incluye <code>access_token</code> y los datos del usuario (incluyendo <code>tienda_id</code>). El token dura 480 minutos — cache del token en el agente para evitar login en cada mensaje.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--teal-lt);color:var(--teal)">2</div>
+                    <div>
+                        <div class="ia-title">Clasificar el problema (opcional pero recomendado)</div>
+                        <div class="ia-desc"><code>POST /api/v1/ai/classify</code> con el texto de la conversación. Devuelve <code>tipificacion_id</code>, <code>area_tecnica</code>, <code>urgencia</code> y <code>confianza</code>. Si el agente ya conoce la tipificación por su propio flujo, puede saltarse este paso.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--amber-lt);color:var(--amber)">3A</div>
+                    <div>
+                        <div class="ia-title">Crear ticket RESUELTO (autoservicio exitoso)</div>
+                        <div class="ia-desc">Primero <code>POST /api/v1/tickets</code> → crea en estado NUEVO/ASIGNADO. Luego inmediatamente <code>PATCH /api/v1/tickets/{id}</code> con <code>estatus: "RESUELTO"</code> + <code>solucion_propuesta</code> con el resumen de la solución. La tienda queda en CSAT disponible.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--purple-lt);color:var(--purple)">3B</div>
+                    <div>
+                        <div class="ia-title">Crear ticket ABIERTO (escalación al Call Center)</div>
+                        <div class="ia-desc">Solo <code>POST /api/v1/tickets</code>. El sistema asigna automáticamente al agente con menor carga del grupo correcto (Smart Load Balancing). El agente del Call Center recibe el ticket en su cola con toda la conversación en la descripción.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Referencia rápida de endpoints</p>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Método</th>
+                        <th>Endpoint</th>
+                        <th>Cuándo usarlo</th>
+                        <th>Auth</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/auth/login</code></td>
+                        <td>Obtener JWT. Renovar cuando expire (480 min)</td>
+                        <td>Sin token</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg">GET</span></td>
+                        <td><code>/api/v1/tipificaciones?area=SISTEMAS</code></td>
+                        <td>Obtener catálogo de tipificaciones para mapear el problema</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/ai/classify</code></td>
+                        <td>Clasificar texto libre → obtener tipificacion_id automáticamente</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/tickets</code></td>
+                        <td>Crear ticket (abierto o como paso previo a resolver)</td>
+                        <td>Bearer JWT (rol TIENDA)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">PATCH</span></td>
+                        <td><code>/api/v1/tickets/{id}</code></td>
+                        <td>Marcar como RESUELTO después de crear (autoservicio exitoso)</td>
+                        <td>Bearer JWT (mismo usuario)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/dany/chat</code></td>
+                        <td>Solo Dany: proxy al webhook n8n (no usar para Javier)</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Payloads de referencia</p>
+
+            <div class="two-col">
+                <div>
+                    <div class="ex-box" style="background:#fff">
+                        <div class="ex-label">POST /auth/login</div>
+                        <pre style="font-size:11px;margin-top:6px;white-space:pre-wrap;color:var(--text)">{
+  "email": "dany-service@soyneto.com",
+  "password": "***"
+}</pre>
+                        <div class="ex-label" style="margin-top:8px">Respuesta</div>
+                        <pre style="font-size:11px;margin-top:4px;white-space:pre-wrap;color:var(--text)">{
+  "access_token": "eyJ...",
+  "token_type": "bearer",
+  "usuario": {
+    "id": 12, "tienda_id": 749,
+    "rol": "TIENDA", "nombre": "Dany Bot"
+  }
+}</pre>
+                    </div>
+                </div>
+                <div>
+                    <div class="ex-box" style="background:#fff">
+                        <div class="ex-label">POST /tickets — crear ticket</div>
+                        <pre style="font-size:11px;margin-top:6px;white-space:pre-wrap;color:var(--text)">{
+  "descripcion": "Sin internet desde las 8am,
+    reinicié el router y persiste.",
+  "tipificacion_id": 3,
+  "tipo": "INCIDENCIA",
+  "ia_clasificacion_aceptada": true,
+  "ia_confianza": 88
+}</pre>
+                        <div class="ex-label" style="margin-top:8px">PATCH — marcar RESUELTO</div>
+                        <pre style="font-size:11px;margin-top:4px;white-space:pre-wrap;color:var(--text)">{
+  "estatus": "RESUELTO",
+  "solucion_propuesta": "Se configuró la
+    antena vía Dany. Tienda confirmó que
+    ya tiene internet.",
+  "comentario": "Resuelto por Dany (chat)",
+  "tipo_comentario": "PUBLICO"
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:14px">
+                <div class="info">💡 <strong>Token de servicio:</strong> Crear un usuario con rol TIENDA por cada agente IA (ej: <code>dany-bot@soyneto.com</code>, <code>javier-bot@soyneto.com</code>). Asignarle la tienda genérica correspondiente. El <code>tienda_id</code> se toma automáticamente del usuario autenticado — no hay que pasarlo en el payload.</div>
+                <div class="warn">⚠️ <strong>Cache del JWT:</strong> El token dura 480 min (8h). El agente debe guardar el token y renovarlo solo cuando expire (error 401). No hacer login en cada mensaje o se ralentiza el flujo.</div>
+            </div>
+
+            <div class="info" style="margin-top:14px">💡 <strong>Descripción enriquecida:</strong> Incluir en <code>descripcion</code> el resumen de la conversación completa, no solo el último mensaje. El agente del Call Center verá esa descripción como contexto. Ejemplo: <em>"[Javier/WhatsApp] Tienda 749 — Conversación: 'No tenemos internet' → 'Reiniciamos router' → 'Sigue sin funcionar' → Escalando al Call Center."</em></div>
         </div>
 
     </div>

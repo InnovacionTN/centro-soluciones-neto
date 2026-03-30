@@ -22,6 +22,16 @@ export interface Grupo {
   area_tecnica: string;
 }
 
+export interface TicketSimilar {
+  id: number;
+  folio: string;
+  descripcion: string;
+  solucion_propuesta: string;
+  csat_score: number | null;
+  fecha_cierre: string | null;
+  tiempo_resolucion_horas: number | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TicketService {
   private readonly api = environment.apiUrl;
@@ -64,6 +74,10 @@ export class TicketService {
 
   get(id: number) {
     return this.http.get<Ticket>(`${this.api}/tickets/${id}`);
+  }
+
+  getSimilares(ticketId: number) {
+    return this.http.get<TicketSimilar[]>(`${this.api}/tickets/${ticketId}/similares`);
   }
 
   update(id: number, body: TicketUpdate) {

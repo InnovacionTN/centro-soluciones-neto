@@ -196,7 +196,6 @@ const PRIORIDAD_ORDER: Record<string, number> = {
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; }
     .top-bar {
       display: flex;
       justify-content: space-between;

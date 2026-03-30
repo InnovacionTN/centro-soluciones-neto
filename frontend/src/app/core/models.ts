@@ -42,6 +42,7 @@ export interface CurrentUser {
   tienda_nombre: string | null;
   grupo_id: number | null;
   grupo_nombre: string | null;
+  disponible: boolean;
 }
 
 // ─── Tipificación ──────────────────────────────────────────────────────────────

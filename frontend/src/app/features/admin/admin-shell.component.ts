@@ -7,8 +7,10 @@ import { AdminTipificacionesComponent } from './admin-tipificaciones.component';
 import { AdminRuteoComponent } from './admin-ruteo.component';
 import { AdminGruposComponent } from './admin-grupos.component';
 import { AdminKpisComponent } from './admin-kpis.component';
+import { AdminTorreComponent } from './admin-torre.component';
+import { AdminIncidentesComponent } from './admin-incidentes.component';
 
-type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
+type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
 
 @Component({
   selector: 'app-admin-shell',
@@ -17,6 +19,7 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
     CommonModule, RouterModule, NavbarComponent,
     AdminUsuariosComponent, AdminTipificacionesComponent,
     AdminRuteoComponent, AdminGruposComponent, AdminKpisComponent,
+    AdminTorreComponent, AdminIncidentesComponent,
   ],
   template: `
     <div class="page">
@@ -42,6 +45,8 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
 
         <!-- Tab content -->
         <div class="admin-content">
+          @if (activeTab === 'torre')          { <app-admin-torre /> }
+          @if (activeTab === 'incidentes')     { <app-admin-incidentes /> }
           @if (activeTab === 'usuarios')       { <app-admin-usuarios /> }
           @if (activeTab === 'tipificaciones') { <app-admin-tipificaciones /> }
           @if (activeTab === 'ruteo')          { <app-admin-ruteo /> }
@@ -53,7 +58,6 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; }
     .admin-header { margin-bottom: 20px; }
     .page-title { font-size: 22px; font-weight: 600; }
     .admin-tabs {
@@ -82,12 +86,14 @@ type Tab = 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
   `],
 })
 export class AdminShellComponent {
-  activeTab: Tab = 'usuarios';
+  activeTab: Tab = 'torre';
   tabs = [
-    { id: 'usuarios' as Tab, label: 'Usuarios', icon: '👤' },
-    { id: 'tipificaciones' as Tab, label: 'Tipificaciones', icon: '🗂' },
-    { id: 'ruteo' as Tab, label: 'Matriz de ruteo', icon: '🗺' },
-    { id: 'grupos'   as Tab, label: 'Grupos CC',    icon: '👥' },
-    { id: 'kpis'     as Tab, label: 'KPIs agentes', icon: '📊' },
+    { id: 'torre'          as Tab, label: 'Torre de Control', icon: '🗼' },
+    { id: 'incidentes'     as Tab, label: 'Incidentes',       icon: '🚨' },
+    { id: 'kpis'           as Tab, label: 'KPIs agentes',     icon: '📊' },
+    { id: 'usuarios'       as Tab, label: 'Usuarios',         icon: '👤' },
+    { id: 'tipificaciones' as Tab, label: 'Tipificaciones',   icon: '🗂' },
+    { id: 'ruteo'          as Tab, label: 'Matriz de ruteo',  icon: '🗺' },
+    { id: 'grupos'         as Tab, label: 'Grupos CC',        icon: '👥' },
   ];
 }

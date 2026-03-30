@@ -153,6 +153,7 @@ class TicketOut(BaseModel):
     eventos: list[EventoOut] = []
     csat_score: Optional[int] = None
     csat_comentario: Optional[str] = None
+    incidente_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -175,6 +176,7 @@ class TicketListItem(BaseModel):
     sla_vencido: bool
     fecha_apertura: datetime
     tipificacion: Optional[TipificacionOut]
+    incidente_id: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -251,6 +253,7 @@ class UsuarioAdminOut(BaseModel):
     nombre: str
     rol: str
     activo: bool
+    disponible: bool = True
     grupo_id: Optional[int]
     tienda_id: Optional[int]
     created_at: Optional[datetime]
@@ -385,6 +388,19 @@ class PlantillaOut(BaseModel):
 # ─── KPIs por agente ──────────────────────────────────────────────────────────
 
 
+class TicketSimilarOut(BaseModel):
+    id: int
+    folio: str
+    descripcion: str          # truncada a 150 chars
+    solucion_propuesta: Optional[str]
+    csat_score: Optional[int]
+    fecha_cierre: Optional[datetime]
+    tiempo_resolucion_horas: Optional[float]  # desde apertura hasta cierre
+
+    class Config:
+        from_attributes = True
+
+
 class KpiAgente(BaseModel):
     agente_id: int
     nombre: str
@@ -396,3 +412,83 @@ class KpiAgente(BaseModel):
     sla_cumplido_pct: Optional[float]  # % tickets resueltos dentro del SLA
     csat_promedio: Optional[float]  # promedio de calificaciones 1-5
     total_escalados: int  # tickets que escaló a otro grupo
+
+
+# ─── Intake externo (Javier / agentes WhatsApp) ───────────────────────────────
+
+
+# ─── Torre de Control ─────────────────────────────────────────────────────────
+
+
+class TorreAlertaItem(BaseModel):
+    ticket_id: int
+    folio: str
+    tienda: str
+    agente: Optional[str]
+    tipificacion: Optional[str]
+    estatus: str
+    prioridad: str
+    sla_limite: Optional[datetime]
+    sla_vencido: bool
+    horas_abierto: float
+    alerta: str  # "SLA_VENCIDO" | "SLA_PROXIMO" | "SIN_AGENTE" | "ESTANCADO"
+
+
+# ─── Incidentes Masivos ───────────────────────────────────────────────────────
+
+
+class IncidenteMasivoCreate(BaseModel):
+    titulo: str
+    descripcion: Optional[str] = None
+    tipificacion_id: Optional[int] = None
+    ticket_ids: Optional[list[int]] = []  # tickets a vincular al crearlo
+
+
+class IncidenteMasivoOut(BaseModel):
+    id: int
+    titulo: str
+    descripcion: Optional[str]
+    tipificacion_id: Optional[int]
+    estado: str
+    creado_por: int
+    impacto_tiendas: int
+    fecha_inicio: datetime
+    fecha_cierre: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class IncidenteMasivoUpdate(BaseModel):
+    titulo: Optional[str] = None
+    descripcion: Optional[str] = None
+    estado: Optional[str] = None  # "CERRADO"
+
+
+class AgentDisponibilidadUpdate(BaseModel):
+    disponible: bool
+
+
+# ─── Intake externo (Javier / agentes WhatsApp) ───────────────────────────────
+
+
+class TicketIntakeRequest(BaseModel):
+    """Formato nativo de Javier. El backend hace el mapeo internamente."""
+    store_name: str                         # nombre de tienda (lookup por nombre)
+    summary: str                            # descripción del problema
+    reason: Optional[str] = None            # contexto adicional
+    priority: Optional[str] = "Media"       # "Alta" | "Media" | "Baja"
+    status: Optional[str] = "abierto"       # "abierto" | "completo"
+    rating: Optional[int] = None            # 1-5 si ya está resuelto
+    area: Optional[str] = None              # ignorado — IA determina área
+    sentiment: Optional[str] = None         # ignorado por ahora
+    javier_folio: Optional[str] = None      # folio original de Javier (guardado en metadata)
+    customer_phone: Optional[str] = None    # teléfono del cliente (guardado en metadata)
+
+
+class TicketIntakeResponse(BaseModel):
+    folio: str
+    ticket_id: int
+    estatus: str
+    tienda_encontrada: str
+    csat_registrado: bool

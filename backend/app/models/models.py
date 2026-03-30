@@ -149,6 +149,7 @@ class Usuario(Base):
     grupo_id = Column(Integer, ForeignKey("cat_grupos.id"), nullable=True)
     tienda_id = Column(Integer, ForeignKey("tiendas.id"), nullable=True)
     activo = Column(Boolean, default=True)
+    disponible = Column(Boolean, default=True)  # agente disponible para recibir tickets
     last_login = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
@@ -259,6 +260,9 @@ class Ticket(Base):
     csat_comentario = Column(Text, nullable=True)
     csat_fecha = Column(DateTime, nullable=True)
 
+    # Incidente masivo vinculado (nullable)
+    incidente_id = Column(Integer, ForeignKey("incidentes_masivos.id"), nullable=True)
+
     __table_args__ = (UniqueConstraint("folio", name="uq_ticket_folio"),)
 
     tienda = relationship("Tienda", back_populates="tickets")
@@ -271,6 +275,7 @@ class Ticket(Base):
         foreign_keys="[Ticket.tipificacion_id]",
     )
     grupo = relationship("Grupo", back_populates="tickets")
+    incidente = relationship("IncidenteMasivo", back_populates="tickets", foreign_keys=[incidente_id])
     eventos = relationship(
         "BitacoraEvento", back_populates="ticket", order_by="BitacoraEvento.timestamp"
     )
@@ -324,6 +329,27 @@ class Evidencia(Base):
 
     ticket = relationship("Ticket", back_populates="evidencias")
     usuario = relationship("Usuario", back_populates="evidencias")
+
+
+# ─── Incidentes Masivos ───────────────────────────────────────────────────────
+
+
+class IncidenteMasivo(Base):
+    __tablename__ = "incidentes_masivos"
+
+    id = Column(Integer, primary_key=True)
+    titulo = Column(String(200), nullable=False)
+    descripcion = Column(Text)
+    tipificacion_id = Column(Integer, ForeignKey("cat_tipificaciones.id"), nullable=True)
+    estado = Column(String(20), default="ACTIVO")  # ACTIVO | CERRADO
+    creado_por = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
+    impacto_tiendas = Column(Integer, default=0)   # conteo de tiendas afectadas
+    fecha_inicio = Column(DateTime, server_default=func.now())
+    fecha_cierre = Column(DateTime, nullable=True)
+
+    tipificacion = relationship("Tipificacion", foreign_keys=[tipificacion_id])
+    creador = relationship("Usuario", foreign_keys=[creado_por])
+    tickets = relationship("Ticket", back_populates="incidente")
 
 
 # ─── Plantillas de respuesta rápida (macros del agente) ──────────────────────

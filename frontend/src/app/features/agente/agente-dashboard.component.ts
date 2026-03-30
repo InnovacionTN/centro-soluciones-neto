@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
+import { AdminService } from '../../core/services/admin.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { DashboardMetrics } from '../../core/models';
 
@@ -20,9 +21,23 @@ import { DashboardMetrics } from '../../core/models';
             <h1 class="page-title">Dashboard</h1>
             <p class="page-sub">Métricas en tiempo real · {{ now | date:'dd/MM/yyyy HH:mm' }}</p>
           </div>
-          <a routerLink="/agente/cola" class="btn btn--primary">
-            Ver cola de tickets →
-          </a>
+          <div class="top-bar-right">
+            <!-- Toggle disponibilidad -->
+            <button
+              class="disponibilidad-btn"
+              [class.disponibilidad-btn--activo]="disponible()"
+              [class.disponibilidad-btn--pausa]="!disponible()"
+              (click)="toggleDisponibilidad()"
+              [disabled]="togglingDisp()"
+              title="{{ disponible() ? 'Pausar — no recibirás tickets nuevos' : 'Reanudar — volverás al pool de asignación' }}"
+            >
+              <span class="disp-dot" [class.disp-dot--verde]="disponible()" [class.disp-dot--rojo]="!disponible()"></span>
+              {{ disponible() ? 'Disponible' : 'En pausa' }}
+            </button>
+            <a routerLink="/agente/cola" class="btn btn--primary">
+              Ver cola →
+            </a>
+          </div>
         </div>
 
         @if (loading()) {
@@ -142,7 +157,6 @@ import { DashboardMetrics } from '../../core/models';
     </div>
   `,
   styles: [`
-    .page { display: flex; flex-direction: column; min-height: 100vh; }
     .top-bar {
       display: flex;
       justify-content: space-between;
@@ -240,6 +254,30 @@ import { DashboardMetrics } from '../../core/models';
     .highlight-unit  { font-size: 18px; font-weight: 400; color: var(--c-muted); }
     .highlight-label { font-size: 14px; font-weight: 500; }
     .highlight-sub   { font-size: 12px; color: var(--c-muted); }
+
+    .top-bar-right { display: flex; align-items: center; gap: 10px; }
+
+    .disponibilidad-btn {
+      display: flex; align-items: center; gap: 6px;
+      padding: 7px 14px; border-radius: var(--radius-md); font-size: 13px;
+      font-weight: 500; cursor: pointer; border: 1px solid;
+      transition: all var(--transition);
+    }
+    .disponibilidad-btn--activo {
+      background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7;
+    }
+    .disponibilidad-btn--activo:hover { background: #C8E6C9; }
+    .disponibilidad-btn--pausa {
+      background: #FFF3E0; color: #E65100; border-color: #FFCC80;
+    }
+    .disponibilidad-btn--pausa:hover { background: #FFE0B2; }
+    .disponibilidad-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+    .disp-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+    }
+    .disp-dot--verde { background: #2E7D32; }
+    .disp-dot--rojo  { background: #E65100; }
   `],
 })
 export class AgenteDashboardComponent implements OnInit {
@@ -271,15 +309,38 @@ export class AgenteDashboardComponent implements OnInit {
     return map[area] ?? 'sin_area';
   }
 
+  disponible = signal(true);
+  togglingDisp = signal(false);
+
   constructor(
     private ticketSvc: TicketService,
     public auth: AuthService,
+    private adminSvc: AdminService,
   ) { }
 
   ngOnInit() {
+    const user = this.auth.currentUser();
+    if (user) this.disponible.set(user.disponible ?? true);
+
     this.ticketSvc.dashboard().subscribe({
       next: m => { this.metrics.set(m); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  toggleDisponibilidad() {
+    const user = this.auth.currentUser();
+    if (!user || this.togglingDisp()) return;
+    this.togglingDisp.set(true);
+    const nuevo = !this.disponible();
+    this.adminSvc.setDisponibilidad(user.id, nuevo).subscribe({
+      next: () => {
+        this.disponible.set(nuevo);
+        this.togglingDisp.set(false);
+        // Actualizar usuario en memoria
+        this.auth.currentUser.update(u => u ? { ...u, disponible: nuevo } : u);
+      },
+      error: () => this.togglingDisp.set(false),
     });
   }
 }

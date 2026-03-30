@@ -20,8 +20,21 @@ const API = environment.apiUrl + '/admin';
 
 export interface UsuarioAdmin {
   id: number; email: string; nombre: string; rol: string;
-  activo: boolean; grupo_id: number | null; tienda_id: number | null;
+  activo: boolean; disponible: boolean; grupo_id: number | null; tienda_id: number | null;
   created_at: string | null; last_login: string | null;
+}
+
+export interface TorreAlerta {
+  ticket_id: number; folio: string; tienda: string; agente: string | null;
+  tipificacion: string | null; estatus: string; prioridad: string;
+  sla_limite: string | null; sla_vencido: boolean; horas_abierto: number;
+  alerta: 'SLA_VENCIDO' | 'SLA_PROXIMO' | 'SIN_AGENTE' | 'ESTANCADO';
+}
+
+export interface IncidenteMasivo {
+  id: number; titulo: string; descripcion: string | null;
+  tipificacion_id: number | null; estado: string; creado_por: number;
+  impacto_tiendas: number; fecha_inicio: string; fecha_cierre: string | null;
 }
 export interface TipAdmin {
   id: number; area_tecnica: string; categoria: string; problema: string;
@@ -78,6 +91,30 @@ export class AdminService {
   // ─── KPIs por agente ─────────────────────────────────────────────────────
   getKpisAgentes(params?: { desde?: string; hasta?: string; grupo_id?: number }) {
     return this.http.get<KpiAgente[]>(`${API}/kpis-agentes`, { params: params as any });
+  }
+
+  // ─── Torre de Control ────────────────────────────────────────────────────
+  getTorre() {
+    return this.http.get<TorreAlerta[]>(`${API}/torre`);
+  }
+
+  setDisponibilidad(usuarioId: number, disponible: boolean) {
+    return this.http.patch<UsuarioAdmin>(`${API}/usuarios/${usuarioId}/disponibilidad`, { disponible });
+  }
+
+  // ─── Incidentes Masivos ──────────────────────────────────────────────────
+  getIncidentes(estado?: string) {
+    const params: any = {};
+    if (estado) params['estado'] = estado;
+    return this.http.get<IncidenteMasivo[]>(`${API}/incidentes`, { params });
+  }
+
+  createIncidente(body: { titulo: string; descripcion?: string; tipificacion_id?: number; ticket_ids?: number[] }) {
+    return this.http.post<IncidenteMasivo>(`${API}/incidentes`, body);
+  }
+
+  updateIncidente(id: number, body: { titulo?: string; descripcion?: string; estado?: string }) {
+    return this.http.patch<IncidenteMasivo>(`${API}/incidentes/${id}`, body);
   }
 
 }
