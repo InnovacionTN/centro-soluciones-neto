@@ -1,15 +1,15 @@
 {
   "projects": {
-    "default": "soyneto-csn-staging",
-    "staging": "soyneto-csn-staging",
-    "prod":    "soyneto-csn-prod"
+    "default": "gen-lang-client-0189172552",
+    "staging": "gen-lang-client-0189172552",
+    "prod":    "gen-lang-client-0189172552"
   },
   "targets": {
-    "soyneto-csn-staging": {
-      "hosting": { "staging": ["csn-staging"] }
-    },
-    "soyneto-csn-prod": {
-      "hosting": { "prod": ["csn-prod"] }
+    "gen-lang-client-0189172552": {
+      "hosting": {
+        "staging": ["csn-staging"],
+        "prod":    ["csn-prod"]
+      }
     }
   }
 }
