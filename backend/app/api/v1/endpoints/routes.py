@@ -2,9 +2,12 @@ from datetime import datetime, timedelta
 from typing import Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, and_
+from fastapi.responses import StreamingResponse
+import csv, io
 
 from app.db.session import get_db
 from app.core.security import (
@@ -34,6 +37,8 @@ from app.models.models import (
     PlantillaRespuesta,
     PrioridadTicket,
     IncidenteMasivo,
+    SlaPolicy,
+    OrigenTicket,
 )
 from app.schemas.schemas import (
     LoginRequest,
@@ -72,12 +77,30 @@ from app.schemas.schemas import (
     IncidenteMasivoOut,
     IncidenteMasivoUpdate,
     AgentDisponibilidadUpdate,
+    SlaPolicyOut,
+    TicketDanyOut,
+    TicketDanyCreate,
+    VisitaProgRequest,
+    EsperandoPiezaRequest,
+    CierresMasivosRequest,
+    CierresMasivosOut,
+    TicketCoordinadorItem,
+    KpiEjecutivo,
+    KpiTendencia,
+    KpiPorArea,
+    KpiPorGrupo,
+    KpiAgenteExtendido,
+    ExportRequest,
+    CsatReminderResult,
 )
 from app.services.ia_service import classify_with_ai, suggest_solution
 from app.services.ticket_service import (
     create_ticket_in_db,
     log_event,
     assign_agent_round_robin,
+    create_ticket_desde_dany,
+    get_sla_status,
+    get_sla_pct,
 )
 from app.services.storage_service import save_file, validate_file, delete_file
 
@@ -132,6 +155,43 @@ def _notify_slack_critico(ticket, db) -> None:
         pass
 
 
+# ─── Helper: enriquecer ticket con campos Sprint 1 ────────────────────────────
+# Llamar en TODOS los lugares donde se devuelve un ticket o lista de tickets.
+
+
+def _enriquecer_sla(ticket, es_activo: bool = None):
+    """
+    Calcula y asigna sla_status y sla_porcentaje dinámicamente.
+    No persiste nada en DB.
+    'es_activo' se infiere si no se pasa.
+    """
+    ESTADOS_ACTIVOS = {
+        "NUEVO",
+        "ASIGNADO",
+        "EN_PROCESO",
+        "ESPERANDO_TIENDA",
+        "ESPERANDO_AGENTE",
+        "RECHAZADO",
+        "PROGRAMADO_VISITA",
+        "EN_VISITA",
+        "ESPERANDO_PIEZA",
+    }
+    if es_activo is None:
+        es_activo = ticket.estatus.value in ESTADOS_ACTIVOS
+
+    # sla_status — semáforo
+    ticket.sla_status = get_sla_status(ticket)
+
+    # sla_porcentaje — número 0–999
+    pct = get_sla_pct(ticket)
+    ticket.sla_porcentaje = pct
+
+    # sla_vencido — mantener por retrocompatibilidad
+    ticket.sla_vencido = (ticket.sla_status == "ROJO") and es_activo
+
+    return ticket
+
+
 @router.post("/auth/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     user = (
@@ -145,7 +205,50 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     user.last_login = datetime.utcnow()
     db.commit()
 
-    tienda = db.query(Tienda).filter(Tienda.id == user.tienda_id).first() if user.tienda_id else None
+    tienda = (
+        db.query(Tienda).filter(Tienda.id == user.tienda_id).first()
+        if user.tienda_id
+        else None
+    )
+
+    token = create_token({"sub": str(user.id), "rol": user.rol.value})
+    return TokenResponse(
+        access_token=token,
+        rol=user.rol,
+        nombre=user.nombre,
+        tienda_id=user.tienda_id,
+        tienda_nombre=tienda.nombre if tienda else None,
+    )
+
+
+@router.post(
+    "/auth/swagger-login", response_model=TokenResponse, include_in_schema=False
+)
+def swagger_login(
+    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
+):
+    """Endpoint dedicado para Swagger UI que acepta form-data en lugar de JSON"""
+    print(
+        f"DEBUG swagger_login: username='{form_data.username}', password='{form_data.password}'"
+    )
+    user = (
+        db.query(Usuario)
+        .filter(Usuario.email == form_data.username.strip(), Usuario.activo == True)
+        .first()
+    )
+    if not user or not verify_password(
+        form_data.password.strip(), user.hashed_password
+    ):
+        raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+    user.last_login = datetime.utcnow()
+    db.commit()
+
+    tienda = (
+        db.query(Tienda).filter(Tienda.id == user.tienda_id).first()
+        if user.tienda_id
+        else None
+    )
 
     token = create_token({"sub": str(user.id), "rol": user.rol.value})
     return TokenResponse(
@@ -166,7 +269,7 @@ def me(
     if current_user.grupo_id:
         g = db.query(Grupo).filter(Grupo.id == current_user.grupo_id).first()
         grupo_nombre = g.nombre if g else None
-    
+
     tienda_nombre = None
     if current_user.tienda_id:
         t = db.query(Tienda).filter(Tienda.id == current_user.tienda_id).first()
@@ -299,9 +402,7 @@ async def ticket_intake(
     # 1. Buscar tienda por nombre (insensible a mayúsculas, match parcial)
     store_name_clean = body.store_name.strip()
     tienda = (
-        db.query(Tienda)
-        .filter(Tienda.nombre.ilike(f"%{store_name_clean}%"))
-        .first()
+        db.query(Tienda).filter(Tienda.nombre.ilike(f"%{store_name_clean}%")).first()
     )
     if not tienda:
         raise HTTPException(
@@ -316,7 +417,9 @@ async def ticket_intake(
         "baja": PrioridadTicket.BAJA,
         "critica": PrioridadTicket.CRITICA,
     }
-    prioridad = prioridad_map.get((body.priority or "media").lower(), PrioridadTicket.MEDIA)
+    prioridad = prioridad_map.get(
+        (body.priority or "media").lower(), PrioridadTicket.MEDIA
+    )
 
     # 3. Descripción completa
     descripcion = body.summary
@@ -365,10 +468,18 @@ async def ticket_intake(
     csat_registrado = False
     if (body.status or "").lower() == "completo":
         ticket.estatus = EstatusTicket.RESUELTO
-        ticket.fecha_primera_respuesta = ticket.fecha_primera_respuesta or datetime.utcnow()
+        ticket.fecha_primera_respuesta = (
+            ticket.fecha_primera_respuesta or datetime.utcnow()
+        )
         ticket.fecha_resolucion = datetime.utcnow()
         ticket.fecha_cierre = datetime.utcnow()
-        log_event(db, ticket, current_user.id, "RESUELTO", comentario="Resuelto por agente externo (Javier)")
+        log_event(
+            db,
+            ticket,
+            current_user.id,
+            "RESUELTO",
+            comentario="Resuelto por agente externo (Javier)",
+        )
         db.commit()
 
         # 7b. Registrar CSAT si Javier envió rating
@@ -400,21 +511,22 @@ def list_tickets(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    q = db.query(Ticket).options(joinedload(Ticket.tipificacion))
+    q = db.query(Ticket).options(
+        joinedload(Ticket.tipificacion).joinedload(Tipificacion.sla_policy)
+    )
 
-    # Tienda solo ve sus propios tickets
     if current_user.rol == RolUsuario.TIENDA:
         q = q.filter(Ticket.tienda_id == current_user.tienda_id)
-
-    # Agente ve los de su grupo
     elif current_user.rol == RolUsuario.AGENTE and not solo_mios:
         q = q.filter(Ticket.grupo_id == current_user.grupo_id)
+    elif current_user.rol.value == "COORDINADOR":
+        # Coordinador ve tickets de su zona
+        if current_user.zona_id:
+            q = q.join(Tienda, Ticket.tienda_id == Tienda.id).filter(
+                Tienda.zona_id == current_user.zona_id
+            )
 
-    if (
-        solo_mios and current_user.agente_id
-        if hasattr(current_user, "agente_id")
-        else False
-    ):
+    if solo_mios:
         q = q.filter(Ticket.agente_id == current_user.id)
 
     if estatus:
@@ -430,37 +542,18 @@ def list_tickets(
 
     tickets = q.order_by(Ticket.fecha_apertura.desc()).offset(offset).limit(limit).all()
 
-    # Recalcular sla_vencido y sla_porcentaje en tiempo real
-    # (sla_vencido en DB no se actualiza automáticamente con el tiempo)
-    now = datetime.utcnow()
-    estados_activos = [
-        EstatusTicket.NUEVO,
-        EstatusTicket.ASIGNADO,
-        EstatusTicket.EN_PROCESO,
-        EstatusTicket.ESPERANDO_TIENDA,
-        EstatusTicket.ESPERANDO_AGENTE,
-        EstatusTicket.RECHAZADO,
-    ]
+    # Enriquecer con SLA dinámico y nombre de tienda
     for t in tickets:
-        es_activo = t.estatus in estados_activos
-        if t.sla_limite:
-            vencido = es_activo and (t.sla_limite < now)
-            t.sla_vencido = vencido
-            if es_activo and t.fecha_apertura:
-                total_secs = (t.sla_limite - t.fecha_apertura).total_seconds()
-                elapsed_secs = (now - t.fecha_apertura).total_seconds()
-                t.sla_porcentaje = (
-                    min(100, int((elapsed_secs / total_secs) * 100))
-                    if total_secs > 0
-                    else 0
-                )
-            else:
-                t.sla_porcentaje = None
-        else:
-            t.sla_vencido = False
-            t.sla_porcentaje = None
+        _enriquecer_sla(t)
+        # Inyectar tienda_nombre para el frontend (no es columna del modelo)
+        if not hasattr(t, "_tienda_nombre_cache"):
+            tienda = db.query(Tienda).filter(Tienda.id == t.tienda_id).first()
+            t.tienda_nombre = tienda.nombre if tienda else None
 
     return tickets
+
+
+# ─── GET /tickets/{ticket_id} ─────────────────────────────────────────────────
 
 
 @router.get("/tickets/{ticket_id}", response_model=TicketOut)
@@ -472,7 +565,7 @@ def get_ticket(
     ticket = (
         db.query(Ticket)
         .options(
-            joinedload(Ticket.tipificacion),
+            joinedload(Ticket.tipificacion).joinedload(Tipificacion.sla_policy),
             joinedload(Ticket.eventos).joinedload(BitacoraEvento.usuario),
         )
         .filter(Ticket.id == ticket_id)
@@ -482,14 +575,90 @@ def get_ticket(
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
 
-    # Tienda solo puede ver sus propios tickets
     if (
         current_user.rol == RolUsuario.TIENDA
         and ticket.tienda_id != current_user.tienda_id
     ):
         raise HTTPException(status_code=403, detail="Sin acceso a este ticket")
 
+    _enriquecer_sla(ticket)
     return ticket
+
+
+# ─── POST /tickets/desde-dany ─────────────────────────────────────────────────
+# Sprint 1: endpoint para que Dany cree tickets pre-tipificados.
+
+
+@router.post("/tickets/desde-dany", response_model=TicketDanyOut, status_code=201)
+async def crear_ticket_desde_dany(
+    body: TicketDanyCreate,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Crea un ticket originado por Dany.
+    Requiere autenticación (token del sistema/admin).
+    El ticket llega pre-clasificado — no se invoca la IA de clasificación.
+    """
+    # Solo ADMIN o AGENTE puede llamar a este endpoint (no tiendas directo)
+    if current_user.rol == RolUsuario.TIENDA:
+        raise HTTPException(
+            status_code=403, detail="Endpoint reservado para integración Dany"
+        )
+
+    ticket = create_ticket_desde_dany(
+        db=db,
+        tienda_id=body.tienda_id,
+        descripcion=body.descripcion,
+        sesion_id=body.sesion_id,
+        tipificacion_id=body.tipificacion_id,
+        ia_area=body.ia_area,
+        ia_tipificacion_id=body.ia_tipificacion_id,
+        ia_confianza=body.ia_confianza,
+        pasos_intentados=body.pasos_intentados,
+    )
+
+    _enriquecer_sla(ticket)
+
+    grupo_nombre = None
+    if ticket.grupo_id:
+        g = db.query(Grupo).filter(Grupo.id == ticket.grupo_id).first()
+        grupo_nombre = g.nombre if g else None
+
+    agente_nombre = None
+    if ticket.agente_id:
+        a = db.query(Usuario).filter(Usuario.id == ticket.agente_id).first()
+        agente_nombre = a.nombre if a else None
+
+    return TicketDanyOut(
+        ticket_id=ticket.id,
+        folio=ticket.folio,
+        estatus=ticket.estatus.value,
+        sla_limite=ticket.sla_limite,
+        sla_status=ticket.sla_status,
+        grupo_nombre=grupo_nombre,
+        agente_nombre=agente_nombre,
+        mensaje=f"Ticket {ticket.folio} creado. Asignado a {agente_nombre or 'cola de ' + (grupo_nombre or 'sin grupo')}",
+    )
+
+
+# ─── GET /sla-policies ────────────────────────────────────────────────────────
+# Sprint 1: catálogo de políticas SLA para el frontend.
+
+
+@router.get("/sla-policies", response_model=list[SlaPolicyOut])
+def list_sla_policies(
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    from app.models.models import SlaPolicy
+
+    return (
+        db.query(SlaPolicy)
+        .filter(SlaPolicy.activo == True)
+        .order_by(SlaPolicy.horas_limite)
+        .all()
+    )
 
 
 # ─── Copiloto del Agente — Soluciones históricas ───────────────────────────────
@@ -581,12 +750,18 @@ def update_ticket(
             EstatusTicket.ESPERANDO_AGENTE,
         ]
 
+        es_mantenimiento = (
+            ticket.tipificacion
+            and ticket.tipificacion.area_tecnica.value == "MANTENIMIENTO"
+        ) or (ticket.grupo and ticket.grupo.area_tecnica.value == "MANTENIMIENTO")
+
         valid_transitions = {
             EstatusTicket.NUEVO: [EstatusTicket.EN_PROCESO]
             + ([EstatusTicket.RESUELTO] if es_tienda_o_admin else []),
             EstatusTicket.ASIGNADO: [EstatusTicket.EN_PROCESO]
             + ([EstatusTicket.RESUELTO] if es_tienda_o_admin else []),
             EstatusTicket.EN_PROCESO: [EstatusTicket.ESPERANDO_TIENDA]
+            + ([EstatusTicket.PROGRAMADO_VISITA] if es_mantenimiento else [])
             + ([EstatusTicket.RESUELTO] if es_tienda_o_admin else []),
             EstatusTicket.ESPERANDO_TIENDA: [
                 EstatusTicket.ESPERANDO_AGENTE,
@@ -602,6 +777,20 @@ def update_ticket(
             + ([EstatusTicket.RESUELTO] if es_tienda_o_admin else []),
             EstatusTicket.RESUELTO: [EstatusTicket.CERRADO]
             + ([EstatusTicket.RECHAZADO] if es_tienda_o_admin else []),
+            EstatusTicket.PROGRAMADO_VISITA: [
+                EstatusTicket.EN_VISITA,
+                EstatusTicket.ESPERANDO_PIEZA,
+                EstatusTicket.EN_PROCESO,
+            ],
+            EstatusTicket.EN_VISITA: [
+                EstatusTicket.ESPERANDO_PIEZA,
+                EstatusTicket.ESPERANDO_TIENDA,
+                EstatusTicket.RESUELTO,
+            ],
+            EstatusTicket.ESPERANDO_PIEZA: [
+                EstatusTicket.PROGRAMADO_VISITA,
+                EstatusTicket.EN_PROCESO,
+            ],
         }
 
         # Admin puede cancelar desde cualquier estado activo
@@ -664,7 +853,8 @@ def update_ticket(
                 EstatusTicket.ESPERANDO_AGENTE,
             ):
                 raise HTTPException(
-                    403, detail="El agente solo puede marcar como resuelto desde estados en espera"
+                    403,
+                    detail="El agente solo puede marcar como resuelto desde estados en espera",
                 )
 
         # Rechazar requiere motivo
@@ -860,6 +1050,292 @@ def escalar_ticket(
         .filter(Ticket.id == ticket.id)
         .first()
     )
+
+
+# ── POST /tickets/{id}/programar-visita ───────────────────────────────────────
+
+
+@router.post("/tickets/{ticket_id}/programar-visita", response_model=TicketOut)
+def programar_visita(
+    ticket_id: int,
+    body: VisitaProgRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Programa la visita técnica de Mantenimiento.
+    Solo AGENTE o ADMIN. Solo tickets de área MANTENIMIENTO.
+    Mueve el ticket a PROGRAMADO_VISITA.
+    """
+    if current_user.rol == RolUsuario.TIENDA:
+        raise HTTPException(403, detail="Solo agentes pueden programar visitas")
+
+    ticket = (
+        db.query(Ticket)
+        .options(joinedload(Ticket.tipificacion))
+        .filter(Ticket.id == ticket_id)
+        .first()
+    )
+    if not ticket:
+        raise HTTPException(404, detail="Ticket no encontrado")
+
+    # Validar que es Mantenimiento
+    es_mantto = (
+        ticket.tipificacion
+        and ticket.tipificacion.area_tecnica.value == "MANTENIMIENTO"
+    ) or (ticket.grupo and ticket.grupo.area_tecnica.value == "MANTENIMIENTO")
+    if not es_mantto:
+        raise HTTPException(
+            400, detail="Solo tickets de Mantenimiento pueden tener visita programada"
+        )
+
+    estados_validos = {
+        EstatusTicket.EN_PROCESO,
+        EstatusTicket.ASIGNADO,
+        EstatusTicket.NUEVO,
+        EstatusTicket.ESPERANDO_PIEZA,
+    }
+    if ticket.estatus not in estados_validos:
+        raise HTTPException(
+            400, detail=f"No se puede programar visita en estado {ticket.estatus.value}"
+        )
+
+    estado_anterior = ticket.estatus.value
+    ticket.estatus = EstatusTicket.PROGRAMADO_VISITA
+    ticket.fecha_visita_programada = body.fecha_visita
+    if body.pieza_requerida:
+        ticket.pieza_requerida = body.pieza_requerida
+
+    comentario = (
+        f"Visita programada para {body.fecha_visita.strftime('%d/%m/%Y %H:%M')}"
+    )
+    if body.comentario:
+        comentario += f". {body.comentario}"
+    if body.pieza_requerida:
+        comentario += f". Pieza requerida: {body.pieza_requerida}"
+
+    log_event(
+        db,
+        ticket,
+        current_user.id,
+        accion="VISITA_PROGRAMADA",
+        estado_anterior=estado_anterior,
+        estado_nuevo=EstatusTicket.PROGRAMADO_VISITA.value,
+        comentario=comentario,
+        tipo_comentario="PUBLICO",
+    )
+    db.commit()
+    db.refresh(ticket)
+    _enriquecer_sla(ticket)
+    return ticket
+
+
+# ── POST /tickets/{id}/iniciar-visita ─────────────────────────────────────────
+
+
+@router.post("/tickets/{ticket_id}/iniciar-visita", response_model=TicketOut)
+def iniciar_visita(
+    ticket_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Técnico llegó a la tienda. Mueve a EN_VISITA."""
+    if current_user.rol == RolUsuario.TIENDA:
+        raise HTTPException(403, detail="Solo agentes pueden iniciar visitas")
+
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(404, detail="Ticket no encontrado")
+    if ticket.estatus != EstatusTicket.PROGRAMADO_VISITA:
+        raise HTTPException(400, detail="El ticket debe estar en PROGRAMADO_VISITA")
+
+    ticket.estatus = EstatusTicket.EN_VISITA
+    log_event(
+        db,
+        ticket,
+        current_user.id,
+        accion="VISITA_INICIADA",
+        estado_anterior=EstatusTicket.PROGRAMADO_VISITA.value,
+        estado_nuevo=EstatusTicket.EN_VISITA.value,
+        comentario="Técnico en tienda — visita en curso",
+        tipo_comentario="PUBLICO",
+    )
+    db.commit()
+    db.refresh(ticket)
+    _enriquecer_sla(ticket)
+    return ticket
+
+
+# ── POST /tickets/{id}/esperar-pieza ─────────────────────────────────────────
+
+
+@router.post("/tickets/{ticket_id}/esperar-pieza", response_model=TicketOut)
+def esperar_pieza(
+    ticket_id: int,
+    body: EsperandoPiezaRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """Registra que se requiere una pieza. Mueve a ESPERANDO_PIEZA."""
+    if current_user.rol == RolUsuario.TIENDA:
+        raise HTTPException(403, detail="Solo agentes pueden registrar piezas")
+
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if not ticket:
+        raise HTTPException(404, detail="Ticket no encontrado")
+
+    estados_validos = {
+        EstatusTicket.EN_VISITA,
+        EstatusTicket.EN_PROCESO,
+        EstatusTicket.PROGRAMADO_VISITA,
+    }
+    if ticket.estatus not in estados_validos:
+        raise HTTPException(
+            400, detail=f"No se puede registrar pieza en estado {ticket.estatus.value}"
+        )
+
+    estado_anterior = ticket.estatus.value
+    ticket.estatus = EstatusTicket.ESPERANDO_PIEZA
+    ticket.pieza_requerida = body.pieza_requerida
+    ticket.proveedor_pendiente = body.proveedor
+
+    comentario = f"Esperando pieza: {body.pieza_requerida}"
+    if body.proveedor:
+        comentario += f" | Proveedor: {body.proveedor}"
+    if body.comentario:
+        comentario += f" | {body.comentario}"
+
+    log_event(
+        db,
+        ticket,
+        current_user.id,
+        accion="ESPERANDO_PIEZA",
+        estado_anterior=estado_anterior,
+        estado_nuevo=EstatusTicket.ESPERANDO_PIEZA.value,
+        comentario=comentario,
+        tipo_comentario="PUBLICO",
+    )
+    db.commit()
+    db.refresh(ticket)
+    _enriquecer_sla(ticket)
+    return ticket
+
+
+# ── GET /coordinador/tickets ──────────────────────────────────────────────────
+
+
+@router.get("/coordinador/tickets", response_model=list[TicketCoordinadorItem])
+def lista_tickets_coordinador(
+    estatus: Optional[str] = None,
+    limit: int = Query(100, le=300),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Vista del Coordinador de zona: tickets de Mantenimiento de su zona.
+    Solo lectura — el coordinador no puede editar tickets.
+    """
+    if current_user.rol.value not in ("COORDINADOR", "ADMIN"):
+        raise HTTPException(
+            403, detail="Solo coordinadores y admin pueden ver esta vista"
+        )
+
+    q = (
+        db.query(Ticket)
+        .options(joinedload(Ticket.tipificacion).joinedload(Tipificacion.sla_policy))
+        .join(Grupo, Ticket.grupo_id == Grupo.id, isouter=True)
+        .filter(Grupo.area_tecnica == AreaTecnica.MANTENIMIENTO)
+    )
+
+    # Filtrar por zona del coordinador
+    if current_user.rol.value == "COORDINADOR" and current_user.zona_id:
+        q = q.join(Tienda, Ticket.tienda_id == Tienda.id).filter(
+            Tienda.zona_id == current_user.zona_id
+        )
+
+    if estatus:
+        q = q.filter(Ticket.estatus == estatus.upper())
+
+    tickets = q.order_by(Ticket.fecha_apertura.desc()).limit(limit).all()
+
+    result = []
+    for t in tickets:
+        _enriquecer_sla(t)
+        tienda = db.query(Tienda).filter(Tienda.id == t.tienda_id).first()
+        agente = (
+            db.query(Usuario).filter(Usuario.id == t.agente_id).first()
+            if t.agente_id
+            else None
+        )
+        result.append(
+            TicketCoordinadorItem(
+                id=t.id,
+                folio=t.folio,
+                estatus=t.estatus.value,
+                prioridad=t.prioridad.value,
+                descripcion=t.descripcion,
+                cat_nivel1=t.cat_nivel1,
+                cat_nivel2=t.cat_nivel2,
+                tienda_id=t.tienda_id,
+                tienda_nombre=tienda.nombre if tienda else None,
+                agente_nombre=agente.nombre if agente else None,
+                fecha_apertura=t.fecha_apertura,
+                fecha_visita_programada=t.fecha_visita_programada,
+                pieza_requerida=t.pieza_requerida,
+                sla_status=t.sla_status,
+                sla_porcentaje=t.sla_porcentaje,
+            )
+        )
+    return result
+
+
+# ── POST /admin/tickets/cierre-masivo ─────────────────────────────────────────
+
+
+@router.post("/admin/tickets/cierre-masivo", response_model=CierresMasivosOut)
+def cierre_masivo_resueltos(
+    body: CierresMasivosRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    """
+    Cierra en lote tickets que llevan más de N horas en estado RESUELTO.
+    Solo ADMIN.
+    """
+    if current_user.rol != RolUsuario.ADMIN:
+        raise HTTPException(
+            403, detail="Solo administradores pueden hacer cierre masivo"
+        )
+
+    limite_tiempo = datetime.utcnow() - timedelta(hours=body.horas_minimo)
+
+    q = db.query(Ticket).filter(
+        Ticket.estatus == EstatusTicket.RESUELTO,
+        Ticket.fecha_resolucion <= limite_tiempo,
+    )
+
+    if body.ticket_ids:
+        q = q.filter(Ticket.id.in_(body.ticket_ids))
+
+    tickets = q.all()
+    folios = []
+    for t in tickets:
+        t.estatus = EstatusTicket.CERRADO
+        t.fecha_cierre = datetime.utcnow()
+        folios.append(t.folio)
+        log_event(
+            db,
+            t,
+            current_user.id,
+            accion="CIERRE_MASIVO",
+            estado_anterior=EstatusTicket.RESUELTO.value,
+            estado_nuevo=EstatusTicket.CERRADO.value,
+            comentario=f"Cierre masivo automático después de {body.horas_minimo}h en RESUELTO",
+            tipo_comentario="INTERNO",
+        )
+
+    db.commit()
+    return CierresMasivosOut(cerrados=len(folios), folios=folios)
 
 
 @router.post("/tickets/{ticket_id}/evidencias", response_model=EvidenciaOut)
@@ -1077,96 +1553,102 @@ def submit_csat(
     )
 
 
+# ─── GET /dashboard ── actualizado con métricas SLA Sprint 1 ──────────────────
+# Reemplaza la función get_dashboard existente.
+# NOTA: busca en routes.py la función decorada con @router.get("/dashboard")
+# y reemplázala completamente con esta.
+
+
 @router.get("/dashboard", response_model=DashboardMetrics)
 def get_dashboard(
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
+    from datetime import date
+
+    ESTADOS_ACTIVOS = [
+        EstatusTicket.NUEVO,
+        EstatusTicket.ASIGNADO,
+        EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA,
+        EstatusTicket.ESPERANDO_AGENTE,
+        EstatusTicket.RECHAZADO,
+        EstatusTicket.PROGRAMADO_VISITA,
+        EstatusTicket.EN_VISITA,
+        EstatusTicket.ESPERANDO_PIEZA,
+    ]
+
+    # Filtro base por rol
     base = db.query(Ticket)
     if current_user.rol == RolUsuario.AGENTE:
         base = base.filter(Ticket.grupo_id == current_user.grupo_id)
     elif current_user.rol == RolUsuario.TIENDA:
         base = base.filter(Ticket.tienda_id == current_user.tienda_id)
 
-    today = datetime.utcnow().date()
-    now = datetime.utcnow()
+    abiertos = base.filter(Ticket.estatus.in_(ESTADOS_ACTIVOS)).all()
 
-    por_area: dict = {}
-    area_rows = (
-        base.join(Tipificacion, Ticket.tipificacion_id == Tipificacion.id, isouter=True)
-        .with_entities(Tipificacion.area_tecnica, func.count(Ticket.id))
-        .filter(
-            Ticket.estatus.notin_(
-                [EstatusTicket.CERRADO, EstatusTicket.RESUELTO, EstatusTicket.CANCELADO]
-            )
-        )
-        .group_by(Tipificacion.area_tecnica)
-        .all()
-    )
-    for area, count in area_rows:
-        por_area[area.value if area else "SIN_AREA"] = count
+    # Semáforos SLA — calcular dinámicamente
+    sla_counts = {"VERDE": 0, "AMARILLO": 0, "ROJO": 0, "SIN_SLA": 0}
+    for t in abiertos:
+        status = get_sla_status(t)
+        sla_counts[status] = sla_counts.get(status, 0) + 1
 
-    por_prioridad: dict = {}
-    prio_rows = (
-        base.with_entities(Ticket.prioridad, func.count(Ticket.id))
-        .group_by(Ticket.prioridad)
-        .all()
-    )
-    for prio, count in prio_rows:
-        por_prioridad[prio.value] = count
+    hoy = date.today()
+    cerrados_hoy = base.filter(
+        Ticket.estatus.in_([EstatusTicket.CERRADO, EstatusTicket.RESUELTO]),
+        func.date(Ticket.fecha_cierre) == hoy,
+    ).count()
 
-    # Tiempo promedio de resolución
-    closed = (
-        base.filter(
-            Ticket.fecha_cierre.isnot(None),
-            Ticket.fecha_apertura.isnot(None),
-        )
-        .with_entities(Ticket.fecha_apertura, Ticket.fecha_cierre)
-        .all()
-    )
+    en_proceso = base.filter(
+        Ticket.estatus.in_([EstatusTicket.EN_PROCESO, EstatusTicket.ESPERANDO_AGENTE])
+    ).count()
 
-    avg_hours = None
-    if closed:
-        total_hours = sum(
-            (c.fecha_cierre - c.fecha_apertura).total_seconds() / 3600
-            for c in closed
-            if c.fecha_cierre and c.fecha_apertura
-        )
-        avg_hours = round(total_hours / len(closed), 1) if closed else None
+    confirmar = base.filter(Ticket.estatus == EstatusTicket.ESPERANDO_TIENDA).count()
+
+    # Por área
+    from sqlalchemy import case
+
+    por_area: dict[str, int] = {}
+    for t in abiertos:
+        area = t.tipificacion.area_tecnica.value if t.tipificacion else "SIN_AREA"
+        por_area[area] = por_area.get(area, 0) + 1
+
+    # Por prioridad
+    por_prioridad: dict[str, int] = {}
+    for t in abiertos:
+        p = t.prioridad.value if t.prioridad else "MEDIA"
+        por_prioridad[p] = por_prioridad.get(p, 0) + 1
+
+    # Tiempo promedio resolución (últimos 30 días)
+    desde = datetime.utcnow() - timedelta(days=30)
+    resueltos = base.filter(
+        Ticket.estatus.in_([EstatusTicket.CERRADO, EstatusTicket.RESUELTO]),
+        Ticket.fecha_cierre >= desde,
+        Ticket.fecha_cierre.isnot(None),
+    ).all()
+    tiempos = [
+        (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+        for t in resueltos
+        if t.fecha_cierre and t.fecha_apertura
+    ]
+    tiempo_prom = round(sum(tiempos) / len(tiempos), 1) if tiempos else None
 
     # Tasa IA aceptada
-    ia_total = base.filter(Ticket.ia_clasificacion_aceptada.isnot(None)).count()
-    ia_aceptada = base.filter(Ticket.ia_clasificacion_aceptada == True).count()
-    tasa_ia = round((ia_aceptada / ia_total) * 100, 1) if ia_total > 0 else None
+    con_ia = base.filter(Ticket.ia_clasificacion_aceptada.isnot(None)).count()
+    aceptada = base.filter(Ticket.ia_clasificacion_aceptada == True).count()
+    tasa_ia = round(aceptada / con_ia * 100, 1) if con_ia else None
 
     return DashboardMetrics(
-        # Pendientes = NUEVO + ASIGNADO (aún sin agente activo trabajando)
-        total_abiertos=base.filter(
-            Ticket.estatus.in_([EstatusTicket.NUEVO, EstatusTicket.ASIGNADO])
-        ).count(),
-        # En proceso = agente trabajando activamente
-        total_en_proceso=base.filter(
-            Ticket.estatus.in_(
-                [EstatusTicket.EN_PROCESO, EstatusTicket.ESPERANDO_AGENTE]
-            )
-        ).count(),
-        # Esperando tienda = solución enviada, tienda debe responder
-        total_confirmar_solucion=base.filter(
-            Ticket.estatus == EstatusTicket.ESPERANDO_TIENDA
-        ).count(),
-        total_cerrados_hoy=base.filter(
-            Ticket.estatus.in_([EstatusTicket.RESUELTO, EstatusTicket.CERRADO]),
-            func.date(Ticket.fecha_cierre) == today,
-        ).count(),
-        total_vencidos=base.filter(
-            Ticket.sla_limite < now,
-            Ticket.estatus.notin_(
-                [EstatusTicket.RESUELTO, EstatusTicket.CERRADO, EstatusTicket.CANCELADO]
-            ),
-        ).count(),
+        total_abiertos=len(abiertos),
+        total_en_proceso=en_proceso,
+        total_confirmar_solucion=confirmar,
+        total_cerrados_hoy=cerrados_hoy,
+        total_vencidos=sla_counts["ROJO"],
+        total_sin_sla=sla_counts["SIN_SLA"],
         por_area=por_area,
         por_prioridad=por_prioridad,
-        tiempo_promedio_resolucion_horas=avg_hours,
+        por_sla_status=sla_counts,
+        tiempo_promedio_resolucion_horas=tiempo_prom,
         tasa_ia_aceptada=tasa_ia,
     )
 
@@ -1764,7 +2246,10 @@ def auto_cierre_tickets(
     )
 
     sistema_admin = (
-        db.query(Usuario).filter(Usuario.rol == RolUsuario.ADMIN).order_by(Usuario.id).first()
+        db.query(Usuario)
+        .filter(Usuario.rol == RolUsuario.ADMIN)
+        .order_by(Usuario.id)
+        .first()
     )
 
     for tip_id, total in tipificaciones_recientes:
@@ -1997,6 +2482,648 @@ def get_kpis_agentes(
     return result
 
 
+# ── Helpers internos ──────────────────────────────────────────────────────────
+
+
+def _percentil(valores: list[float], p: int) -> Optional[float]:
+    if not valores:
+        return None
+    s = sorted(valores)
+    idx = int(len(s) * p / 100)
+    return round(s[min(idx, len(s) - 1)], 1)
+
+
+def _periodo(desde_str: Optional[str], hasta_str: Optional[str]):
+    """Devuelve (desde, hasta) como datetime. Default: últimos 30 días."""
+    hasta = datetime.fromisoformat(hasta_str) if hasta_str else datetime.utcnow()
+    desde = (
+        datetime.fromisoformat(desde_str) if desde_str else hasta - timedelta(days=30)
+    )
+    return desde, hasta
+
+
+def _sla_cumplido_pct(tickets_cerrados: list) -> Optional[float]:
+    con_sla = [t for t in tickets_cerrados if t.sla_limite]
+    if not con_sla:
+        return None
+    ok = [t for t in con_sla if t.fecha_cierre and t.fecha_cierre <= t.sla_limite]
+    return round(len(ok) / len(con_sla) * 100, 1)
+
+
+# ─── GET /admin/kpis/ejecutivo ────────────────────────────────────────────────
+
+
+@router.get("/admin/kpis/ejecutivo", response_model=KpiEjecutivo)
+def kpi_ejecutivo(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """
+    Nivel 1 — Vista ejecutiva global.
+    Solo ADMIN. Parámetros: desde/hasta en YYYY-MM-DD.
+    """
+    dt_desde, dt_hasta = _periodo(desde, hasta)
+    dias = max((dt_hasta - dt_desde).days, 1)
+
+    todos = (
+        db.query(Ticket)
+        .filter(
+            Ticket.fecha_apertura >= dt_desde,
+            Ticket.fecha_apertura <= dt_hasta,
+        )
+        .all()
+    )
+
+    cerrados = [
+        t for t in todos if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
+    ]
+    activos = [
+        t
+        for t in todos
+        if t.estatus
+        not in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO, EstatusTicket.CANCELADO)
+    ]
+
+    # Tiempos
+    tiempos = [
+        (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+        for t in cerrados
+        if t.fecha_cierre and t.fecha_apertura
+    ]
+
+    # SLA
+    sla_pct = _sla_cumplido_pct(cerrados) or 0.0
+    sin_sla = len([t for t in todos if not t.sla_limite])
+
+    # CSAT
+    con_csat = [t for t in todos if t.csat_score is not None]
+    csat_pos = [t for t in con_csat if t.csat_score and t.csat_score >= 4]
+    tasa_resp = round(len(con_csat) / len(todos) * 100, 1) if todos else 0.0
+    tasa_sat = round(len(csat_pos) / len(con_csat) * 100, 1) if con_csat else 0.0
+
+    # Origen Dany (preparado para Sprint 3)
+    t_dany = len(
+        [t for t in todos if getattr(t, "origen", None) and t.origen.value == "DANY"]
+    )
+    t_portal = len(
+        [
+            t
+            for t in todos
+            if not (getattr(t, "origen", None) and t.origen.value == "DANY")
+        ]
+    )
+
+    # Reaperturas (tickets que pasaron por RECHAZADO)
+    reaperturas = sum(
+        1
+        for t in todos
+        for e in (t.eventos if hasattr(t, "eventos") else [])
+        if e.estado_nuevo == "RECHAZADO"
+    )
+
+    return KpiEjecutivo(
+        periodo_desde=dt_desde,
+        periodo_hasta=dt_hasta,
+        total_tickets=len(todos),
+        tickets_abiertos=len(activos),
+        tickets_cerrados=len(cerrados),
+        tickets_por_dia_promedio=round(len(todos) / dias, 1),
+        sla_cumplido_pct=sla_pct,
+        tickets_sin_sla=sin_sla,
+        tiempo_resolucion_p50_horas=_percentil(tiempos, 50),
+        tiempo_resolucion_p90_horas=_percentil(tiempos, 90),
+        csat_respuestas=len(con_csat),
+        csat_tasa_respuesta_pct=tasa_resp,
+        csat_satisfaccion_pct=tasa_sat,
+        tickets_origen_dany=t_dany,
+        tickets_origen_portal=t_portal,
+        tasa_deflexion_dany_pct=0.0,  # activo en Sprint 3
+        total_reaperturas=reaperturas,
+        tasa_reapertura_pct=round(reaperturas / len(todos) * 100, 1) if todos else 0.0,
+    )
+
+
+# ─── GET /admin/kpis/tendencia ────────────────────────────────────────────────
+
+
+@router.get("/admin/kpis/tendencia", response_model=list[KpiTendencia])
+def kpi_tendencia(
+    meses: int = Query(6, ge=1, le=18),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """
+    Últimos N meses de datos para gráficas de tendencia.
+    Devuelve un punto por mes.
+    """
+    ahora = datetime.utcnow()
+    resultado = []
+
+    for i in range(meses - 1, -1, -1):
+        # Inicio y fin del mes
+        primer_dia = (ahora.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
+        if primer_dia.month == 12:
+            ultimo_dia = primer_dia.replace(year=primer_dia.year + 1, month=1, day=1)
+        else:
+            ultimo_dia = primer_dia.replace(month=primer_dia.month + 1, day=1)
+
+        mes_str = primer_dia.strftime("%Y-%m")
+
+        tickets = (
+            db.query(Ticket)
+            .filter(
+                Ticket.fecha_apertura >= primer_dia,
+                Ticket.fecha_apertura < ultimo_dia,
+            )
+            .all()
+        )
+
+        cerrados = [
+            t
+            for t in tickets
+            if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
+        ]
+        tiempos = [
+            (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+            for t in cerrados
+            if t.fecha_cierre and t.fecha_apertura
+        ]
+        con_csat = [t for t in tickets if t.csat_score is not None]
+        csat_pos = [t for t in con_csat if t.csat_score and t.csat_score >= 4]
+        t_dany = len(
+            [
+                t
+                for t in tickets
+                if getattr(t, "origen", None) and t.origen.value == "DANY"
+            ]
+        )
+
+        resultado.append(
+            KpiTendencia(
+                mes=mes_str,
+                total_tickets=len(tickets),
+                sla_cumplido_pct=_sla_cumplido_pct(cerrados),
+                tiempo_p50_horas=_percentil(tiempos, 50),
+                csat_pct=(
+                    round(len(csat_pos) / len(con_csat) * 100, 1) if con_csat else None
+                ),
+                tickets_dany=t_dany,
+            )
+        )
+
+    return resultado
+
+
+# ─── GET /admin/kpis/por-area ─────────────────────────────────────────────────
+
+
+@router.get("/admin/kpis/por-area", response_model=list[KpiPorArea])
+def kpi_por_area(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Nivel 2 — KPIs desglosados por área técnica."""
+    dt_desde, dt_hasta = _periodo(desde, hasta)
+
+    todos = (
+        db.query(Ticket)
+        .options(joinedload(Ticket.tipificacion))
+        .filter(Ticket.fecha_apertura >= dt_desde, Ticket.fecha_apertura <= dt_hasta)
+        .all()
+    )
+    total_global = len(todos) or 1
+
+    # Agrupar
+    por_area: dict[str, list] = {}
+    for t in todos:
+        area = t.tipificacion.area_tecnica.value if t.tipificacion else "SIN_AREA"
+        por_area.setdefault(area, []).append(t)
+
+    resultado = []
+    for area, ts in sorted(por_area.items(), key=lambda x: -len(x[1])):
+        cerrados = [
+            t
+            for t in ts
+            if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
+        ]
+        tiempos = [
+            (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+            for t in cerrados
+            if t.fecha_cierre and t.fecha_apertura
+        ]
+        con_csat = [t for t in ts if t.csat_score is not None]
+        csat_pos = [t for t in con_csat if t.csat_score and t.csat_score >= 4]
+        activos = [
+            t
+            for t in ts
+            if t.estatus
+            not in (
+                EstatusTicket.CERRADO,
+                EstatusTicket.RESUELTO,
+                EstatusTicket.CANCELADO,
+            )
+        ]
+
+        resultado.append(
+            KpiPorArea(
+                area=area,
+                total_tickets=len(ts),
+                pct_del_total=round(len(ts) / total_global * 100, 1),
+                sla_cumplido_pct=_sla_cumplido_pct(cerrados),
+                tiempo_p50_horas=_percentil(tiempos, 50),
+                tiempo_p90_horas=_percentil(tiempos, 90),
+                csat_pct=(
+                    round(len(csat_pos) / len(con_csat) * 100, 1) if con_csat else None
+                ),
+                tickets_vencidos=len(
+                    [t for t in activos if get_sla_status(t) == "ROJO"]
+                ),
+                tickets_sin_sla=len([t for t in ts if not t.sla_limite]),
+                reaperturas=sum(
+                    1
+                    for t in ts
+                    for e in (t.eventos if hasattr(t, "eventos") else [])
+                    if e.estado_nuevo == "RECHAZADO"
+                ),
+            )
+        )
+
+    return resultado
+
+
+# ─── GET /admin/kpis/por-grupo ────────────────────────────────────────────────
+
+
+@router.get("/admin/kpis/por-grupo", response_model=list[KpiPorGrupo])
+def kpi_por_grupo(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    area: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Nivel 3 — KPIs por grupo de soporte."""
+    dt_desde, dt_hasta = _periodo(desde, hasta)
+
+    grupos_q = db.query(Grupo).filter(Grupo.activo == True)
+    if area:
+        grupos_q = grupos_q.filter(Grupo.area_tecnica == area.upper())
+    grupos = grupos_q.all()
+
+    resultado = []
+    for g in grupos:
+        ts = (
+            db.query(Ticket)
+            .filter(
+                Ticket.grupo_id == g.id,
+                Ticket.fecha_apertura >= dt_desde,
+                Ticket.fecha_apertura <= dt_hasta,
+            )
+            .all()
+        )
+
+        if not ts:
+            continue
+
+        cerrados = [
+            t
+            for t in ts
+            if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
+        ]
+        activos = [
+            t
+            for t in ts
+            if t.estatus
+            not in (
+                EstatusTicket.CERRADO,
+                EstatusTicket.RESUELTO,
+                EstatusTicket.CANCELADO,
+            )
+        ]
+        tiempos = [
+            (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+            for t in cerrados
+            if t.fecha_cierre and t.fecha_apertura
+        ]
+        con_csat = [t for t in ts if t.csat_score is not None]
+        csat_pos = [t for t in con_csat if t.csat_score and t.csat_score >= 4]
+        agentes_activos = (
+            db.query(Usuario)
+            .filter(
+                Usuario.grupo_id == g.id,
+                Usuario.rol == RolUsuario.AGENTE,
+                Usuario.activo == True,
+                Usuario.disponible == True,
+            )
+            .count()
+        )
+
+        resultado.append(
+            KpiPorGrupo(
+                grupo_id=g.id,
+                grupo_nombre=g.nombre,
+                area=g.area_tecnica.value,
+                total_tickets=len(ts),
+                tickets_activos=len(activos),
+                tickets_cerrados=len(cerrados),
+                sla_cumplido_pct=_sla_cumplido_pct(cerrados),
+                tiempo_p50_horas=_percentil(tiempos, 50),
+                csat_pct=(
+                    round(len(csat_pos) / len(con_csat) * 100, 1) if con_csat else None
+                ),
+                agentes_activos=agentes_activos,
+                tickets_vencidos=len(
+                    [t for t in activos if get_sla_status(t) == "ROJO"]
+                ),
+            )
+        )
+
+    resultado.sort(key=lambda x: -x.total_tickets)
+    return resultado
+
+
+# ─── GET /admin/kpis/por-agente (extendido) ───────────────────────────────────
+
+
+@router.get("/admin/kpis/por-agente", response_model=list[KpiAgenteExtendido])
+def kpi_por_agente(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    grupo_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Nivel 4 — KPIs individuales por agente, versión extendida."""
+    dt_desde, dt_hasta = _periodo(desde, hasta)
+
+    aq = db.query(Usuario).filter(
+        Usuario.rol == RolUsuario.AGENTE, Usuario.activo == True
+    )
+    if grupo_id:
+        aq = aq.filter(Usuario.grupo_id == grupo_id)
+    agentes = aq.all()
+
+    resultado = []
+    for a in agentes:
+        ts = (
+            db.query(Ticket)
+            .filter(
+                Ticket.agente_id == a.id,
+                Ticket.fecha_apertura >= dt_desde,
+                Ticket.fecha_apertura <= dt_hasta,
+            )
+            .all()
+        )
+
+        cerrados = [
+            t
+            for t in ts
+            if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
+        ]
+        activos = [
+            t
+            for t in ts
+            if t.estatus
+            not in (
+                EstatusTicket.CERRADO,
+                EstatusTicket.RESUELTO,
+                EstatusTicket.CANCELADO,
+            )
+        ]
+
+        tiempos_res = [
+            (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600
+            for t in cerrados
+            if t.fecha_cierre and t.fecha_apertura
+        ]
+        tiempos_1ra = [
+            (t.fecha_primera_respuesta - t.fecha_apertura).total_seconds() / 3600
+            for t in ts
+            if t.fecha_primera_respuesta and t.fecha_apertura
+        ]
+
+        con_csat = [t for t in ts if t.csat_score is not None]
+        csat_sum = sum(t.csat_score for t in con_csat if t.csat_score)
+
+        reaperturas = sum(
+            1
+            for t in ts
+            for e in (t.eventos if hasattr(t, "eventos") else [])
+            if e.estado_nuevo == "RECHAZADO"
+        )
+
+        grupo = (
+            db.query(Grupo).filter(Grupo.id == a.grupo_id).first()
+            if a.grupo_id
+            else None
+        )
+
+        resultado.append(
+            KpiAgenteExtendido(
+                agente_id=a.id,
+                nombre=a.nombre,
+                email=a.email,
+                grupo=grupo.nombre if grupo else None,
+                area=grupo.area_tecnica.value if grupo else None,
+                tickets_cerrados=len(cerrados),
+                tickets_activos=len(activos),
+                tiempo_promedio_horas=(
+                    round(sum(tiempos_res) / len(tiempos_res), 1)
+                    if tiempos_res
+                    else None
+                ),
+                tiempo_primera_respuesta_horas=(
+                    round(sum(tiempos_1ra) / len(tiempos_1ra), 1)
+                    if tiempos_1ra
+                    else None
+                ),
+                sla_cumplido_pct=_sla_cumplido_pct(cerrados),
+                csat_promedio=round(csat_sum / len(con_csat), 2) if con_csat else None,
+                csat_respuestas=len(con_csat),
+                total_escalados=db.query(BitacoraEvento)
+                .filter(
+                    BitacoraEvento.usuario_id == a.id,
+                    BitacoraEvento.accion == "ESCALACION",
+                )
+                .count(),
+                tasa_reapertura_pct=(
+                    round(reaperturas / len(ts) * 100, 1) if ts else None
+                ),
+                disponible=a.disponible,
+            )
+        )
+
+    resultado.sort(key=lambda x: -x.tickets_cerrados)
+    return resultado
+
+
+# ─── POST /admin/tickets/exportar ─────────────────────────────────────────────
+
+
+@router.post("/admin/tickets/exportar")
+def exportar_tickets(
+    body: ExportRequest,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """
+    Genera y descarga un CSV con los tickets del período.
+    Solo ADMIN.
+    """
+    dt_desde, dt_hasta = _periodo(body.desde, body.hasta)
+
+    q = (
+        db.query(Ticket)
+        .options(
+            joinedload(Ticket.tipificacion),
+            joinedload(Ticket.tienda),
+            joinedload(Ticket.agente),
+            joinedload(Ticket.grupo),
+        )
+        .filter(
+            Ticket.fecha_apertura >= dt_desde,
+            Ticket.fecha_apertura <= dt_hasta,
+        )
+    )
+
+    if body.area:
+        q = q.join(Tipificacion, Ticket.tipificacion_id == Tipificacion.id).filter(
+            Tipificacion.area_tecnica == body.area.upper()
+        )
+    if body.grupo_id:
+        q = q.filter(Ticket.grupo_id == body.grupo_id)
+    if body.estatus:
+        q = q.filter(Ticket.estatus == body.estatus.upper())
+
+    tickets = q.order_by(Ticket.fecha_apertura.desc()).all()
+
+    # Construir CSV en memoria
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Cabecera
+    headers = [
+        "folio",
+        "estatus",
+        "prioridad",
+        "tipo",
+        "origen",
+        "tienda_id",
+        "tienda_nombre",
+        "area",
+        "categoria",
+        "subcategoria",
+        "problema",
+        "agente",
+        "grupo",
+        "sla_limite",
+        "sla_cumplido",
+        "fecha_apertura",
+        "fecha_cierre",
+        "horas_resolucion",
+        "csat_score",
+        "descripcion",
+    ]
+    if body.incluir_bitacora:
+        headers.append("eventos_count")
+    writer.writerow(headers)
+
+    for t in tickets:
+        sla_ok = ""
+        if t.sla_limite and t.fecha_cierre:
+            sla_ok = "SI" if t.fecha_cierre <= t.sla_limite else "NO"
+
+        horas_res = ""
+        if t.fecha_apertura and t.fecha_cierre:
+            horas_res = round(
+                (t.fecha_cierre - t.fecha_apertura).total_seconds() / 3600, 1
+            )
+
+        row = [
+            t.folio,
+            t.estatus.value,
+            t.prioridad.value if t.prioridad else "",
+            t.tipo.value if t.tipo else "",
+            t.origen.value if t.origen else "PORTAL",
+            t.tienda_id,
+            t.tienda.nombre if t.tienda else "",
+            t.tipificacion.area_tecnica.value if t.tipificacion else "",
+            t.cat_nivel1 or "",
+            t.cat_nivel2 or "",
+            t.cat_nivel3 or "",
+            t.agente.nombre if t.agente else "",
+            t.grupo.nombre if t.grupo else "",
+            t.sla_limite.strftime("%Y-%m-%d %H:%M") if t.sla_limite else "",
+            sla_ok,
+            t.fecha_apertura.strftime("%Y-%m-%d %H:%M") if t.fecha_apertura else "",
+            t.fecha_cierre.strftime("%Y-%m-%d %H:%M") if t.fecha_cierre else "",
+            horas_res,
+            t.csat_score or "",
+            (t.descripcion or "")[:200],
+        ]
+        if body.incluir_bitacora:
+            row.append(len(t.eventos) if hasattr(t, "eventos") else 0)
+        writer.writerow(row)
+
+    output.seek(0)
+    filename = (
+        f"tickets_{dt_desde.strftime('%Y%m%d')}_{dt_hasta.strftime('%Y%m%d')}.csv"
+    )
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+# ─── POST /internal/csat-recordatorio ─────────────────────────────────────────
+
+
+@router.post(
+    "/internal/csat-recordatorio",
+    include_in_schema=False,
+    response_model=CsatReminderResult,
+)
+def csat_recordatorio(
+    db: Session = Depends(get_db),
+):
+    """
+    Marca tickets CERRADO sin CSAT que llevan >24h cerrados para
+    que el frontend muestre el banner de calificación pendiente.
+    Llamar desde un cron externo (n8n o scheduler).
+    No requiere auth — solo accesible internamente.
+    """
+    hace_24h = datetime.utcnow() - timedelta(hours=24)
+
+    pendientes = (
+        db.query(Ticket)
+        .filter(
+            Ticket.estatus.in_([EstatusTicket.CERRADO, EstatusTicket.RESUELTO]),
+            Ticket.csat_score.is_(None),
+            Ticket.csat_recordatorio_enviado == False,
+            Ticket.fecha_cierre <= hace_24h,
+            Ticket.fecha_cierre.isnot(None),
+        )
+        .all()
+    )
+
+    folios = []
+    for t in pendientes:
+        t.csat_recordatorio_enviado = True
+        folios.append(t.folio)
+
+    db.commit()
+    return CsatReminderResult(
+        procesados=len(pendientes),
+        enviados=len(folios),
+        folios=folios,
+    )
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # SPRINT 2 — TORRE DE CONTROL
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2069,7 +3196,9 @@ def torre_control(
                     estatus=t.estatus.value,
                     prioridad=t.prioridad.value,
                     sla_limite=t.sla_limite,
-                    sla_vencido=bool(t.sla_vencido or (t.sla_limite and t.sla_limite < ahora)),
+                    sla_vencido=bool(
+                        t.sla_vencido or (t.sla_limite and t.sla_limite < ahora)
+                    ),
                     horas_abierto=horas_abierto,
                     alerta=alerta,
                 )
@@ -2088,7 +3217,9 @@ def torre_control(
     return alertas
 
 
-@router.patch("/admin/usuarios/{usuario_id}/disponibilidad", response_model=UsuarioAdminOut)
+@router.patch(
+    "/admin/usuarios/{usuario_id}/disponibilidad", response_model=UsuarioAdminOut
+)
 def set_disponibilidad(
     usuario_id: int,
     body: AgentDisponibilidadUpdate,
@@ -2168,7 +3299,9 @@ def update_incidente(
     current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
 ):
     """Actualiza o cierra un incidente masivo."""
-    incidente = db.query(IncidenteMasivo).filter(IncidenteMasivo.id == incidente_id).first()
+    incidente = (
+        db.query(IncidenteMasivo).filter(IncidenteMasivo.id == incidente_id).first()
+    )
     if not incidente:
         raise HTTPException(404, "Incidente no encontrado")
 
@@ -2188,10 +3321,12 @@ def update_incidente(
 
 # ── Proxy Dany / n8n ──────────────────────────────────────────────────────────
 
+
 @router.get("/dany/debug")
 def dany_debug():
     s = get_settings()
     return {"DANY_WEBHOOK_URL": s.DANY_WEBHOOK_URL}
+
 
 @router.post("/dany/chat")
 async def dany_chat_proxy(
@@ -2208,6 +3343,10 @@ async def dany_chat_proxy(
             resp.raise_for_status()
             return resp.json()
     except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=502, detail=f"n8n respondió {e.response.status_code}")
+        raise HTTPException(
+            status_code=502, detail=f"n8n respondió {e.response.status_code}"
+        )
     except httpx.RequestError:
-        raise HTTPException(status_code=502, detail="No se pudo conectar con el agente Dany")
+        raise HTTPException(
+            status_code=502, detail="No se pudo conectar con el agente Dany"
+        )

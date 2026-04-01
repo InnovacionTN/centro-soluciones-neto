@@ -578,12 +578,12 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
   private router = inject(Router);
 
   // ── Estado ────────────────────────────────────────────────────────────────
-  isOpen     = signal(false);
-  thinking   = signal(false);
-  messages   = signal<DanyMsg[]>([]);
-  inputText  = '';
-  ticketCreado   = signal<{ id: number; folio: string } | null>(null);
-  esResueltoIA   = signal(false);
+  isOpen = signal(false);
+  thinking = signal(false);
+  messages = signal<DanyMsg[]>([]);
+  inputText = '';
+  ticketCreado = signal<{ id: number; folio: string } | null>(null);
+  esResueltoIA = signal(false);
   creatingTicket = signal(false);
 
   readonly quickChips = QUICK_CHIPS;
@@ -595,7 +595,7 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
   private needsScroll = false;
 
   // ── Computed ──────────────────────────────────────────────────────────────
-  tiendaId     = () => this.auth.currentUser()?.tienda_id ?? null;
+  tiendaId = () => this.auth.currentUser()?.tienda_id ?? null;
   tiendaNombre = () => (this.auth.currentUser() as any)?.tienda_nombre ?? null;
 
   // ── Ciclo de vida ─────────────────────────────────────────────────────────
@@ -652,15 +652,10 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
     this.needsScroll = true;
 
     const payload = {
-      mensaje:       text,
-      tienda_id:     this.tiendaId(),
+      mensaje: text,
+      tienda_id: this.tiendaId(),
       tienda_nombre: this.tiendaNombre(),
-      sesion_id:     this.sesionId,
-      historial:     this.messages().map(m => ({
-        de:     m.from,
-        texto:  m.text,
-        tiempo: m.time.toISOString(),
-      })),
+      sesion_id: this.sesionId,
     };
 
     this.http.post<DanyWebhookResponse>(this.proxyUrl, payload).pipe(
@@ -682,8 +677,8 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
 
   // ── Procesamiento de respuesta ────────────────────────────────────────────
   private processResponse(res: DanyWebhookResponse) {
-    const text    = res.respuesta ?? res.output ?? 'No pude entender la respuesta del agente.';
-    const accion  = res.accion ?? 'continuar';
+    const text = res.respuesta ?? res.output ?? 'No pude entender la respuesta del agente.';
+    const accion = res.accion ?? 'continuar';
     const resumen = res.resumen;
 
     this.addMsg({ from: 'dany', text, accion: accion === 'continuar' ? null : accion, resumen });
@@ -725,7 +720,7 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
   registrarResuelto(resumen: string) {
     if (this.creatingTicket()) return;
     const descripcion = this.buildDescription();
-    const comentario  = `Resuelto por Dany (IA). ${resumen}`.trim();
+    const comentario = `Resuelto por Dany (IA). ${resumen}`.trim();
 
     this.creatingTicket.set(true);
     this.ticketSvc.create({
@@ -806,7 +801,7 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
 
   private addMsg(partial: Omit<DanyMsg, 'id' | 'time'>) {
     const msg: DanyMsg = {
-      id:   Math.random().toString(36).slice(2),
+      id: Math.random().toString(36).slice(2),
       time: new Date(),
       ...partial,
     };

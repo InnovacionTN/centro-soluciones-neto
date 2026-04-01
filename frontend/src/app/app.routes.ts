@@ -25,6 +25,14 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
   },
+  // ── Sprint 2: Coordinador de zona (Mantenimiento) ──────────────────────────
+  {
+    path: 'coordinador',
+    canActivate: [authGuard(['COORDINADOR', 'ADMIN'])],
+    loadComponent: () =>
+      import('./features/coordinador/coordinador-dashboard.component')
+        .then(m => m.CoordinadorDashboardComponent),
+  },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];

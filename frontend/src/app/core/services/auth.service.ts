@@ -12,13 +12,16 @@ const USER_KEY = 'cs_user';
 export class AuthService {
   private readonly api = environment.apiUrl;
 
-  // Signals — toda la app reacciona a estos
   readonly currentUser = signal<CurrentUser | null>(this.loadUser());
   readonly isLoggedIn = computed(() => !!this.currentUser());
   readonly rol = computed(() => this.currentUser()?.rol ?? null);
   readonly isTienda = computed(() => this.rol() === 'TIENDA');
   readonly isAgente = computed(() => this.rol() === 'AGENTE');
   readonly isAdmin = computed(() => this.rol() === 'ADMIN');
+  readonly isCoordinador = computed(() => this.rol() === 'COORDINADOR'); // ← Sprint 2
+
+  // Exponer token como signal para componentes que lo necesiten
+  readonly token = computed(() => localStorage.getItem(TOKEN_KEY) ?? '');
 
   constructor(private http: HttpClient, private router: Router) { }
 
@@ -26,7 +29,6 @@ export class AuthService {
     return this.http.post<TokenResponse>(`${this.api}/auth/login`, creds).pipe(
       tap(res => {
         localStorage.setItem(TOKEN_KEY, res.access_token);
-        // Cargar perfil completo
         this.loadProfile();
       }),
       catchError(err => {
@@ -68,10 +70,11 @@ export class AuthService {
   }
 
   private redirectByRole(rol: Rol) {
-    const routes: Record<Rol, string> = {
+    const routes: Record<string, string> = {
       TIENDA: '/tienda',
       AGENTE: '/agente',
       ADMIN: '/agente',
+      COORDINADOR: '/coordinador',   // ← Sprint 2
     };
     this.router.navigate([routes[rol] ?? '/']);
   }

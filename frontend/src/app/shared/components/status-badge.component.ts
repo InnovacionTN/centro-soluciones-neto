@@ -12,6 +12,9 @@ const STATUS_CONFIG: Record<EstatusTicket, { label: string; cls: string; icon: s
   CERRADO: { label: 'Cerrado', cls: 'badge--gray', icon: '🔒' },
   RECHAZADO: { label: 'Rechazado', cls: 'badge--red', icon: '↩️' },
   CANCELADO: { label: 'Cancelado', cls: 'badge--gray', icon: '🚫' },
+  PROGRAMADO_VISITA: { label: 'Visita programada', cls: 'badge--blue', icon: '📅' },
+  EN_VISITA: { label: 'En visita', cls: 'badge--purple', icon: '🚶‍♂️' },
+  ESPERANDO_PIEZA: { label: 'Esperando pieza', cls: 'badge--amber', icon: '📦' },
 };
 
 const PRIORIDAD_CONFIG: Record<Prioridad, { label: string; cls: string }> = {

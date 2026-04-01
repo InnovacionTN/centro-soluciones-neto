@@ -67,12 +67,25 @@ interface Notificaciones {
           </a>
         }
 
+        @if (auth.rol() === 'COORDINADOR') {
+          <a routerLink="/coordinador" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
+             class="nav-item" data-tooltip="Vista Coordinador">
+            <span class="nav-icon">🔧</span>
+            <span>Mi Zona</span>
+          </a>
+        }
+
         @if (auth.isAdmin()) {
           <div class="nav-section-title" style="margin-top: 32px">ADMINISTRACIÓN</div>
           <a routerLink="/admin" routerLinkActive="nav-item--active"
              class="nav-item" data-tooltip="Configuración">
             <span class="nav-icon">⚙️</span>
             <span>Configuración</span>
+          </a>
+          <a routerLink="/admin/kpis" routerLinkActive="nav-item--active"
+             class="nav-item" data-tooltip="KPIs ejecutivos">
+            <span class="nav-icon">📊</span>
+            <span>KPIs ejecutivos</span>
           </a>
         }
       </div>
@@ -457,6 +470,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       TIENDA: 'avatar--tienda',
       AGENTE: 'avatar--agente',
       ADMIN: 'avatar--admin',
+      COORDINADOR: 'avatar--agente',
     };
     return map[this.auth.rol() ?? ''] ?? '';
   }
@@ -466,6 +480,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       TIENDA: 'Tienda',
       AGENTE: 'Agente Call Center',
       ADMIN: 'Administrador',
+      COORDINADOR: 'Coordinador de Zona',
     };
     return map[this.auth.rol() ?? ''] ?? '';
   }
