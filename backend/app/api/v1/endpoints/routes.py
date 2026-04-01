@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, text as sql_text
 from fastapi.responses import StreamingResponse
 import csv, io
 
@@ -92,6 +92,11 @@ from app.schemas.schemas import (
     KpiAgenteExtendido,
     ExportRequest,
     CsatReminderResult,
+    DanySesionInicioRequest,
+    DanySesionInicioOut,
+    DanySesionCierreRequest,
+    DanySesionCierreOut,
+    KpiDany,
 )
 from app.services.ia_service import classify_with_ai, suggest_solution
 from app.services.ticket_service import (
@@ -192,11 +197,23 @@ def _enriquecer_sla(ticket, es_activo: bool = None):
     return ticket
 
 
+DOMINIOS_PERMITIDOS = {"soyneto.com", "tiendasneto.com"}
+
+
 @router.post("/auth/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
+    # ── Validar dominio ────────────────────────────────────────────────────────
+    email_lower = req.email.strip().lower()
+    dominio = email_lower.split("@")[-1] if "@" in email_lower else ""
+    if dominio not in DOMINIOS_PERMITIDOS:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Solo se permiten correos @soyneto.com o @tiendasneto.com",
+        )
+
     user = (
         db.query(Usuario)
-        .filter(Usuario.email == req.email, Usuario.activo == True)
+        .filter(Usuario.email == email_lower, Usuario.activo == True)
         .first()
     )
     if not user or not verify_password(req.password, user.hashed_password):
@@ -210,7 +227,6 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         if user.tienda_id
         else None
     )
-
     token = create_token({"sub": str(user.id), "rol": user.rol.value})
     return TokenResponse(
         access_token=token,
@@ -317,6 +333,11 @@ def get_tipificaciones(
 # ─── Tickets ───────────────────────────────────────────────────────────────────
 
 
+UMBRAL_CONFIANZA_IA = (
+    40  # < 40% → ticket sin tipificación ni agente, queda en revisión manual
+)
+
+
 @router.post("/tickets", response_model=TicketOut, status_code=201)
 async def create_ticket(
     body: TicketCreate,
@@ -326,10 +347,11 @@ async def create_ticket(
     """
     Crea un ticket. Flujo completo:
     1. Clasifica con IA
-    2. Determina grupo por zona + área
-    3. Asigna agente Round Robin
-    4. Calcula SLA
-    5. Registra en bitácora
+    2. Si confianza < 40%: ticket queda en NUEVO sin tipificación (revisión manual)
+    3. Determina grupo por zona + área
+    4. Asigna agente Round Robin
+    5. Calcula SLA
+    6. Registra en bitácora
     """
     tienda_id = current_user.tienda_id
     if not tienda_id and current_user.rol == RolUsuario.TIENDA:
@@ -337,7 +359,6 @@ async def create_ticket(
             status_code=400, detail="Usuario de tienda sin tienda asignada"
         )
 
-    # Si es admin o agente abriendo a nombre de tienda
     if not tienda_id:
         raise HTTPException(status_code=400, detail="Se requiere tienda_id")
 
@@ -352,12 +373,26 @@ async def create_ticket(
         db,
     )
 
-    # Usar tipificación confirmada por usuario o la de la IA
-    tip_id = body.tipificacion_id or clasificacion.tipificacion_id
+    # Umbral de confianza: si < 40% y el usuario no eligió tipificación manualmente,
+    # el ticket queda en NUEVO sin asignar para revisión del área correspondiente
+    baja_confianza = (
+        clasificacion.confianza < UMBRAL_CONFIANZA_IA and not body.tipificacion_id
+    )
+
+    tip_id_final = (
+        None
+        if baja_confianza
+        else (body.tipificacion_id or clasificacion.tipificacion_id)
+    )
+
     aceptada = (
-        body.ia_clasificacion_aceptada
-        if body.ia_clasificacion_aceptada is not None
-        else (body.tipificacion_id is None)  # si no modificó, se asume aceptada
+        False
+        if baja_confianza
+        else (
+            body.ia_clasificacion_aceptada
+            if body.ia_clasificacion_aceptada is not None
+            else (body.tipificacion_id is None)
+        )
     )
 
     ticket = create_ticket_in_db(
@@ -365,7 +400,7 @@ async def create_ticket(
         tienda_id=tienda_id,
         descripcion=body.descripcion,
         usuario_id=current_user.id,
-        tipificacion_id=body.tipificacion_id,
+        tipificacion_id=tip_id_final,
         ia_clasificacion_aceptada=aceptada,
         ia_area=clasificacion.area_tecnica.value,
         ia_tipificacion_id=clasificacion.tipificacion_id,
@@ -373,6 +408,15 @@ async def create_ticket(
         ia_sugerencia_solucion=solucion_ia,
         metadata_extra=body.metadata_extra,
     )
+
+    # Marcar en metadata si quedó pendiente de revisión por baja confianza
+    if baja_confianza:
+        ticket.metadata_extra = {
+            **(ticket.metadata_extra or {}),
+            "revision_manual": True,
+            "motivo": f"Confianza IA baja: {clasificacion.confianza}%",
+        }
+        db.flush()
 
     return (
         db.query(Ticket)
@@ -945,13 +989,20 @@ def update_ticket(
 @router.get("/grupos", response_model=list[GrupoOut])
 def list_grupos(
     area: Optional[str] = None,
+    todos: bool = False,  # admin puede pedir incluyendo inactivos
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
-    """Lista los grupos disponibles. Usado para el selector de escalación."""
-    q = db.query(Grupo).filter(Grupo.activo == True)
+    """Lista grupos. Admin con ?todos=true ve también los inactivos."""
+    q = db.query(Grupo)
+
+    # Solo ADMIN puede ver inactivos
+    if not todos or current_user.rol != RolUsuario.ADMIN:
+        q = q.filter(Grupo.activo == True)
+
     if area:
         q = q.filter(Grupo.area_tecnica == area.upper())
+
     return q.order_by(Grupo.area_tecnica, Grupo.nombre).all()
 
 
@@ -2510,6 +2561,19 @@ def _sla_cumplido_pct(tickets_cerrados: list) -> Optional[float]:
     return round(len(ok) / len(con_sla) * 100, 1)
 
 
+def _calcular_deflexion(db, dt_desde, dt_hasta) -> float:
+    rows = db.execute(
+        sql_text(
+            "SELECT COUNT(*) FILTER (WHERE resuelto_sin_ticket=TRUE) AS res, COUNT(*) AS tot "
+            "FROM dany_sesiones WHERE fecha_inicio >= :d AND fecha_inicio <= :h"
+        ),
+        {"d": dt_desde, "h": dt_hasta},
+    ).first()
+    if not rows or not rows.tot:
+        return 0.0
+    return round(rows.res / rows.tot * 100, 1)
+
+
 # ─── GET /admin/kpis/ejecutivo ────────────────────────────────────────────────
 
 
@@ -2599,7 +2663,7 @@ def kpi_ejecutivo(
         csat_satisfaccion_pct=tasa_sat,
         tickets_origen_dany=t_dany,
         tickets_origen_portal=t_portal,
-        tasa_deflexion_dany_pct=0.0,  # activo en Sprint 3
+        tasa_deflexion_dany_pct=_calcular_deflexion(db, dt_desde, dt_hasta),
         total_reaperturas=reaperturas,
         tasa_reapertura_pct=round(reaperturas / len(todos) * 100, 1) if todos else 0.0,
     )
@@ -3317,6 +3381,264 @@ def update_incidente(
     db.commit()
     db.refresh(incidente)
     return incidente
+
+
+# ─── Autenticación por token fijo para n8n ────────────────────────────────────
+
+
+def _validar_token_dany(request_token: str) -> bool:
+    """
+    Valida el token estático que usa n8n para llamar a los endpoints de Dany.
+    Si DANY_SYSTEM_TOKEN está vacío en .env, acepta cualquier token (solo dev).
+    """
+    system_token = get_settings().DANY_SYSTEM_TOKEN
+    if not system_token:
+        return True  # dev mode: sin restricción
+    return request_token == system_token
+
+
+# ─── POST /dany/sesion/iniciar ────────────────────────────────────────────────
+
+
+@router.post("/dany/sesion/iniciar", response_model=DanySesionInicioOut)
+def dany_sesion_iniciar(
+    body: DanySesionInicioRequest,
+    x_dany_token: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Registra el inicio de una sesión de Dany.
+    Llamado por n8n al recibir el primer mensaje del usuario.
+    Autenticación: header X-Dany-Token (token estático configurado en .env).
+    """
+    if not _validar_token_dany(x_dany_token or ""):
+        raise HTTPException(status_code=401, detail="Token Dany inválido")
+
+    # Upsert: si ya existe la sesión (reintento), no duplicar
+    existing = db.execute(
+        sql_text("SELECT id FROM dany_sesiones WHERE sesion_id = :sid"),
+        {"sid": body.sesion_id},
+    ).first()
+
+    if not existing:
+        db.execute(
+            sql_text(
+                """
+            INSERT INTO dany_sesiones (sesion_id, tienda_id, canal, fecha_inicio)
+            VALUES (:sid, :tid, :canal, NOW())
+        """
+            ),
+            {"sid": body.sesion_id, "tid": body.tienda_id, "canal": body.canal},
+        )
+        db.commit()
+
+    return DanySesionInicioOut(
+        sesion_id=body.sesion_id,
+        tienda_id=body.tienda_id,
+    )
+
+
+# ─── POST /dany/sesion/cerrar ─────────────────────────────────────────────────
+
+
+@router.post("/dany/sesion/cerrar", response_model=DanySesionCierreOut)
+def dany_sesion_cerrar(
+    body: DanySesionCierreRequest,
+    x_dany_token: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Registra el cierre de una sesión Dany.
+    - resuelto_sin_ticket=True → deflexión exitosa (Dany resolvió)
+    - resuelto_sin_ticket=False → Dany escaló, ya se creó ticket
+    """
+    if not _validar_token_dany(x_dany_token or ""):
+        raise HTTPException(status_code=401, detail="Token Dany inválido")
+
+    db.execute(
+        sql_text(
+            """
+        UPDATE dany_sesiones SET
+            resuelto_sin_ticket     = :resuelto,
+            mensajes_count          = :msgs,
+            tipificacion_detectada  = :tip,
+            motivo_escalacion       = :motivo,
+            fecha_fin               = NOW()
+        WHERE sesion_id = :sid
+    """
+        ),
+        {
+            "sid": body.sesion_id,
+            "resuelto": body.resuelto_sin_ticket,
+            "msgs": body.mensajes_count,
+            "tip": body.tipificacion_detectada,
+            "motivo": body.motivo_escalacion,
+        },
+    )
+    db.commit()
+
+    return DanySesionCierreOut(
+        sesion_id=body.sesion_id,
+        deflexion=body.resuelto_sin_ticket,
+        mensaje=(
+            "Deflexión registrada — Dany resolvió sin ticket"
+            if body.resuelto_sin_ticket
+            else "Escalación registrada — ticket creado"
+        ),
+    )
+
+
+# ─── GET /admin/kpis/dany ─────────────────────────────────────────────────────
+
+
+@router.get("/admin/kpis/dany", response_model=KpiDany)
+def kpi_dany(
+    desde: Optional[str] = None,
+    hasta: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """
+    Métricas de rendimiento de Dany como primera línea.
+    Solo ADMIN.
+    """
+    dt_desde = (
+        datetime.fromisoformat(desde)
+        if desde
+        else datetime.utcnow() - timedelta(days=30)
+    )
+    dt_hasta = datetime.fromisoformat(hasta) if hasta else datetime.utcnow()
+
+    # Sesiones en el período
+    sesiones = db.execute(
+        sql_text(
+            """
+        SELECT sesion_id, tienda_id, canal, mensajes_count,
+               resuelto_sin_ticket, ticket_id,
+               tipificacion_detectada, motivo_escalacion,
+               fecha_inicio, fecha_fin
+        FROM dany_sesiones
+        WHERE fecha_inicio >= :desde AND fecha_inicio <= :hasta
+    """
+        ),
+        {"desde": dt_desde, "hasta": dt_hasta},
+    ).fetchall()
+
+    total = len(sesiones)
+    resueltas = [s for s in sesiones if s.resuelto_sin_ticket]
+    escaladas = [s for s in sesiones if not s.resuelto_sin_ticket]
+    tasa = round(len(resueltas) / total * 100, 1) if total else 0.0
+
+    # Tickets creados por Dany en el período
+    tickets_dany = db.execute(
+        sql_text(
+            """
+        SELECT t.id, t.fecha_apertura, t.fecha_primera_respuesta
+        FROM tickets t
+        WHERE t.origen = 'DANY'
+          AND t.fecha_apertura >= :desde
+          AND t.fecha_apertura <= :hasta
+    """
+        ),
+        {"desde": dt_desde, "hasta": dt_hasta},
+    ).fetchall()
+
+    # Tiempo primera respuesta agente a tickets de Dany
+    tiempos_resp = [
+        (t.fecha_primera_respuesta - t.fecha_apertura).total_seconds() / 3600
+        for t in tickets_dany
+        if t.fecha_primera_respuesta and t.fecha_apertura
+    ]
+    t_resp = round(sum(tiempos_resp) / len(tiempos_resp), 1) if tiempos_resp else None
+
+    # Por canal
+    por_canal: dict[str, int] = {}
+    for s in sesiones:
+        canal = s.canal or "portal"
+        por_canal[canal] = por_canal.get(canal, 0) + 1
+
+    # Top tipificaciones detectadas
+    tip_count: dict[str, int] = {}
+    for s in sesiones:
+        if s.tipificacion_detectada:
+            tip_count[s.tipificacion_detectada] = (
+                tip_count.get(s.tipificacion_detectada, 0) + 1
+            )
+    top_tips = sorted(
+        [{"nombre": k, "count": v} for k, v in tip_count.items()],
+        key=lambda x: -x["count"],
+    )[:10]
+
+    return KpiDany(
+        periodo_desde=dt_desde,
+        periodo_hasta=dt_hasta,
+        sesiones_totales=total,
+        sesiones_resueltas=len(resueltas),
+        sesiones_escaladas=len(escaladas),
+        tasa_deflexion_pct=tasa,
+        tickets_creados=len(tickets_dany),
+        tiempo_primera_respuesta_agente_horas=t_resp,
+        por_canal=por_canal,
+        top_tipificaciones=top_tips,
+    )
+
+
+# ─── POST /internal/escalar-sla-dany ─────────────────────────────────────────
+
+
+@router.post("/internal/escalar-sla-dany", include_in_schema=False)
+def escalar_sla_dany(db: Session = Depends(get_db)):
+    """
+    Revisa tickets de DANY que han consumido >= 70% del SLA y
+    eleva su prioridad a ALTA si aún es MEDIA o BAJA.
+    Llamar desde un cron en n8n cada hora.
+    """
+    ahora = datetime.utcnow()
+
+    ESTADOS_ACTIVOS = [
+        EstatusTicket.NUEVO,
+        EstatusTicket.ASIGNADO,
+        EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA,
+        EstatusTicket.ESPERANDO_AGENTE,
+        EstatusTicket.RECHAZADO,
+    ]
+
+    tickets = (
+        db.query(Ticket)
+        .filter(
+            Ticket.origen == OrigenTicket.DANY,
+            Ticket.estatus.in_(ESTADOS_ACTIVOS),
+            Ticket.sla_limite.isnot(None),
+            Ticket.prioridad.in_([PrioridadTicket.MEDIA, PrioridadTicket.BAJA]),
+        )
+        .all()
+    )
+
+    escalados = []
+    for t in tickets:
+        total_seg = (t.sla_limite - t.fecha_apertura).total_seconds()
+        if total_seg <= 0:
+            continue
+        pct = (ahora - t.fecha_apertura).total_seconds() / total_seg * 100
+        if pct >= 70:
+            prioridad_anterior = t.prioridad.value
+            t.prioridad = PrioridadTicket.ALTA
+            log_event(
+                db,
+                t,
+                usuario_id=1,  # usuario sistema
+                accion="ESCALACION_SLA_DANY",
+                comentario=(
+                    f"Auto-escalación: ticket Dany al {pct:.0f}% del SLA. "
+                    f"Prioridad {prioridad_anterior} → ALTA"
+                ),
+                tipo_comentario="INTERNO",
+            )
+            escalados.append(t.folio)
+
+    db.commit()
+    return {"escalados": len(escalados), "folios": escalados}
 
 
 # ── Proxy Dany / n8n ──────────────────────────────────────────────────────────

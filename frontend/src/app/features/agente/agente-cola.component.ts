@@ -168,11 +168,7 @@ const PRIORIDAD_ORDER: Record<string, number> = {
                 [routerLink]="['/agente/ticket', t.id]"
               >
                 <!-- NUEVO Sprint 1: barra de semáforo SLA -->
-                <span class="sla-dot" [style.background]="slaColor(t.sla_status)">
-                  @if (t.sla_porcentaje !== null) {
-                    <span class="sla-pct">{{ t.sla_porcentaje | number:'1.0-0' }}%</span>
-                  }
-                </span>
+                <span class="sla-dot" [style.background]="slaColor(t.sla_status)" [title]="t.sla_status"></span>
 
                 <span class="folio">{{ t.folio }}</span>
 
@@ -354,7 +350,6 @@ const PRIORIDAD_ORDER: Record<string, number> = {
       font-weight: 700;
       flex-shrink: 0;
     }
-    .sla-pct { font-size: 7px; line-height: 1; }
 
     /* SPRINT 1: tipificación 3 niveles */
     .tip-cell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }

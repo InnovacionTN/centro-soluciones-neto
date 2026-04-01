@@ -47,6 +47,7 @@ import { AdminService } from '../../core/services/admin.service';
       @if (loading()) {
         <div class="loading-msg">Cargando grupos...</div>
       } @else {
+        <div class="tabla-wrapper">
         <div class="admin-table">
           <div class="table-head-g">
             <span>Nombre</span><span>Área</span><span>Slack</span><span>Estado</span><span>Acciones</span>
@@ -64,6 +65,7 @@ import { AdminService } from '../../core/services/admin.service';
             </div>
           }
         </div>
+        </div>
       }
     </div>
   `,
@@ -77,7 +79,8 @@ import { AdminService } from '../../core/services/admin.service';
     .form-error { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
     .loading-msg { padding: 40px; text-align: center; color: var(--c-muted); }
-    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+        .tabla-wrapper { overflow-x: auto; max-height: 65vh; overflow-y: auto; border-radius: var(--radius-lg); }
+    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); min-width: 700px; }
     .table-head-g { display: grid; grid-template-columns: 1fr 130px 1fr 90px 160px; gap: 10px; padding: 10px 16px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); font-size: 11px; font-weight: 600; color: var(--c-muted); text-transform: uppercase; }
     .table-row-g { display: grid; grid-template-columns: 1fr 130px 1fr 90px 160px; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--c-border); font-size: 13px; }
     .table-row-g:last-child { border-bottom: none; }

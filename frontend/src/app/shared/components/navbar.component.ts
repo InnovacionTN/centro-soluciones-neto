@@ -87,6 +87,11 @@ interface Notificaciones {
             <span class="nav-icon">📊</span>
             <span>KPIs ejecutivos</span>
           </a>
+          <a routerLink="/admin/dany" routerLinkActive="nav-item--active"
+             class="nav-item" data-tooltip="Métricas Dany">
+            <span class="nav-icon">🤖</span>
+            <span>Dany</span>
+          </a>
         }
       </div>
 

@@ -74,6 +74,43 @@ import { ClasificacionResponse } from '../../core/models';
             </div>
           </div>
 
+          <!-- Adjuntar imagen como evidencia -->
+          <div class="adj-zone"
+               [class.adj-zone--has-file]="imagenAdjunta()"
+               (dragover)="$event.preventDefault()"
+               (drop)="onDrop($event)"
+               (paste)="onPaste($event)">
+            @if (!imagenAdjunta()) {
+              <label class="adj-zone-label">
+                <span class="adj-zone-icon">📎</span>
+                <span class="adj-zone-text">
+                  Adjunta una imagen (opcional)<br>
+                  <small>Arrastra, pega (Ctrl+V) o haz clic para seleccionar</small>
+                </span>
+                <input type="file" style="display:none"
+                       accept=".jpg,.jpeg,.png,.webp,.gif"
+                       (change)="onFileSelect($event)" />
+              </label>
+            } @else {
+              <div class="adj-preview">
+                <img [src]="imagenPreview()" alt="Evidencia" class="adj-img-preview" />
+                <div class="adj-preview-info">
+                  <span class="adj-nombre">{{ imagenAdjunta()!.name }}</span>
+                  <span class="adj-tamano">{{ (imagenAdjunta()!.size / 1024).toFixed(0) }} KB</span>
+                </div>
+                <button class="adj-remove" (click)="quitarImagen()">✕</button>
+              </div>
+            }
+          </div>
+
+          <!-- Aviso baja confianza IA -->
+          @if (bajaConfianza()) {
+            <div class="baja-confianza-aviso">
+              ⚠️ La IA no identificó claramente tu problema (confianza baja).
+              El ticket quedará <strong>pendiente de revisión</strong> hasta que un agente lo clasifique.
+            </div>
+          }
+
           <!-- IA Classification Result -->
           @if (clasificando()) {
             <div class="ia-thinking">
@@ -183,7 +220,7 @@ import { ClasificacionResponse } from '../../core/models';
             <div class="urgencia-warning">
               <span style="font-size:20px">⚡</span>
               <div>
-                <p class="font-medium">Problema de {{ clasificacion()!.urgencia_sugerida === 'CRITICA' ? 'prioridad crítica' : 'alta urgencia' }}</p>
+<!-- prioridad oculta v5 -->
                 <p class="text-sm text-muted">
                   Un analista del área correspondiente será notificado de inmediato.
                 </p>
@@ -462,6 +499,13 @@ export class NuevoTicketComponent implements OnDestroy {
   submitting = signal(false);
   error = signal('');
   ticketCreado = signal<any>(null);
+  imagenAdjunta = signal<File | null>(null);
+  imagenPreview = signal('');
+
+  bajaConfianza = computed(() => {
+    const conf = this.clasificacion()?.confianza ?? 100;
+    return conf < 40 && !this.clasificacion()?.tipificacion_id;
+  });
 
   get canContinue(): boolean {
     return this.descripcion.length >= 15 && !!this.clasificacion() && !this.clasificando();
@@ -522,8 +566,18 @@ export class NuevoTicketComponent implements OnDestroy {
     }).subscribe({
       next: t => {
         this.ticketCreado.set(t);
-        this.step.set(3);
-        this.submitting.set(false);
+        // Subir imagen si hay una adjunta
+        if (this.imagenAdjunta()) {
+          const fd = new FormData();
+          fd.append('file', this.imagenAdjunta()!);
+          this.ticket.uploadEvidencia(t.id, fd).subscribe({
+            complete: () => { this.step.set(3); this.submitting.set(false); },
+            error: () => { this.step.set(3); this.submitting.set(false); }, // sigue aunque falle upload
+          });
+        } else {
+          this.step.set(3);
+          this.submitting.set(false);
+        }
       },
       error: err => {
         this.submitting.set(false);
@@ -553,11 +607,49 @@ export class NuevoTicketComponent implements OnDestroy {
     this.descripcion = '';
     this.clasificacion.set(null);
     this.ticketCreado.set(null);
+    this.imagenAdjunta.set(null);
+    this.imagenPreview.set('');
     this.error.set('');
     this.step.set(1);
   }
 
   back() { this.router.navigate(['/tienda']); }
+
+  // ── Adjuntar imagen ────────────────────────────────────────────────────────
+
+  onFileSelect(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (file) this.setImagen(file);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) this.setImagen(file);
+  }
+
+  onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) { this.setImagen(file); break; }
+      }
+    }
+  }
+
+  private setImagen(file: File) {
+    this.imagenAdjunta.set(file);
+    const reader = new FileReader();
+    reader.onload = e => this.imagenPreview.set(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  quitarImagen() {
+    this.imagenAdjunta.set(null);
+    this.imagenPreview.set('');
+  }
 
   ngOnDestroy() { this.sub.unsubscribe(); }
 }

@@ -40,6 +40,9 @@ const ACCION_ICON: Record<string, string> = {
             <div class="header-right">
               <span class="folio">{{ ticket()!.folio }}</span>
               <app-status-badge [status]="ticket()!.estatus" />
+            @if (ticket()!.estatus === 'RECHAZADO') {
+              <span class="badge badge--amber" style="font-size:11px">↩ Re-abierto</span>
+            }
               @if (ticket()!.sla_vencido) {
                 <span class="badge badge--red">⚠ SLA Vencido</span>
               }
@@ -49,8 +52,8 @@ const ACCION_ICON: Record<string, string> = {
           <!-- Descripción -->
           <div class="card mt-4">
             <div class="card-section">
-              <h3 class="section-h">Tu reporte</h3>
-              <p class="desc-text">{{ ticket()!.descripcion }}</p>
+              <h3 class="section-h" style="margin-bottom:6px">Tu reporte</h3>
+              <p class="desc-text desc-text--bold">{{ ticket()!.descripcion }}</p>
             </div>
 
             @if (ticket()!.tipificacion) {
@@ -94,7 +97,7 @@ const ACCION_ICON: Record<string, string> = {
           </div>
 
           <!-- Resolver anticipado: la tienda puede cerrar en cualquier momento -->
-          @if (['NUEVO','ASIGNADO','EN_PROCESO','RECHAZADO','ESPERANDO_AGENTE'].includes(ticket()!.estatus)) {
+          @if (['NUEVO','ASIGNADO','EN_PROCESO','RECHAZADO','ESPERANDO_AGENTE'].includes(ticket()!.estatus) && ticket()!.estatus !== 'CERRADO') {
             <div class="card mt-4 early-resolve-card">
               <div class="early-resolve-inner">
                 <div>
@@ -163,47 +166,15 @@ const ACCION_ICON: Record<string, string> = {
                   <div class="divider" style="margin-bottom:12px"></div>
 
                   <p class="text-sm text-muted" style="margin-bottom:10px">¿El problema quedó resuelto?</p>
-                  <div class="flex gap-3" style="flex-wrap:wrap">
-                    <button
-                      class="btn btn--success"
-                      [class.btn--loading]="updatingStatus()"
-                      (click)="confirmar()"
-                      [disabled]="updatingStatus()"
-                    >
-                      ✓ Sí, quedó resuelto
-                    </button>
-                    <button
-                      class="btn btn--ghost btn--danger-ghost"
-                      [disabled]="updatingStatus()"
-                      (click)="showRejection.set(!showRejection())"
-                    >
-                      ✕ No funcionó / Rechazar
-                    </button>
-                  </div>
-
-                  @if (showRejection()) {
-                    <div class="rejection-form slide-down">
-                      <div class="field mt-4">
-                        <label class="field__label field__label--required">
-                          ¿Por qué no quedó resuelto?
-                        </label>
-                        <textarea
-                          class="input"
-                          [(ngModel)]="rechazarMotivo"
-                          placeholder="Describe qué sigue fallando..."
-                          rows="3"
-                        ></textarea>
-                      </div>
-                      <button
-                        class="btn btn--danger mt-4"
-                        [class.btn--loading]="updatingStatus()"
-                        (click)="rechazar()"
-                        [disabled]="updatingStatus() || !rechazarMotivo"
-                      >
-                        Confirmar reapertura
-                      </button>
-                    </div>
-                  }
+                  <button
+                    class="btn btn--success"
+                    style="margin-top:4px"
+                    [class.btn--loading]="updatingStatus()"
+                    (click)="confirmar()"
+                    [disabled]="updatingStatus()"
+                  >
+                    ✓ Sí, quedó resuelto
+                  </button>
                 </div>
               }
 
@@ -337,13 +308,12 @@ const ACCION_ICON: Record<string, string> = {
             </div>
           }
 
-          <!-- Evidencias -->
-          <div class="card mt-4">
-            <app-evidencias
-              [ticketId]="ticket()!.id"
-              [canUpload]="ticket()!.estatus !== 'CERRADO' && ticket()!.estatus !== 'CANCELADO'"
-            />
-          </div>
+          <!-- Evidencias: visible si hay adjuntos O si puede subir -->
+          @if (ticket()!.estatus !== 'CERRADO' && ticket()!.estatus !== 'CANCELADO') {
+            <div class="card mt-4">
+              <app-evidencias [ticketId]="ticket()!.id" [canUpload]="true" />
+            </div>
+          }
 
           <!-- Timeline / Bitácora -->
           <div class="card mt-4">
@@ -397,6 +367,7 @@ const ACCION_ICON: Record<string, string> = {
     }
     .card-section { margin-bottom: 12px; }
     .section-h { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+    .desc-text--bold { font-weight: 700; font-size: 15px; }
     .desc-text { font-size: 15px; line-height: 1.6; }
     .meta-grid {
       display: grid;
@@ -517,14 +488,14 @@ export class TicketDetalleComponent implements OnInit {
   showCsatModal = signal(false);
   csatRespuestas = signal<Record<string, number>>({});
   csatPreguntas = [
-    { key: 'solucion',  label: '¿La solución resolvió tu problema?' },
-    { key: 'rapidez',   label: '¿Cómo calificarías la rapidez del servicio?' },
-    { key: 'atencion',  label: '¿Cómo fue la atención del agente?' },
+    { key: 'solucion', label: '¿La solución resolvió tu problema?' },
+    { key: 'rapidez', label: '¿Cómo calificarías la rapidez del servicio?' },
+    { key: 'atencion', label: '¿Cómo fue la atención del agente?' },
   ];
   csatCompleto = computed(() => this.csatPreguntas.every(q => (this.csatRespuestas()[q.key] ?? 0) > 0));
 
-  abrirCsat()        { this.showCsatModal.set(true); }
-  cerrarCsatModal()  { this.showCsatModal.set(false); }
+  abrirCsat() { this.showCsatModal.set(true); }
+  cerrarCsatModal() { this.showCsatModal.set(false); }
   setCsatRespuesta(key: string, val: number) {
     this.csatRespuestas.update(r => ({ ...r, [key]: val }));
   }

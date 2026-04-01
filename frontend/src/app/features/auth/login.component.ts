@@ -268,10 +268,18 @@ export class LoginComponent {
 
   submit() {
     if (!this.email || !this.password || this.loading()) return;
+
+    // Validar dominio permitido
+    const dominio = this.email.trim().toLowerCase().split('@')[1] ?? '';
+    if (!['soyneto.com', 'tiendasneto.com'].includes(dominio)) {
+      this.error.set('Solo se permiten correos @soyneto.com o @tiendasneto.com');
+      return;
+    }
+
     this.loading.set(true);
     this.error.set('');
 
-    this.auth.login({ email: this.email, password: this.password }).subscribe({
+    this.auth.login({ email: this.email.trim().toLowerCase(), password: this.password }).subscribe({
       next: () => this.loading.set(false),
       error: (err: Error) => {
         this.loading.set(false);

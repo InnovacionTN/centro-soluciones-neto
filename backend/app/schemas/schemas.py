@@ -736,3 +736,61 @@ class CsatReminderResult(BaseModel):
     procesados: int
     enviados: int
     folios: list[str]
+
+
+# =============================================================================
+# AGREGAR al final de schemas.py — Sprint 3
+# =============================================================================
+
+from typing import Optional
+from datetime import datetime
+from pydantic import BaseModel
+
+
+# ─── Sesión Dany ──────────────────────────────────────────────────────────────
+
+
+class DanySesionInicioRequest(BaseModel):
+    sesion_id: str
+    tienda_id: int
+    canal: str = "portal"  # portal | slack | whatsapp
+
+
+class DanySesionInicioOut(BaseModel):
+    sesion_id: str
+    tienda_id: int
+    mensaje: str = "Sesión registrada"
+
+
+class DanySesionCierreRequest(BaseModel):
+    sesion_id: str
+    resuelto_sin_ticket: bool  # True = Dany resolvió sola (deflexión)
+    mensajes_count: int = 0
+    tipificacion_detectada: Optional[str] = None
+    motivo_escalacion: Optional[str] = None  # si resuelto_sin_ticket=False
+
+
+class DanySesionCierreOut(BaseModel):
+    sesion_id: str
+    deflexion: bool
+    mensaje: str
+
+
+# ─── KPIs Dany ────────────────────────────────────────────────────────────────
+
+
+class KpiDany(BaseModel):
+    periodo_desde: datetime
+    periodo_hasta: datetime
+    # Volumen
+    sesiones_totales: int
+    sesiones_resueltas: int  # sin crear ticket
+    sesiones_escaladas: int  # crearon ticket
+    tasa_deflexion_pct: float  # sesiones_resueltas / sesiones_totales
+    # Tickets creados por Dany
+    tickets_creados: int
+    tiempo_primera_respuesta_agente_horas: Optional[float]  # desde que Dany escala
+    # Canal
+    por_canal: dict[str, int]  # portal, slack, whatsapp
+    # Tipificaciones más frecuentes detectadas por Dany
+    top_tipificaciones: list[dict]  # [{nombre, count}]

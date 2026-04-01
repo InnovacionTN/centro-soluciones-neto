@@ -72,6 +72,7 @@ import { AdminService, TipAdmin } from '../../core/services/admin.service';
       @if (loading()) {
         <div class="loading-msg">Cargando tipificaciones...</div>
       } @else {
+        <div class="tabla-wrapper">
         <div class="admin-table">
           <div class="table-head-tip">
             <span>Área</span><span>Categoría</span><span>Problema</span>
@@ -98,6 +99,7 @@ import { AdminService, TipAdmin } from '../../core/services/admin.service';
             </div>
           }
         </div>
+        </div>
       }
     </div>
   `,
@@ -112,7 +114,8 @@ import { AdminService, TipAdmin } from '../../core/services/admin.service';
     .form-error { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; margin-bottom: 12px; }
     .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
     .loading-msg { padding: 40px; text-align: center; color: var(--c-muted); font-size: 14px; }
-    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+        .tabla-wrapper { overflow-x: auto; max-height: 65vh; overflow-y: auto; border-radius: var(--radius-lg); }
+    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); min-width: 700px; }
     .table-head-tip { display: grid; grid-template-columns: 110px 120px 1fr 60px 90px 80px 130px; gap: 10px; padding: 10px 16px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); font-size: 11px; font-weight: 600; color: var(--c-muted); text-transform: uppercase; }
     .table-row-tip { display: grid; grid-template-columns: 110px 120px 1fr 60px 90px 80px 130px; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--c-border); font-size: 13px; }
     .table-row-tip:last-child { border-bottom: none; }

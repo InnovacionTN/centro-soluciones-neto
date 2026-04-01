@@ -97,6 +97,19 @@ export class TicketService {
     return this.http.get<Grupo[]>(`${this.api}/grupos`, { params });
   }
 
+  // Sprint 5A: Mantenimiento
+  programarVisita(ticketId: number, body: { fecha_visita: string; comentario?: string; pieza_requerida?: string }) {
+    return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/programar-visita`, body);
+  }
+
+  iniciarVisita(ticketId: number) {
+    return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/iniciar-visita`, {});
+  }
+
+  esperarPieza(ticketId: number, body: { pieza_requerida: string; proveedor?: string; comentario?: string }) {
+    return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/esperar-pieza`, body);
+  }
+
   escalar(ticketId: number, grupoDesinoId: number, motivo: string) {
     return this.http.post<Ticket>(`${this.api}/tickets/${ticketId}/escalar`, {
       grupo_destino_id: grupoDesinoId,

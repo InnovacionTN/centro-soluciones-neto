@@ -59,6 +59,7 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
       @if (loading()) {
         <div class="loading-msg">Cargando matriz de ruteo...</div>
       } @else {
+        <div class="tabla-wrapper">
         <div class="admin-table">
           <div class="table-head-ruteo">
             <span>Tipificación</span><span>Área</span><span>Grupo destino</span><span>Zona</span><span>Prioridad</span><span></span>
@@ -76,6 +77,7 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
             </div>
           }
         </div>
+        </div>
       }
     </div>
   `,
@@ -90,7 +92,8 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
     .form-error { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
     .form-actions { display: flex; justify-content: flex-end; }
     .loading-msg { padding: 40px; text-align: center; color: var(--c-muted); }
-    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); overflow: hidden; }
+        .tabla-wrapper { overflow-x: auto; max-height: 65vh; overflow-y: auto; border-radius: var(--radius-lg); }
+    .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); min-width: 700px; }
     .table-head-ruteo { display: grid; grid-template-columns: 1fr 110px 1fr 80px 80px 90px; gap: 10px; padding: 10px 16px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); font-size: 11px; font-weight: 600; color: var(--c-muted); text-transform: uppercase; }
     .table-row-ruteo { display: grid; grid-template-columns: 1fr 110px 1fr 80px 80px 90px; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--c-border); font-size: 13px; }
     .table-row-ruteo:last-child { border-bottom: none; }

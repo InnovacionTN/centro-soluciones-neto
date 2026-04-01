@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -9,19 +9,24 @@ import { StatusBadgeComponent } from '../../shared/components/status-badge.compo
 import { EvidenciasComponent } from '../../shared/components/evidencias.component';
 import { Ticket, EstatusTicket } from '../../core/models';
 
-const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls: string; requiresText?: boolean }[]> = {
+const NEXT_ACTIONS: Record<string, { label: string; estatus: string; cls: string; requiresText?: boolean }[]> = {
   NUEVO: [{ label: 'Tomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   ASIGNADO: [{ label: 'Tomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   EN_PROCESO: [{ label: 'Enviar solución', estatus: 'ESPERANDO_TIENDA', cls: 'btn--success', requiresText: true }],
-  ESPERANDO_TIENDA: [
-    { label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' }
-  ],
+  ESPERANDO_TIENDA: [{ label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' }],
   ESPERANDO_AGENTE: [
     { label: 'Enviar solución', estatus: 'ESPERANDO_TIENDA', cls: 'btn--primary', requiresText: true },
-    { label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' }
+    { label: 'Marcar como Resuelto', estatus: 'RESUELTO', cls: 'btn--success' },
   ],
   RECHAZADO: [{ label: 'Retomar ticket', estatus: 'EN_PROCESO', cls: 'btn--primary' }],
   RESUELTO: [{ label: 'Cerrar ticket', estatus: 'CERRADO', cls: 'btn--ghost' }],
+  // Mantenimiento
+  PROGRAMADO_VISITA: [{ label: 'Iniciar visita', estatus: 'EN_VISITA', cls: 'btn--primary' }],
+  EN_VISITA: [
+    { label: 'Proponer solución', estatus: 'ESPERANDO_TIENDA', cls: 'btn--success', requiresText: true },
+    { label: 'Necesito una pieza', estatus: 'ESPERANDO_PIEZA', cls: 'btn--ghost' },
+  ],
+  ESPERANDO_PIEZA: [{ label: 'Reagendar visita', estatus: 'PROGRAMADO_VISITA', cls: 'btn--primary' }],
 };
 
 @Component({
@@ -65,7 +70,7 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
                   <span class="badge badge--blue">{{ ticket()!.tipificacion!.area_tecnica }}</span>
                   <span class="badge badge--gray">{{ ticket()!.tipificacion!.categoria }}</span>
                   <span class="badge badge--gray">{{ ticket()!.tipificacion!.problema }}</span>
-                  <span class="prio" [class]="'prio--' + ticket()!.prioridad">{{ ticket()!.prioridad }}</span>
+<!-- prioridad oculta v5 -->
                 </div>
                 <div class="sla-row">
                   <span class="text-sm text-muted">SLA límite:</span>
@@ -90,7 +95,7 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
             <div class="card mt-4">
               <app-evidencias
                 [ticketId]="ticket()!.id"
-                [canUpload]="true"
+                [canUpload]="!(['CERRADO','CANCELADO'].includes(ticket()!.estatus))"
               />
             </div>
 
@@ -144,7 +149,8 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
         @if (ticket()) {
           <div class="action-col">
 
-            <!-- Área de respuesta -->
+            <!-- Área de respuesta — oculta si CERRADO o CANCELADO -->
+            @if (!['CERRADO', 'CANCELADO'].includes(ticket()!.estatus)) {
             <div class="card">
               <h3 class="section-h">Respuesta al ticket</h3>
 
@@ -163,13 +169,7 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
               <div class="field mt-4">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
                   <label class="field__label">Comentario / Solución</label>
-  <button
-                    class="btn btn--ghost btn--sm"
-                    style="font-size:11px"
-                    (click)="togglePlantillas()"
-                  >
-                    {{ showPlantillas() ? '✕' : '⚡ Plantillas' }}
-                  </button>
+<!-- plantillas oculta v5 -->
                   <label class="btn btn--ghost btn--sm" style="font-size:11px;cursor:pointer">
                     📎
                     <input type="file" style="display:none"
@@ -230,13 +230,47 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
                   </button>
                 }
 
-                @if (ticket()!.estatus === 'EN_PROCESO' || ticket()!.estatus === 'ESPERANDO_TIENDA') {
-                  <label class="nota-interna-toggle">
-                    <input type="checkbox" [(ngModel)]="esNotaInterna" />
-                    <span>Nota interna</span>
-                    <span class="nota-hint">La tienda no verá este comentario</span>
-                  </label>
+                <!-- Programar visita — solo Mantenimiento en EN_PROCESO / ESPERANDO_PIEZA -->
+                @if (showProgramarVisita()) {
+                  <div class="mantto-box">
+                    <p class="text-sm" style="font-weight:600;margin-bottom:8px">
+                      🔧 Ticket de Mantenimiento
+                    </p>
+                    @if (!showProgramarForm()) {
+                      <button class="btn btn--ghost btn--sm btn--full"
+                              (click)="showProgramarForm.set(true)">
+                        📅 Programar visita técnica
+                      </button>
+                    }
+                    @if (showProgramarForm()) {
+                      <div class="slide-down">
+                        <div class="field mt-2">
+                          <label class="field__label">Fecha y hora de la visita</label>
+                          <input type="datetime-local" class="input"
+                                 [(ngModel)]="fechaVisita" />
+                        </div>
+                        <div class="field mt-2">
+                          <label class="field__label">Comentario para la tienda (opcional)</label>
+                          <input type="text" class="input" [(ngModel)]="comentarioVisita"
+                                 placeholder="Ej: Revisaremos el compresor del AC" />
+                        </div>
+                        <div class="flex gap-2 mt-2">
+                          <button class="btn btn--primary btn--sm flex-1"
+                                  [disabled]="!fechaVisita || programando()"
+                                  (click)="programarVisita()">
+                            {{ programando() ? '⏳ Guardando...' : '✓ Confirmar visita' }}
+                          </button>
+                          <button class="btn btn--ghost btn--sm"
+                                  (click)="showProgramarForm.set(false)">
+                            Cancelar
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
                 }
+
+                                <!-- nota-interna oculta v5 -->
 
                 @if (!nextActions().length && ticket()!.estatus === 'ESPERANDO_TIENDA') {
                   <div class="esperando-box">⏳ Esperando respuesta de la tienda</div>
@@ -248,6 +282,8 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
                 }
               </div>
             </div>
+
+            } <!-- /fin card respuesta si no CERRADO -->
 
             <!-- Copiloto: Soluciones Anteriores -->
             @if (similares().length > 0 || loadingSimilares()) {
@@ -557,6 +593,10 @@ const NEXT_ACTIONS: Record<string, { label: string; estatus: EstatusTicket; cls:
       background: var(--c-amber-lt); color: var(--c-amber);
       border: 1px solid var(--c-amber-md); margin-left: 6px;
     }
+    .mantto-box {
+      background: #fff8e1; border: 1px solid #F59E0B;
+      border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 12px;
+    }
     .timeline__comment.interno {
       background: var(--c-amber-lt);
       border-left: 3px solid var(--c-amber);
@@ -570,7 +610,7 @@ export class AgenteTicketComponent implements OnInit {
   error = signal('');
   comentario = '';
   esNotaInterna = false;
-  pendingStatus = signal<EstatusTicket | null>(null);
+  pendingStatus = signal<string | null>(null);
   showEscalacion = signal(false);
   escalando = signal(false);
   errorEscalacion = signal('');
@@ -586,6 +626,37 @@ export class AgenteTicketComponent implements OnInit {
 
   nextActions = () => NEXT_ACTIONS[this.ticket()?.estatus ?? ''] ?? [];
 
+  // Sprint 5A: Mantenimiento
+  showProgramarForm = signal(false);
+  fechaVisita = '';
+  comentarioVisita = '';
+  programando = signal(false);
+
+  isMantenimiento = computed(() => {
+    const t = this.ticket();
+    if (!t) return false;
+
+    // 1. Tipificación del ticket (más confiable si existe)
+    const tipArea = t.tipificacion?.area_tecnica ?? '';
+    if (tipArea === 'MANTENIMIENTO') return true;
+
+    // 2. cat_nivel1 copiado al ticket al crearse
+    const nivel1 = (t.cat_nivel1 ?? '').toLowerCase();
+    if (nivel1.includes('mantenimiento')) return true;
+
+    // 3. Grupo del agente logueado (fallback cuando ticket no tiene tipificación)
+    const grupoNombre = ((this.auth.currentUser() as any)?.grupo_nombre ?? '').toLowerCase();
+    if (grupoNombre.includes('mantenimiento') || grupoNombre.includes('mantto')) return true;
+
+    return false;
+  });
+
+  showProgramarVisita = computed(() => {
+    const estatus = this.ticket()?.estatus;
+    return this.isMantenimiento() &&
+      (estatus === 'EN_PROCESO' || estatus === 'ESPERANDO_PIEZA');
+  });
+
   readonly tomarPlantillas = [
     {
       id: 1,
@@ -595,17 +666,39 @@ export class AgenteTicketComponent implements OnInit {
     },
     {
       id: 2,
-      label: 'En revisión con el equipo',
-      preview: 'Entendido. Hemos tomado tu caso y nuestro equipo está trabajando...',
-      texto: 'Entendido. Hemos tomado tu caso y nuestro equipo ya está trabajando en ello. Te contactaremos a la brevedad con una solución.',
+      label: 'En revisión',
+      preview: 'Tu caso está siendo analizado por el equipo especializado...',
+      texto: 'Tu caso está siendo analizado por el equipo especializado. Trabajamos para darte una solución a la brevedad.',
     },
     {
       id: 3,
-      label: 'Atención prioritaria',
-      preview: 'Tu reporte ha sido tomado con prioridad. Estamos en proceso...',
-      texto: 'Tu reporte ha sido tomado con prioridad. Estamos en proceso de diagnóstico y resolución. Nos pondremos en contacto contigo muy pronto.',
+      label: 'En seguimiento',
+      preview: 'Estamos dando seguimiento a tu reporte...',
+      texto: 'Estamos dando seguimiento a tu reporte. Si necesitas agregar más información, puedes escribirla aquí.',
     },
   ];
+
+  programarVisita() {
+    if (!this.fechaVisita || this.programando()) return;
+    this.programando.set(true);
+    const body = {
+      fecha_visita: new Date(this.fechaVisita).toISOString(),
+      comentario: this.comentarioVisita || undefined,
+    };
+    this.ticketSvc.programarVisita(this.ticket()!.id, body).subscribe({
+      next: t => {
+        this.ticket.set(t);
+        this.programando.set(false);
+        this.showProgramarForm.set(false);
+        this.fechaVisita = '';
+        this.comentarioVisita = '';
+      },
+      error: err => {
+        this.programando.set(false);
+        this.error.set(err.error?.detail ?? 'Error al programar visita');
+      },
+    });
+  }
 
   constructor(
     private route: ActivatedRoute,
@@ -650,7 +743,7 @@ export class AgenteTicketComponent implements OnInit {
     this.comentario = texto;
   }
 
-  executeAction(action: { estatus: EstatusTicket; requiresText?: boolean }) {
+  executeAction(action: { estatus: string; requiresText?: boolean }) {
     if (this.updating()) return;
     if (action.requiresText && (!this.comentario || this.comentario.trim().length < 10)) {
       this.error.set('Debes describir la solución antes de enviarla (mínimo 10 caracteres)');

@@ -122,7 +122,7 @@ export interface TicketDanyCreate {
 }
 
 export interface TicketUpdate {
-  estatus?: EstatusTicket;
+  estatus?: string;
   solucion_propuesta?: string;
   comentario?: string;
   tipo_comentario?: 'PUBLICO' | 'INTERNO';
