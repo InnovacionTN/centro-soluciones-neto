@@ -1,27 +1,177 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, ElementRef, ViewChild, signal, inject, computed } from '@angular/core';
+import { __decorate } from "tslib";
+import { Component, ViewChild, signal, inject, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subject, interval, of } from 'rxjs';
-import { catchError, takeUntil } from 'rxjs/operators';
+import { Subject, interval } from 'rxjs';
+import { catchError, of, takeUntil } from 'rxjs/operators';
 import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { AdminService } from '../../core/services/admin.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
-import { DashboardMetrics } from '../../core/models';
 import { environment } from '../../../environments/environment';
-
-interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date; }
-
 // ─────────────────────────────────────────────────────────────────────────────
-
-@Component({
-  selector: 'app-agente-dashboard',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NavbarComponent, StatusBadgeComponent],
-  template: `
+let AgenteDashboardComponent = class AgenteDashboardComponent {
+    constructor() {
+        this.auth = inject(AuthService);
+        this.ticketSvc = inject(TicketService);
+        this.adminSvc = inject(AdminService);
+        this.http = inject(HttpClient);
+        this.destroy$ = new Subject();
+        // ── Estado métricas ────────────────────────────────────────────────────────
+        this.metrics = signal(null);
+        this.loadingTickets = signal(true);
+        this.allTickets = signal([]);
+        this.disponible = signal(true);
+        this.togglingDisp = signal(false);
+        this.deflexion = signal(null);
+        this.now = new Date();
+        this.grupoNombre = computed(() => {
+            const user = this.auth.currentUser();
+            return user?.grupo_nombre ?? '';
+        });
+        this.misTickets = computed(() => {
+            const userId = this.auth.currentUser()?.id;
+            const SLA_ORDER = { ROJO: 0, AMARILLO: 1, VERDE: 2, SIN_SLA: 3 };
+            const PRIO_ORDER = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+            return this.allTickets()
+                .filter(t => t.agente_id === userId && !['CERRADO', 'CANCELADO', 'RESUELTO'].includes(t.estatus))
+                .sort((a, b) => {
+                const s = (SLA_ORDER[a.sla_status] ?? 3) - (SLA_ORDER[b.sla_status] ?? 3);
+                if (s !== 0)
+                    return s;
+                return (PRIO_ORDER[a.prioridad] ?? 9) - (PRIO_ORDER[b.prioridad] ?? 9);
+            });
+        });
+        // ── Chat Dany copiloto ─────────────────────────────────────────────────────
+        this.chatMsgs = signal([]);
+        this.chatInput = '';
+        this.thinking = signal(false);
+        this.proxyUrl = `${environment.apiUrl}/dany/chat`;
+        this.needsScroll = false;
+    }
+    ngOnInit() {
+        const user = this.auth.currentUser();
+        if (user)
+            this.disponible.set(user.disponible ?? true);
+        this.ticketSvc.dashboard().subscribe({
+            next: m => { this.metrics.set(m); },
+            error: () => { },
+        });
+        this.ticketSvc.list({}).subscribe({
+            next: ts => { this.allTickets.set(ts); this.loadingTickets.set(false); },
+            error: () => this.loadingTickets.set(false),
+        });
+        // Cargar deflexión Dany
+        this.http.get(`${environment.apiUrl}/admin/kpis/dany`).pipe(catchError(() => of(null))).subscribe(d => { if (d)
+            this.deflexion.set(d.tasa_deflexion_pct ?? null); });
+        this.pushWelcome();
+        // Polling cada 90s
+        interval(90_000).pipe(takeUntil(this.destroy$))
+            .subscribe(() => {
+            this.ticketSvc.list({}).subscribe({ next: ts => this.allTickets.set(ts), error: () => { } });
+        });
+    }
+    ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+    ngAfterViewChecked() {
+        if (this.needsScroll) {
+            const el = this.chatRef?.nativeElement;
+            if (el)
+                el.scrollTop = el.scrollHeight;
+            this.needsScroll = false;
+        }
+    }
+    // ── Disponibilidad ────────────────────────────────────────────────────────
+    toggleDisponibilidad() {
+        const user = this.auth.currentUser();
+        if (!user || this.togglingDisp())
+            return;
+        this.togglingDisp.set(true);
+        const nuevo = !this.disponible();
+        this.adminSvc.setDisponibilidad(user.id, nuevo).subscribe({
+            next: () => {
+                this.disponible.set(nuevo);
+                this.togglingDisp.set(false);
+                this.auth.currentUser.update(u => u ? { ...u, disponible: nuevo } : u);
+            },
+            error: () => this.togglingDisp.set(false),
+        });
+    }
+    // ── Chat ──────────────────────────────────────────────────────────────────
+    sendChat() {
+        const text = this.chatInput.trim();
+        if (!text || this.thinking())
+            return;
+        this.chatInput = '';
+        this.addChatMsg({ from: 'user', text });
+        this.thinking.set(true);
+        this.needsScroll = true;
+        const payload = {
+            mensaje: text,
+            tienda_id: null,
+            sesion_id: 'agente-' + this.auth.currentUser()?.id,
+            contexto: {
+                rol: 'agente',
+                grupo: this.grupoNombre(),
+                mis_tickets: this.misTickets().length,
+            },
+            historial: this.chatMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
+        };
+        this.http.post(this.proxyUrl, payload).pipe(takeUntil(this.destroy$), catchError(() => of({ respuesta: this.agenteFallback(text) }))).subscribe(res => {
+            this.thinking.set(false);
+            this.addChatMsg({ from: 'dany', text: res?.respuesta ?? res?.output ?? 'No pude obtener respuesta.' });
+            this.needsScroll = true;
+        });
+    }
+    sendChatQuick(text) {
+        this.chatInput = text;
+        this.sendChat();
+    }
+    resetChat() {
+        this.chatMsgs.set([]);
+        this.pushWelcome();
+    }
+    agenteFallback(text) {
+        const l = text.toLowerCase();
+        if (l.includes('pendiente') || l.includes('cuántos')) {
+            return `Tienes ${this.misTickets().length} tickets asignados activos. Revísalos en la cola.`;
+        }
+        if (l.includes('riesgo') || l.includes('sla')) {
+            const n = this.misTickets().filter(t => t.sla_status === 'ROJO').length;
+            return n > 0 ? `⚠ Hay ${n} ticket(s) con SLA vencido. Atiéndelos primero.` : '✅ Todos tus SLA están en tiempo.';
+        }
+        if (l.includes('prioridad') || l.includes('primero')) {
+            const t = this.misTickets()[0];
+            return t ? `El más urgente es ${t.folio}: "${t.descripcion}".` : 'No tienes tickets asignados ahora mismo.';
+        }
+        return 'Como copiloto estoy aquí para ayudarte a priorizar y resolver tickets. ¿Qué necesitas?';
+    }
+    pushWelcome() {
+        const nombre = this.auth.currentUser()?.nombre?.split(' ')[0] ?? '';
+        this.addChatMsg({
+            from: 'dany',
+            text: `Hola${nombre ? ` ${nombre}` : ''} 👋 Soy tu copiloto IA. Pregúntame sobre tus tickets, prioridades o cualquier consulta de soporte.`,
+        });
+    }
+    addChatMsg(partial) {
+        this.chatMsgs.update(m => [...m, { id: Math.random().toString(36).slice(2), time: new Date(), ...partial }]);
+    }
+    slaColor(status) {
+        const map = { ROJO: '#EF4444', AMARILLO: '#F59E0B', VERDE: '#22C55E' };
+        return map[status] ?? '#9CA3AF';
+    }
+};
+__decorate([
+    ViewChild('chatRef')
+], AgenteDashboardComponent.prototype, "chatRef", void 0);
+AgenteDashboardComponent = __decorate([
+    Component({
+        selector: 'app-agente-dashboard',
+        standalone: true,
+        imports: [CommonModule, FormsModule, RouterModule, NavbarComponent, StatusBadgeComponent],
+        template: `
     <div class="page">
       <app-navbar section="Dashboard" />
 
@@ -72,8 +222,8 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
                 <span class="kpi-lbl">🔴 SLA Vencido</span>
               </a>
               <a routerLink="/agente/cola" class="kpi-card"
-                 [class.kpi-card--amber]="metrics()!.por_sla_status.AMARILLO > 0">
-                <span class="kpi-val">{{ metrics()!.por_sla_status.AMARILLO }}</span>
+                 [class.kpi-card--amber]="(metrics()!.por_sla_status?.AMARILLO ?? 0) > 0">
+                <span class="kpi-val">{{ metrics()!.por_sla_status?.AMARILLO ?? 0 }}</span>
                 <span class="kpi-lbl">🟡 En riesgo</span>
               </a>
               <div class="kpi-card kpi-card--green">
@@ -231,7 +381,7 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
       </div>
     </div>
   `,
-  styles: [`
+        styles: [`
     .dash-body {
       display: grid;
       grid-template-columns: 1fr 360px;
@@ -440,175 +590,7 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
     .disp-dot--verde { background: #2E7D32; }
     .disp-dot--rojo  { background: #E65100; }
   `],
-})
-export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('chatRef') private chatRef?: ElementRef<HTMLDivElement>;
-
-  auth = inject(AuthService);
-  private ticketSvc = inject(TicketService);
-  private adminSvc = inject(AdminService);
-  private http = inject(HttpClient);
-  private destroy$ = new Subject<void>();
-
-  // ── Estado métricas ────────────────────────────────────────────────────────
-  metrics = signal<DashboardMetrics | null>(null);
-  loadingTickets = signal(true);
-  allTickets = signal<any[]>([]);
-  disponible = signal(true);
-  togglingDisp = signal(false);
-  deflexion = signal<number | null>(null);
-  now = new Date();
-
-  grupoNombre = computed(() => {
-    const user = this.auth.currentUser();
-    return (user as any)?.grupo_nombre ?? '';
-  });
-
-  misTickets = computed(() => {
-    const userId = this.auth.currentUser()?.id;
-    const SLA_ORDER: Record<string, number> = { ROJO: 0, AMARILLO: 1, VERDE: 2, SIN_SLA: 3 };
-    const PRIO_ORDER: Record<string, number> = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
-    return this.allTickets()
-      .filter(t => t.agente_id === userId && !['CERRADO', 'CANCELADO', 'RESUELTO'].includes(t.estatus))
-      .sort((a, b) => {
-        const s = (SLA_ORDER[a.sla_status] ?? 3) - (SLA_ORDER[b.sla_status] ?? 3);
-        if (s !== 0) return s;
-        return (PRIO_ORDER[a.prioridad] ?? 9) - (PRIO_ORDER[b.prioridad] ?? 9);
-      });
-  });
-
-  // ── Chat Dany copiloto ─────────────────────────────────────────────────────
-  chatMsgs = signal<DanyMsg[]>([]);
-  chatInput = '';
-  thinking = signal(false);
-  private readonly proxyUrl = `${environment.apiUrl}/dany/chat`;
-  private needsScroll = false;
-
-  ngOnInit() {
-    const user = this.auth.currentUser();
-    if (user) this.disponible.set(user.disponible ?? true);
-
-    this.ticketSvc.dashboard().subscribe({
-      next: m => { this.metrics.set(m); },
-      error: () => { },
-    });
-
-    this.ticketSvc.list({}).subscribe({
-      next: ts => { this.allTickets.set(ts as any); this.loadingTickets.set(false); },
-      error: () => this.loadingTickets.set(false),
-    });
-
-    // Cargar deflexión Dany
-    this.http.get<any>(`${environment.apiUrl}/admin/kpis/dany`).pipe(
-      catchError(() => of(null))
-    ).subscribe(d => { if (d) this.deflexion.set(d.tasa_deflexion_pct ?? null); });
-
-    this.pushWelcome();
-
-    // Polling cada 90s
-    interval(90_000).pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.ticketSvc.list({}).subscribe({ next: ts => this.allTickets.set(ts as any), error: () => { } });
-      });
-  }
-
-  ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
-
-  ngAfterViewChecked() {
-    if (this.needsScroll) {
-      const el = this.chatRef?.nativeElement;
-      if (el) el.scrollTop = el.scrollHeight;
-      this.needsScroll = false;
-    }
-  }
-
-  // ── Disponibilidad ────────────────────────────────────────────────────────
-  toggleDisponibilidad() {
-    const user = this.auth.currentUser();
-    if (!user || this.togglingDisp()) return;
-    this.togglingDisp.set(true);
-    const nuevo = !this.disponible();
-    this.adminSvc.setDisponibilidad(user.id, nuevo).subscribe({
-      next: () => {
-        this.disponible.set(nuevo);
-        this.togglingDisp.set(false);
-        this.auth.currentUser.update(u => u ? { ...u, disponible: nuevo } : u);
-      },
-      error: () => this.togglingDisp.set(false),
-    });
-  }
-
-  // ── Chat ──────────────────────────────────────────────────────────────────
-  sendChat() {
-    const text = this.chatInput.trim();
-    if (!text || this.thinking()) return;
-    this.chatInput = '';
-    this.addChatMsg({ from: 'user', text });
-    this.thinking.set(true);
-    this.needsScroll = true;
-
-    const payload = {
-      mensaje: text,
-      tienda_id: null,
-      sesion_id: 'agente-' + this.auth.currentUser()?.id,
-      contexto: {
-        rol: 'agente',
-        grupo: this.grupoNombre(),
-        mis_tickets: this.misTickets().length,
-      },
-      historial: this.chatMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
-    };
-
-    this.http.post<any>(this.proxyUrl, payload).pipe(
-      takeUntil(this.destroy$),
-      catchError(() => of({ respuesta: this.agenteFallback(text) }))
-    ).subscribe(res => {
-      this.thinking.set(false);
-      this.addChatMsg({ from: 'dany', text: res?.respuesta ?? res?.output ?? 'No pude obtener respuesta.' });
-      this.needsScroll = true;
-    });
-  }
-
-  sendChatQuick(text: string) {
-    this.chatInput = text;
-    this.sendChat();
-  }
-
-  resetChat() {
-    this.chatMsgs.set([]);
-    this.pushWelcome();
-  }
-
-  private agenteFallback(text: string): string {
-    const l = text.toLowerCase();
-    if (l.includes('pendiente') || l.includes('cuántos')) {
-      return `Tienes ${this.misTickets().length} tickets asignados activos. Revísalos en la cola.`;
-    }
-    if (l.includes('riesgo') || l.includes('sla')) {
-      const n = this.misTickets().filter(t => t.sla_status === 'ROJO').length;
-      return n > 0 ? `⚠ Hay ${n} ticket(s) con SLA vencido. Atiéndelos primero.` : '✅ Todos tus SLA están en tiempo.';
-    }
-    if (l.includes('prioridad') || l.includes('primero')) {
-      const t = this.misTickets()[0];
-      return t ? `El más urgente es ${t.folio}: "${t.descripcion}".` : 'No tienes tickets asignados ahora mismo.';
-    }
-    return 'Como copiloto estoy aquí para ayudarte a priorizar y resolver tickets. ¿Qué necesitas?';
-  }
-
-  private pushWelcome() {
-    const nombre = this.auth.currentUser()?.nombre?.split(' ')[0] ?? '';
-    this.addChatMsg({
-      from: 'dany',
-      text: `Hola${nombre ? ` ${nombre}` : ''} 👋 Soy tu copiloto IA. Pregúntame sobre tus tickets, prioridades o cualquier consulta de soporte.`,
-    });
-  }
-
-  private addChatMsg(partial: Omit<DanyMsg, 'id' | 'time'>) {
-    this.chatMsgs.update(m => [...m, { id: Math.random().toString(36).slice(2), time: new Date(), ...partial }]);
-  }
-
-  slaColor(status: string): string {
-    const map: Record<string, string> = { ROJO: '#EF4444', AMARILLO: '#F59E0B', VERDE: '#22C55E' };
-    return map[status] ?? '#9CA3AF';
-  }
-}
+    })
+], AgenteDashboardComponent);
+export { AgenteDashboardComponent };
+//# sourceMappingURL=agente-dashboard.component.js.map

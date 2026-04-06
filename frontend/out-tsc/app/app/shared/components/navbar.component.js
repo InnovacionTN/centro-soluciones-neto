@@ -1,25 +1,70 @@
-import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
+import { __decorate } from "tslib";
+import { Component, Input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { HttpClient } from '@angular/common/http';
-import { AuthService } from '../../core/services/auth.service';
 import { environment } from '../../../environments/environment';
-
-interface Notificaciones {
-  esperando_respuesta?: number;
-  total_activos?: number;
-  pendientes_tomar?: number;
-  mis_activos?: number;
-  sla_vencidos?: number;
-  sin_asignar?: number;
-  criticos?: number;
-}
-
-@Component({
-  selector: 'app-navbar',
-  standalone: true,
-  imports: [CommonModule, RouterModule],
-  template: `
+let NavbarComponent = class NavbarComponent {
+    constructor(auth, http) {
+        this.auth = auth;
+        this.http = http;
+        this.section = '';
+        this.collapsed = signal(false);
+        this.notif = signal(null);
+        this.api = environment.apiUrl;
+    }
+    ngOnInit() {
+        this.fetchNotif();
+        // Polling cada 30 segundos
+        this.pollInterval = setInterval(() => this.fetchNotif(), 30_000);
+    }
+    ngOnDestroy() {
+        if (this.pollInterval)
+            clearInterval(this.pollInterval);
+    }
+    fetchNotif() {
+        this.http.get(`${this.api}/notificaciones`).subscribe({
+            next: n => this.notif.set(n),
+            error: () => { },
+        });
+    }
+    badgePendientes() {
+        const n = this.notif();
+        if (!n)
+            return 0;
+        return (n.pendientes_tomar ?? 0) + (n.sin_asignar ?? 0);
+    }
+    slaVencidos() { return this.notif()?.sla_vencidos ?? 0; }
+    esperandoRespuesta() { return this.notif()?.esperando_respuesta ?? 0; }
+    sinAsignar() { return this.notif()?.sin_asignar ?? 0; }
+    initial() { return this.auth.currentUser()?.nombre?.charAt(0)?.toUpperCase() ?? '?'; }
+    avatarClass() {
+        const map = {
+            TIENDA: 'avatar--tienda',
+            AGENTE: 'avatar--agente',
+            ADMIN: 'avatar--admin',
+            COORDINADOR: 'avatar--agente',
+        };
+        return map[this.auth.rol() ?? ''] ?? '';
+    }
+    roleLabel() {
+        const map = {
+            TIENDA: 'Tienda',
+            AGENTE: 'Agente Call Center',
+            ADMIN: 'Administrador',
+            COORDINADOR: 'Coordinador de Zona',
+        };
+        return map[this.auth.rol() ?? ''] ?? '';
+    }
+};
+__decorate([
+    Input()
+], NavbarComponent.prototype, "section", void 0);
+NavbarComponent = __decorate([
+    Component({
+        selector: 'app-navbar',
+        standalone: true,
+        imports: [CommonModule, RouterModule],
+        template: `
     <aside class="sidebar" [class.sidebar--collapsed]="collapsed()">
       <!-- Marca / Logo -->
       <div class="sidebar__brand">
@@ -116,25 +161,21 @@ interface Notificaciones {
           </div>
         }
 
-        <div class="user-card" (click)="toggleUserMenu()">
+        <div class="user-card">
           <div class="avatar" [class]="avatarClass()">{{ initial() }}</div>
           <div class="user-info">
             <div class="user-name">{{ auth.currentUser()?.nombre }}</div>
             <div class="user-role">{{ roleLabel() }}</div>
           </div>
-          <!-- Menu flotante -->
-          @if (userMenuOpen()) {
-            <div class="user-menu-dropdown">
-              <button class="btn-logout" (click)="auth.logout()">
-                <span class="nav-icon">🚪</span> Cerrar sesión
-              </button>
-            </div>
-          }
         </div>
+        
+        <button class="btn-logout" (click)="auth.logout()" data-tooltip="Salir del sistema">
+          <span class="nav-icon">🚪</span> Salir del sistema
+        </button>
       </div>
     </aside>
   `,
-  styles: [`
+        styles: [`
     .sidebar {
       width: 220px;
       height: 100vh;
@@ -148,8 +189,7 @@ interface Notificaciones {
       z-index: 100;
       box-shadow: 2px 0 10px rgba(0,0,0,0.02);
       transition: width 0.25s ease;
-      overflow-y: auto;
-      overflow-x: visible;
+      overflow: hidden;
     }
     .sidebar--collapsed { width: 64px; }
 
@@ -189,13 +229,7 @@ interface Notificaciones {
       padding: 10px 0;
       border-bottom: 1px solid var(--c-border);
     }
-    .sidebar--collapsed .brand-left { 
-      opacity: 0; 
-      width: 0; 
-      overflow: hidden; 
-      margin: 0; 
-      padding: 0; 
-    }
+    .sidebar--collapsed .brand-left { display: none; }
     .sidebar--collapsed .sidebar__nav { padding: 16px 8px; align-items: center; }
     .sidebar--collapsed .sidebar__footer { padding: 16px 8px; align-items: center; }
     .brand-logo-csn {
@@ -301,8 +335,6 @@ interface Notificaciones {
     .alert-item--amber { background: var(--c-amber-lt); color: var(--c-amber); border: 1px solid var(--c-amber-md); }
 
     .user-card {
-      position: relative;
-      cursor: pointer;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -310,33 +342,10 @@ interface Notificaciones {
       background: var(--c-bg);
       border-radius: var(--radius-md);
       margin-bottom: 12px;
-      transition: background 0.2s;
     }
-    .user-card:hover { background: var(--c-border); }
     .user-info { display: flex; flex-direction: column; overflow: hidden; }
     .user-name { font-size: 14px; font-weight: 600; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .user-role { font-size: 12px; color: var(--c-muted); }
-
-    /* Dropdown de usuario */
-    .user-menu-dropdown {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 16px;
-      right: 16px;
-      background: var(--c-surface);
-      border: 1px solid var(--c-border);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
-      padding: 6px;
-      z-index: 300;
-      animation: slideUp .2s ease;
-    }
-    .sidebar--collapsed .user-menu-dropdown {
-      left: calc(100% + 8px);
-      bottom: 0px;
-      right: auto;
-      min-width: 180px;
-    }
 
     .btn-logout {
       width: 100%;
@@ -380,17 +389,12 @@ interface Notificaciones {
     .sidebar--collapsed .sidebar-alerts,
     .sidebar--collapsed .user-info,
     .sidebar--collapsed .btn-logout span:not(.nav-icon) {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
+      display: none;
     }
     .sidebar--collapsed .nav-item { justify-content: center; padding: 12px; }
     .sidebar--collapsed .btn-logout { border: none; padding: 12px; }
     .sidebar--collapsed .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
-    .sidebar--collapsed .user-card { padding: 12px 0; background: transparent; margin-bottom: 24px; justify-content: center; }
+    .sidebar--collapsed .user-card { padding: 0; background: transparent; margin-bottom: 24px; }
 
     /* ── Tooltip popover (visible when sidebar is collapsed) ── */
     .nav-item[data-tooltip],
@@ -432,14 +436,14 @@ interface Notificaciones {
       .sidebar { width: 64px; }
       .brand-left, .nav-section-title, .nav-item span:not(.nav-icon), .nav-badge,
       .sidebar-alerts, .user-info, .btn-logout span:not(.nav-icon) {
-        opacity: 0; width: 0; height: 0; overflow: hidden; margin: 0; padding: 0;
+        display: none;
       }
       .sidebar__brand { justify-content: center; padding: 20px 8px; border-bottom: none; }
       .sidebar-toggle { display: flex; }
       .nav-item { justify-content: center; padding: 12px; }
       .btn-logout { border: none; padding: 12px; }
       .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
-      .user-card { padding: 12px 0; background: transparent; margin-bottom: 24px; justify-content: center; }
+      .user-card { padding: 0; background: transparent; margin-bottom: 24px; }
       .nav-item[data-tooltip]:hover::after,
       .btn-logout[data-tooltip]:hover::after {
         content: attr(data-tooltip);
@@ -472,72 +476,7 @@ interface Notificaciones {
       }
     }
   `],
-})
-export class NavbarComponent implements OnInit, OnDestroy {
-  @Input() section = '';
-  collapsed = signal(false);
-  userMenuOpen = signal(false);
-
-  notif = signal<Notificaciones | null>(null);
-  private pollInterval?: ReturnType<typeof setInterval>;
-  private readonly api = environment.apiUrl;
-
-  constructor(public auth: AuthService, private http: HttpClient) { }
-
-  ngOnInit() {
-    this.fetchNotif();
-    // Polling cada 30 segundos
-    this.pollInterval = setInterval(() => this.fetchNotif(), 30_000);
-  }
-
-  ngOnDestroy() {
-    if (this.pollInterval) clearInterval(this.pollInterval);
-  }
-
-  toggleUserMenu() {
-    if (this.collapsed()) {
-      this.collapsed.set(false);
-      this.userMenuOpen.set(true);
-    } else {
-      this.userMenuOpen.set(!this.userMenuOpen());
-    }
-  }
-
-  fetchNotif() {
-    this.http.get<Notificaciones>(`${this.api}/notificaciones`).subscribe({
-      next: n => this.notif.set(n),
-      error: () => { },
-    });
-  }
-
-  badgePendientes() {
-    const n = this.notif();
-    if (!n) return 0;
-    return (n.pendientes_tomar ?? 0) + (n.sin_asignar ?? 0);
-  }
-  slaVencidos() { return this.notif()?.sla_vencidos ?? 0; }
-  esperandoRespuesta() { return this.notif()?.esperando_respuesta ?? 0; }
-  sinAsignar() { return this.notif()?.sin_asignar ?? 0; }
-
-  initial() { return this.auth.currentUser()?.nombre?.charAt(0)?.toUpperCase() ?? '?'; }
-
-  avatarClass() {
-    const map: Record<string, string> = {
-      TIENDA: 'avatar--tienda',
-      AGENTE: 'avatar--agente',
-      ADMIN: 'avatar--admin',
-      COORDINADOR: 'avatar--agente',
-    };
-    return map[this.auth.rol() ?? ''] ?? '';
-  }
-
-  roleLabel() {
-    const map: Record<string, string> = {
-      TIENDA: 'Tienda',
-      AGENTE: 'Agente Call Center',
-      ADMIN: 'Administrador',
-      COORDINADOR: 'Coordinador de Zona',
-    };
-    return map[this.auth.rol() ?? ''] ?? '';
-  }
-}
+    })
+], NavbarComponent);
+export { NavbarComponent };
+//# sourceMappingURL=navbar.component.js.map

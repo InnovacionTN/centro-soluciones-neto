@@ -1,0 +1,88 @@
+- Building...
+
+Initial chunk files   | Names                           |  Raw size | Estimated transfer size
+chunk-PVJAOMSC.js     | -                               | 255.40 kB |                69.65 kB
+main-EJJKZB55.js      | main                            |  63.13 kB |                16.80 kB
+polyfills-FFHMD2TL.js | polyfills                       |  33.71 kB |                11.02 kB
+styles-3OONXSAK.css   | styles                          |  14.94 kB |                 2.68 kB
+chunk-TMC7WMLO.js     | -                               | 830 bytes |               830 bytes
+
+                      | Initial total                   | 367.99 kB |               100.95 kB
+
+Lazy chunk files      | Names                           |  Raw size | Estimated transfer size
+chunk-XMY4YGJW.js     | admin-shell-component           |  60.23 kB |                10.76 kB
+chunk-YIXUP4HH.js     | tienda-dashboard-component      |  34.83 kB |                 8.65 kB
+chunk-Y4JF6E7M.js     | -                               |  32.75 kB |                 6.76 kB
+chunk-DWOFQ7N6.js     | agente-ticket-component         |  30.25 kB |                 7.54 kB
+chunk-4PMERRUM.js     | ticket-detalle-component        |  21.92 kB |                 5.87 kB
+chunk-X7NSLDGS.js     | admin-kpis-component            |  21.91 kB |                 5.18 kB
+chunk-GWL7RWP4.js     | nuevo-ticket-component          |  17.25 kB |                 4.99 kB
+chunk-5MRFOKGA.js     | agente-cola-component           |  17.23 kB |                 4.70 kB
+chunk-EHWJ57KF.js     | -                               |  14.55 kB |                 3.25 kB
+chunk-H3UJ45JI.js     | agente-dashboard-component      |  11.33 kB |                 3.35 kB
+chunk-Q24KLPN7.js     | dany-kpis-component             |  10.08 kB |                 3.17 kB
+chunk-N7QYBMQQ.js     | coordinador-dashboard-component |   9.60 kB |                 3.03 kB
+chunk-UO7PKSUX.js     | login-component                 |   7.68 kB |                 2.51 kB
+chunk-2FW47JQO.js     | -                               |   6.44 kB |                 2.24 kB
+chunk-CYMAB6XL.js     | -                               |   1.86 kB |               622 bytes
+...and 6 more lazy chunks files. Use "--verbose" to show all the files.
+
+Application bundle generation failed. [8.290 seconds]
+
+▲ [WARNING] angular:styles/component:css;eeb7804a3e72a7cd9b1511003b0a296bebbff91104c54bac666146c1c39bc35d;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/auth/login.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 221 bytes with a total of 2.22 kB.
+
+
+▲ [WARNING] angular:styles/component:css;d8124a4d1e38e6f36df9e90c83da72838d8e4d24021aa341da95cd2b973e4482;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/shared/components/navbar.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 4.74 kB with a total of 6.74 kB.
+
+
+▲ [WARNING] angular:styles/component:css;9da18d81db259942def125877ae642e2c2b9ac5e8d39e0584de8e19e0ab879ad;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/tienda/dany-chat.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 5.76 kB with a total of 7.76 kB.
+
+
+▲ [WARNING] angular:styles/component:css;5b9d80f1a6e2200125f4a75835dffc03f0e722abfb107610ec0a84883dd1b63a;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/tienda/tienda-dashboard.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 1.68 kB with a total of 3.68 kB.
+
+
+▲ [WARNING] angular:styles/component:css;ca6900fbe57e1b4791ee8ecb53ebb9634e35bd2d9c6c87877963e8e9449246d8;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/tienda/nuevo-ticket.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 1.54 kB with a total of 3.54 kB.
+
+
+▲ [WARNING] angular:styles/component:css;f3f29c602001c2693bbc7b87e197b69ebab89637e5e492b09b8a2978294bf5a0;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/tienda/ticket-detalle.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 1.83 kB with a total of 3.83 kB.
+
+
+▲ [WARNING] angular:styles/component:css;bea18b5724316f59e4d4b56a166778df27ba76c09acffc749cc7de318cfe3fcb;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/agente/agente-dashboard.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 1.35 kB with a total of 3.35 kB.
+
+
+▲ [WARNING] angular:styles/component:css;14d2fbcb98f3603bc0512ccd95fbff4edcad38eff042c497d8f48b73a0052dbd;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/agente/agente-cola.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 2.71 kB with a total of 4.71 kB.
+
+
+▲ [WARNING] angular:styles/component:css;75d846b2774133a16bd4db7b9eeb2f946abb9d4180943f49ac54a100e8252d6b;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/agente/agente-ticket.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 3.91 kB with a total of 5.91 kB.
+
+
+▲ [WARNING] angular:styles/component:css;0fa5e0104354b7115ac041b603533bf1128cb0a0877df6cd0241192163a228cc;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/admin/admin-torre.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 975 bytes with a total of 2.95 kB.
+
+
+▲ [WARNING] angular:styles/component:css;c4dd597d263153a77b4bbef2683ca6f73b5b37376caf77938391b3e66e31ea8a;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/admin/admin-incidentes.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 932 bytes with a total of 2.91 kB.
+
+
+▲ [WARNING] angular:styles/component:css;36c332913f6921c9985b80cdbc7454783e43a7992151bc4e74674b55a3b41b82;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/admin/kpis/admin-kpis.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 2.43 kB with a total of 4.43 kB.
+
+
+▲ [WARNING] angular:styles/component:css;571e4b672084fad83de0758b4b1a52fd3620a41f4514f042a0361fd7ae88dbec;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/admin/dany/dany-kpis.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 554 bytes with a total of 2.54 kB.
+
+
+▲ [WARNING] angular:styles/component:css;d4b42082a11f03fa635a140545bb1ad1d9685337ba91d6769fc37e3d2d701ca4;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/coordinador/coordinador-dashboard.component.ts exceeded maximum budget. Budget 2.00 kB was not met by 1.02 kB with a total of 3.02 kB.
+
+
+X [ERROR] angular:styles/component:css;d8124a4d1e38e6f36df9e90c83da72838d8e4d24021aa341da95cd2b973e4482;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/shared/components/navbar.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 2.74 kB with a total of 6.74 kB.
+
+
+X [ERROR] angular:styles/component:css;9da18d81db259942def125877ae642e2c2b9ac5e8d39e0584de8e19e0ab879ad;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/tienda/dany-chat.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 3.76 kB with a total of 7.76 kB.
+
+
+X [ERROR] angular:styles/component:css;14d2fbcb98f3603bc0512ccd95fbff4edcad38eff042c497d8f48b73a0052dbd;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/agente/agente-cola.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 731 bytes with a total of 4.71 kB.
+
+
+X [ERROR] angular:styles/component:css;75d846b2774133a16bd4db7b9eeb2f946abb9d4180943f49ac54a100e8252d6b;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/agente/agente-ticket.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 1.91 kB with a total of 5.91 kB.
+
+
+X [ERROR] angular:styles/component:css;36c332913f6921c9985b80cdbc7454783e43a7992151bc4e74674b55a3b41b82;e:/Users/1184321/Documents/centro-soluciones-neto/frontend/src/app/features/admin/kpis/admin-kpis.component.ts exceeded maximum budget. Budget 4.00 kB was not met by 440 bytes with a total of 4.43 kB.
+
+

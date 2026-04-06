@@ -1,54 +1,276 @@
-import {
-  Component, OnInit, OnDestroy, AfterViewChecked,
-  ElementRef, ViewChild, inject, signal, computed,
-} from '@angular/core';
+import { __decorate } from "tslib";
+import { Component, ViewChild, inject, signal, computed, } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Subject, Subscription, interval, of } from 'rxjs';
+import { Subject, interval, of } from 'rxjs';
 import { catchError, takeUntil } from 'rxjs/operators';
 import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { environment } from '../../../environments/environment';
-
-// ── Tipos de mensaje ──────────────────────────────────────────────────────────
-
-interface DanyMsg {
-  id: string;
-  from: 'dany' | 'user';
-  text: string;
-  time: Date;
-  accion?: 'resuelto' | 'escalar' | null;
-  resumen?: string;
-}
-
-interface TicketResumen {
-  id: number;
-  folio: string;
-  descripcion: string;
-  estatus: string;
-  sla_vencido: boolean;
-  fecha_apertura: string;
-  cat_nivel1: string | null;
-}
-
 const QUICK_CHIPS = [
-  'No tenemos internet 📡',
-  'Falla en el sistema POS',
-  'Problema con impresora',
-  'No abre el sistema',
-  'Falla eléctrica',
+    'No tenemos internet 📡',
+    'Falla en el sistema POS',
+    'Problema con impresora',
+    'No abre el sistema',
+    'Falla eléctrica',
 ];
-
 // ─────────────────────────────────────────────────────────────────────────────
-
-@Component({
-  selector: 'app-tienda-dashboard',
-  standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, StatusBadgeComponent],
-  template: `
+let TiendaDashboardComponent = class TiendaDashboardComponent {
+    constructor() {
+        this.auth = inject(AuthService);
+        this.http = inject(HttpClient);
+        this.ticketSvc = inject(TicketService);
+        this.router = inject(Router);
+        this.destroy$ = new Subject();
+        // ── Estado del chat ───────────────────────────────────────────────────────
+        this.messages = signal([]);
+        this.inputText = '';
+        this.thinking = signal(false);
+        this.ticketCreado = signal(null);
+        this.esResueltoIA = signal(false);
+        this.creatingTicket = signal(false);
+        this.demoMode = signal(false);
+        this.needsScroll = false;
+        this.sesionId = this.newSesionId();
+        this.proxyUrl = `${environment.apiUrl}/dany/chat`;
+        this.quickChips = QUICK_CHIPS;
+        // ── Estado de tickets ─────────────────────────────────────────────────────
+        this.tickets = signal([]);
+        this.loadingTickets = signal(true);
+        this.filtro = signal('');
+        this.ticketsOpen = signal(true); // visible por defecto en desktop
+        this.statusFilters = [
+            { v: '', label: 'Todos' },
+            { v: 'NUEVO', label: 'Nuevo' },
+            { v: 'EN_PROCESO', label: 'En proceso' },
+            { v: 'ESPERANDO_TIENDA', label: 'Esperando' },
+            { v: 'RESUELTO', label: 'Resuelto' },
+        ];
+        this.counts = computed(() => {
+            const ts = this.tickets();
+            const activos = ts.filter(t => !['CERRADO', 'CANCELADO', 'RESUELTO'].includes(t.estatus));
+            return {
+                abiertos: activos.length,
+                vencidos: activos.filter(t => t.sla_vencido).length,
+                proceso: ts.filter(t => ['EN_PROCESO', 'ESPERANDO_AGENTE'].includes(t.estatus)).length,
+                confirmar: ts.filter(t => t.estatus === 'ESPERANDO_TIENDA').length,
+            };
+        });
+        this.countsActivos = computed(() => this.counts().abiertos);
+        this.ticketsFiltrados = computed(() => {
+            const f = this.filtro();
+            const ts = this.tickets();
+            return f ? ts.filter(t => t.estatus === f) : ts;
+        });
+        this.tiendaNombre = () => this.auth.currentUser()?.tienda_nombre ?? 'Mi tienda';
+    }
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+    ngOnInit() {
+        this.pushWelcome();
+        this.loadTickets();
+        // Polling tickets cada 60s
+        interval(60_000).pipe(takeUntil(this.destroy$))
+            .subscribe(() => this.loadTickets());
+    }
+    ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
+    ngAfterViewChecked() {
+        if (this.needsScroll) {
+            this.scrollToBottom();
+            this.needsScroll = false;
+        }
+    }
+    // ── Tickets ───────────────────────────────────────────────────────────────
+    loadTickets() {
+        this.ticketSvc.list({}).subscribe({
+            next: ts => { this.tickets.set(ts); this.loadingTickets.set(false); },
+            error: () => this.loadingTickets.set(false),
+        });
+    }
+    // ── Chat ──────────────────────────────────────────────────────────────────
+    sendMessage() {
+        const text = this.inputText.trim();
+        if (!text || this.thinking())
+            return;
+        this.inputText = '';
+        this.send(text);
+    }
+    sendQuick(text) { this.send(text); }
+    onKeydown(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            this.sendMessage();
+        }
+    }
+    autoResize(e) {
+        const el = e.target;
+        el.style.height = 'auto';
+        el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+    send(text) {
+        this.addMsg({ from: 'user', text });
+        this.thinking.set(true);
+        this.needsScroll = true;
+        const payload = {
+            mensaje: text,
+            tienda_id: this.auth.currentUser()?.tienda_id,
+            tienda_nombre: this.tiendaNombre(),
+            sesion_id: this.sesionId,
+            historial: this.messages().map(m => ({
+                de: m.from, texto: m.text, tiempo: m.time.toISOString(),
+            })),
+        };
+        this.http.post(this.proxyUrl, payload).pipe(takeUntil(this.destroy$), catchError(err => {
+            if (err?.status === 503) {
+                this.demoMode.set(true);
+                setTimeout(() => this.handleDemoResponse(text), 800);
+                return of(null);
+            }
+            return of({ respuesta: 'Hubo un problema al conectar. Intenta de nuevo.', accion: 'continuar' });
+        })).subscribe(res => {
+            if (res === null)
+                return;
+            this.thinking.set(false);
+            const accion = res.accion ?? 'continuar';
+            this.addMsg({
+                from: 'dany',
+                text: res.respuesta ?? res.output ?? 'No pude entender la respuesta.',
+                accion: accion === 'continuar' ? null : accion,
+                resumen: res.resumen,
+            });
+            this.needsScroll = true;
+        });
+    }
+    handleDemoResponse(userText) {
+        this.thinking.set(false);
+        const lower = userText.toLowerCase();
+        let text = 'Cuéntame más detalles sobre el problema. ¿Cuándo empezó y qué has intentado?';
+        let accion = 'continuar';
+        let resumen = '';
+        if (lower.includes('internet') || lower.includes('antena') || lower.includes('red')) {
+            text = 'Entendido. ¿Hay alguna luz roja o apagada en el router o antena? Intenta reiniciarla desconectándola 30 segundos.';
+        }
+        else if (lower.includes('pos') || lower.includes('sistema') || lower.includes('caja')) {
+            text = '¿Cuándo empezó el problema? ¿Intentaron cerrar y volver a abrir el sistema?';
+        }
+        else if (lower.includes('sí') || lower.includes('ya funciona') || lower.includes('se resolvió')) {
+            text = '¡Excelente! Me alegra que funcione. ¿Quieres que registre esto como resuelto en el historial?';
+            accion = 'resuelto';
+            resumen = userText;
+        }
+        else if (lower.includes('no') || lower.includes('sigue') || lower.includes('persiste')) {
+            text = 'Entiendo que el problema persiste. Lo mejor es que un agente especializado lo revise. ¿Creo el reporte ahora?';
+            accion = 'escalar';
+            resumen = userText;
+        }
+        this.addMsg({ from: 'dany', text, accion: accion === 'continuar' ? null : accion, resumen });
+        this.needsScroll = true;
+    }
+    // ── Acciones sobre tickets ────────────────────────────────────────────────
+    crearTicket(resumen) {
+        if (this.creatingTicket())
+            return;
+        this.creatingTicket.set(true);
+        const desc = this.buildDescription();
+        this.ticketSvc.create({
+            descripcion: desc,
+            tipificacion_id: undefined,
+            ia_clasificacion_aceptada: false,
+        }).subscribe({
+            next: ticket => {
+                if (resumen) {
+                    this.ticketSvc.update(ticket.id, {
+                        comentario: `Contexto Dany: ${resumen}`, tipo_comentario: 'PUBLICO'
+                    }).subscribe();
+                }
+                this.ticketCreado.set({ id: ticket.id, folio: ticket.folio });
+                this.esResueltoIA.set(false);
+                this.creatingTicket.set(false);
+                this.loadTickets(); // refrescar lista
+            },
+            error: () => this.creatingTicket.set(false),
+        });
+    }
+    registrarResuelto(resumen) {
+        if (this.creatingTicket())
+            return;
+        this.creatingTicket.set(true);
+        const desc = `[Dany IA] ${this.buildDescription()}`;
+        this.ticketSvc.create({
+            descripcion: desc, tipificacion_id: undefined, ia_clasificacion_aceptada: false,
+        }).subscribe({
+            next: ticket => {
+                this.ticketSvc.update(ticket.id, {
+                    estatus: 'RESUELTO', comentario: `Resuelto por Dany: ${resumen}`,
+                }).subscribe({
+                    next: t => {
+                        this.ticketCreado.set({ id: t.id, folio: t.folio });
+                        this.esResueltoIA.set(true);
+                        this.creatingTicket.set(false);
+                        this.loadTickets();
+                    },
+                    error: () => {
+                        this.ticketCreado.set({ id: ticket.id, folio: ticket.folio });
+                        this.esResueltoIA.set(true);
+                        this.creatingTicket.set(false);
+                    },
+                });
+            },
+            error: () => this.creatingTicket.set(false),
+        });
+    }
+    irAlTicket() {
+        const t = this.ticketCreado();
+        if (t)
+            this.router.navigate(['/tienda/ticket', t.id]);
+    }
+    resetChat() {
+        this.messages.set([]);
+        this.ticketCreado.set(null);
+        this.esResueltoIA.set(false);
+        this.sesionId = this.newSesionId();
+        this.pushWelcome();
+    }
+    logout() { this.auth.logout(); }
+    // ── Utils ─────────────────────────────────────────────────────────────────
+    pushWelcome() {
+        const nombre = this.tiendaNombre();
+        this.addMsg({
+            from: 'dany',
+            text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Dany, tu asistente de soporte. ¿En qué puedo ayudarte hoy? Cuéntame qué está pasando en tu tienda.`,
+        });
+    }
+    addMsg(partial) {
+        this.messages.update(msgs => [...msgs, {
+                id: Math.random().toString(36).slice(2),
+                time: new Date(), ...partial,
+            }]);
+    }
+    buildDescription() {
+        const userMsgs = this.messages()
+            .filter(m => m.from === 'user').map(m => m.text).join(' / ');
+        return userMsgs || 'Consulta iniciada a través de Dany';
+    }
+    scrollToBottom() {
+        const el = this.messagesRef?.nativeElement;
+        if (el)
+            el.scrollTop = el.scrollHeight;
+    }
+    newSesionId() {
+        return Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+};
+__decorate([
+    ViewChild('messagesRef')
+], TiendaDashboardComponent.prototype, "messagesRef", void 0);
+TiendaDashboardComponent = __decorate([
+    Component({
+        selector: 'app-tienda-dashboard',
+        standalone: true,
+        imports: [CommonModule, FormsModule, RouterModule, StatusBadgeComponent],
+        template: `
     <div class="shell">
 
       <!-- ══ TOPBAR ══════════════════════════════════════════════════════════ -->
@@ -288,7 +510,7 @@ const QUICK_CHIPS = [
                 <a class="tcard" [routerLink]="['/tienda/ticket', t.id]">
                   <div class="tcard-top">
                     <span class="tcard-folio">{{ t.folio }}</span>
-                    <app-status-badge [status]="$any(t.estatus)" />
+                    <app-status-badge [status]="t.estatus" />
                     @if (t.sla_vencido) {
                       <span class="badge badge--red" style="font-size:10px">⚠</span>
                     }
@@ -318,7 +540,7 @@ const QUICK_CHIPS = [
       </div>
     </div>
   `,
-  styles: [`
+        styles: [`
     /* ── Shell ────────────────────────────────────────────────────────────── */
     .shell {
       display: flex; flex-direction: column;
@@ -620,268 +842,7 @@ const QUICK_CHIPS = [
       .tickets-panel--open { transform: translateX(0); box-shadow: -4px 0 20px rgba(0,0,0,.15); }
     }
   `],
-})
-export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChecked {
-  @ViewChild('messagesRef') private messagesRef?: ElementRef<HTMLDivElement>;
-
-  private auth = inject(AuthService);
-  private http = inject(HttpClient);
-  private ticketSvc = inject(TicketService);
-  private router = inject(Router);
-  private destroy$ = new Subject<void>();
-
-  // ── Estado del chat ───────────────────────────────────────────────────────
-  messages = signal<DanyMsg[]>([]);
-  inputText = '';
-  thinking = signal(false);
-  ticketCreado = signal<{ id: number; folio: string } | null>(null);
-  esResueltoIA = signal(false);
-  creatingTicket = signal(false);
-  demoMode = signal(false);
-  private needsScroll = false;
-  private sesionId = this.newSesionId();
-  private readonly proxyUrl = `${environment.apiUrl}/dany/chat`;
-
-  readonly quickChips = QUICK_CHIPS;
-
-  // ── Estado de tickets ─────────────────────────────────────────────────────
-  tickets = signal<TicketResumen[]>([]);
-  loadingTickets = signal(true);
-  filtro = signal('');
-  ticketsOpen = signal(true); // visible por defecto en desktop
-
-  readonly statusFilters = [
-    { v: '', label: 'Todos' },
-    { v: 'NUEVO', label: 'Nuevo' },
-    { v: 'EN_PROCESO', label: 'En proceso' },
-    { v: 'ESPERANDO_TIENDA', label: 'Esperando' },
-    { v: 'RESUELTO', label: 'Resuelto' },
-  ];
-
-  counts = computed(() => {
-    const ts = this.tickets();
-    const activos = ts.filter(t => !['CERRADO', 'CANCELADO', 'RESUELTO'].includes(t.estatus));
-    return {
-      abiertos: activos.length,
-      vencidos: activos.filter(t => t.sla_vencido).length,
-      proceso: ts.filter(t => ['EN_PROCESO', 'ESPERANDO_AGENTE'].includes(t.estatus)).length,
-      confirmar: ts.filter(t => t.estatus === 'ESPERANDO_TIENDA').length,
-    };
-  });
-
-  countsActivos = computed(() => this.counts().abiertos);
-
-  ticketsFiltrados = computed(() => {
-    const f = this.filtro();
-    const ts = this.tickets();
-    return f ? ts.filter(t => t.estatus === f) : ts;
-  });
-
-  tiendaNombre = () => (this.auth.currentUser() as any)?.tienda_nombre ?? 'Mi tienda';
-
-  // ── Lifecycle ─────────────────────────────────────────────────────────────
-  ngOnInit() {
-    this.pushWelcome();
-    this.loadTickets();
-    // Polling tickets cada 60s
-    interval(60_000).pipe(takeUntil(this.destroy$))
-      .subscribe(() => this.loadTickets());
-  }
-
-  ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
-
-  ngAfterViewChecked() {
-    if (this.needsScroll) { this.scrollToBottom(); this.needsScroll = false; }
-  }
-
-  // ── Tickets ───────────────────────────────────────────────────────────────
-  private loadTickets() {
-    this.ticketSvc.list({}).subscribe({
-      next: ts => { this.tickets.set(ts as any); this.loadingTickets.set(false); },
-      error: () => this.loadingTickets.set(false),
-    });
-  }
-
-  // ── Chat ──────────────────────────────────────────────────────────────────
-  sendMessage() {
-    const text = this.inputText.trim();
-    if (!text || this.thinking()) return;
-    this.inputText = '';
-    this.send(text);
-  }
-
-  sendQuick(text: string) { this.send(text); }
-
-  onKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
-  }
-
-  autoResize(e: Event) {
-    const el = e.target as HTMLTextAreaElement;
-    el.style.height = 'auto';
-    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-  }
-
-  private send(text: string) {
-    this.addMsg({ from: 'user', text });
-    this.thinking.set(true);
-    this.needsScroll = true;
-
-    const payload = {
-      mensaje: text,
-      tienda_id: this.auth.currentUser()?.tienda_id,
-      tienda_nombre: this.tiendaNombre(),
-      sesion_id: this.sesionId,
-      historial: this.messages().map(m => ({
-        de: m.from, texto: m.text, tiempo: m.time.toISOString(),
-      })),
-    };
-
-    this.http.post<any>(this.proxyUrl, payload).pipe(
-      takeUntil(this.destroy$),
-      catchError(err => {
-        if (err?.status === 503) {
-          this.demoMode.set(true);
-          setTimeout(() => this.handleDemoResponse(text), 800);
-          return of(null);
-        }
-        return of({ respuesta: 'Hubo un problema al conectar. Intenta de nuevo.', accion: 'continuar' });
-      })
-    ).subscribe(res => {
-      if (res === null) return;
-      this.thinking.set(false);
-      const accion = res.accion ?? 'continuar';
-      this.addMsg({
-        from: 'dany',
-        text: res.respuesta ?? res.output ?? 'No pude entender la respuesta.',
-        accion: accion === 'continuar' ? null : accion,
-        resumen: res.resumen,
-      });
-      this.needsScroll = true;
-    });
-  }
-
-  private handleDemoResponse(userText: string) {
-    this.thinking.set(false);
-    const lower = userText.toLowerCase();
-    let text = 'Cuéntame más detalles sobre el problema. ¿Cuándo empezó y qué has intentado?';
-    let accion: 'continuar' | 'resuelto' | 'escalar' = 'continuar';
-    let resumen = '';
-
-    if (lower.includes('internet') || lower.includes('antena') || lower.includes('red')) {
-      text = 'Entendido. ¿Hay alguna luz roja o apagada en el router o antena? Intenta reiniciarla desconectándola 30 segundos.';
-    } else if (lower.includes('pos') || lower.includes('sistema') || lower.includes('caja')) {
-      text = '¿Cuándo empezó el problema? ¿Intentaron cerrar y volver a abrir el sistema?';
-    } else if (lower.includes('sí') || lower.includes('ya funciona') || lower.includes('se resolvió')) {
-      text = '¡Excelente! Me alegra que funcione. ¿Quieres que registre esto como resuelto en el historial?';
-      accion = 'resuelto'; resumen = userText;
-    } else if (lower.includes('no') || lower.includes('sigue') || lower.includes('persiste')) {
-      text = 'Entiendo que el problema persiste. Lo mejor es que un agente especializado lo revise. ¿Creo el reporte ahora?';
-      accion = 'escalar'; resumen = userText;
-    }
-
-    this.addMsg({ from: 'dany', text, accion: accion === 'continuar' ? null : accion, resumen });
-    this.needsScroll = true;
-  }
-
-  // ── Acciones sobre tickets ────────────────────────────────────────────────
-  crearTicket(resumen?: string) {
-    if (this.creatingTicket()) return;
-    this.creatingTicket.set(true);
-    const desc = this.buildDescription();
-
-    this.ticketSvc.create({
-      descripcion: desc,
-      tipificacion_id: undefined,
-      ia_clasificacion_aceptada: false,
-    }).subscribe({
-      next: ticket => {
-        if (resumen) {
-          this.ticketSvc.update(ticket.id, {
-            comentario: `Contexto Dany: ${resumen}`, tipo_comentario: 'PUBLICO'
-          }).subscribe();
-        }
-        this.ticketCreado.set({ id: ticket.id, folio: (ticket as any).folio });
-        this.esResueltoIA.set(false);
-        this.creatingTicket.set(false);
-        this.loadTickets(); // refrescar lista
-      },
-      error: () => this.creatingTicket.set(false),
-    });
-  }
-
-  registrarResuelto(resumen: string) {
-    if (this.creatingTicket()) return;
-    this.creatingTicket.set(true);
-    const desc = `[Dany IA] ${this.buildDescription()}`;
-
-    this.ticketSvc.create({
-      descripcion: desc, tipificacion_id: undefined, ia_clasificacion_aceptada: false,
-    }).subscribe({
-      next: ticket => {
-        this.ticketSvc.update(ticket.id, {
-          estatus: 'RESUELTO', comentario: `Resuelto por Dany: ${resumen}`,
-        }).subscribe({
-          next: t => {
-            this.ticketCreado.set({ id: t.id, folio: (t as any).folio });
-            this.esResueltoIA.set(true);
-            this.creatingTicket.set(false);
-            this.loadTickets();
-          },
-          error: () => {
-            this.ticketCreado.set({ id: ticket.id, folio: (ticket as any).folio });
-            this.esResueltoIA.set(true);
-            this.creatingTicket.set(false);
-          },
-        });
-      },
-      error: () => this.creatingTicket.set(false),
-    });
-  }
-
-  irAlTicket() {
-    const t = this.ticketCreado();
-    if (t) this.router.navigate(['/tienda/ticket', t.id]);
-  }
-
-  resetChat() {
-    this.messages.set([]);
-    this.ticketCreado.set(null);
-    this.esResueltoIA.set(false);
-    this.sesionId = this.newSesionId();
-    this.pushWelcome();
-  }
-
-  logout() { this.auth.logout(); }
-
-  // ── Utils ─────────────────────────────────────────────────────────────────
-  private pushWelcome() {
-    const nombre = this.tiendaNombre();
-    this.addMsg({
-      from: 'dany',
-      text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Dany, tu asistente de soporte. ¿En qué puedo ayudarte hoy? Cuéntame qué está pasando en tu tienda.`,
-    });
-  }
-
-  private addMsg(partial: Omit<DanyMsg, 'id' | 'time'>) {
-    this.messages.update(msgs => [...msgs, {
-      id: Math.random().toString(36).slice(2),
-      time: new Date(), ...partial,
-    }]);
-  }
-
-  private buildDescription(): string {
-    const userMsgs = this.messages()
-      .filter(m => m.from === 'user').map(m => m.text).join(' / ');
-    return userMsgs || 'Consulta iniciada a través de Dany';
-  }
-
-  private scrollToBottom() {
-    const el = this.messagesRef?.nativeElement;
-    if (el) el.scrollTop = el.scrollHeight;
-  }
-
-  private newSesionId(): string {
-    return Math.random().toString(36).slice(2) + Date.now().toString(36);
-  }
-}
+    })
+], TiendaDashboardComponent);
+export { TiendaDashboardComponent };
+//# sourceMappingURL=tienda-dashboard.component.js.map
