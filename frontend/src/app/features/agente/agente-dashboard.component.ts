@@ -233,18 +233,19 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
   `,
   styles: [`
     .dash-body {
-      display: grid;
-      grid-template-columns: 1fr 360px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
       gap: 20px;
       padding: 20px;
-      height: calc(100vh - 56px);
-      overflow: hidden;
+      height: 100vh;
+      overflow-y: auto;
       box-sizing: border-box;
+      min-width: 0;
     }
-    @media (max-width: 1100px) { .dash-body { grid-template-columns: 1fr; } }
 
-    /* ── Columna izquierda ───────────────────────────────────────────────── */
-    .left-col { display: flex; flex-direction: column; gap: 16px; overflow-y: auto; }
+    /* ── Columna principal (KPIs + tickets) ─────────────────────────────── */
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
     .left-col::-webkit-scrollbar { width: 4px; }
     .left-col::-webkit-scrollbar-thumb { background: var(--c-border); }
 
@@ -298,16 +299,15 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
 
     .empty-tickets { display: flex; flex-direction: column; align-items: center; padding: 32px; }
 
-    /* ── Dany columna ───────────────────────────────────────────────────── */
+    /* ── Dany sección ───────────────────────────────────────────────────── */
     .dany-col {
       display: flex; flex-direction: column; gap: 12px;
-      overflow: hidden;
     }
     .dany-card {
-      flex: 1; display: flex; flex-direction: column;
+      display: flex; flex-direction: column;
       background: var(--c-surface); border: 1px solid var(--c-border);
       border-radius: var(--radius-lg); overflow: hidden;
-      min-height: 0;
+      height: 480px;
     }
 
     /* Dany orb */

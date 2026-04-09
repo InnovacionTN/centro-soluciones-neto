@@ -7,10 +7,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Subject, Subscription, interval, of } from 'rxjs';
-import { catchError, takeUntil } from 'rxjs/operators';
+import { catchError, takeUntil, timeout } from 'rxjs/operators';
 import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
+import { NavbarComponent } from '../../shared/components/navbar.component';
 import { environment } from '../../../environments/environment';
 
 // ── Tipos de mensaje ──────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ interface DanyMsg {
   time: Date;
   accion?: 'resuelto' | 'escalar' | null;
   resumen?: string;
+  mediaUrls?: string[];
 }
 
 interface TicketResumen {
@@ -47,46 +49,12 @@ const QUICK_CHIPS = [
 @Component({
   selector: 'app-tienda-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, StatusBadgeComponent],
+  imports: [CommonModule, FormsModule, RouterModule, StatusBadgeComponent, NavbarComponent],
   template: `
     <div class="shell">
 
-      <!-- ══ TOPBAR ══════════════════════════════════════════════════════════ -->
-      <header class="topbar">
-        <div class="topbar-brand">
-          <div class="dany-orb topbar-orb"></div>
-          <span class="topbar-title">
-            Centro de Soluciones
-            <span class="topbar-tienda">· {{ tiendaNombre() }}</span>
-          </span>
-        </div>
-        <div class="topbar-actions">
-          <!-- Toggle panel de tickets en móvil -->
-          <button class="icon-btn" (click)="ticketsOpen.set(!ticketsOpen())"
-                  title="Ver mis reportes">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-            </svg>
-            @if (countsActivos() > 0) {
-              <span class="badge-dot">{{ countsActivos() }}</span>
-            }
-          </button>
-          <button class="icon-btn" routerLink="/tienda/nuevo" title="Nuevo reporte manual">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                 stroke-linejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </button>
-          <button class="logout-btn" (click)="logout()">Salir</button>
-        </div>
-      </header>
+      <!-- ══ SIDEBAR NAVBAR ═══════════════════════════════════════════════════ -->
+      <app-navbar section="Inicio" />
 
       <!-- ══ BODY ════════════════════════════════════════════════════════════ -->
       <div class="body">
@@ -126,7 +94,22 @@ const QUICK_CHIPS = [
                     <div class="dany-orb dany-orb--sm"></div>
                   </div>
                   <div class="msg-body">
-                    <div class="bubble bubble--dany">{{ msg.text }}</div>
+                    <div class="bubble bubble--dany" [innerHTML]="formatMsg(msg.text)"></div>
+                    @if (msg.mediaUrls && msg.mediaUrls.length > 0) {
+                      <div class="bubble bubble--media">
+                        @for (url of msg.mediaUrls; track url) {
+                          @if (isVideo(url)) {
+                            <video controls style="max-width:100%;border-radius:8px;margin-top:6px;display:block">
+                              <source [src]="toProxyUrl(url)">
+                            </video>
+                          } @else {
+                            <img [src]="toProxyUrl(url)" alt="Imagen"
+                                 style="max-width:100%;border-radius:8px;margin-top:6px;cursor:pointer;display:block"
+                                 (click)="openMedia(toProxyUrl(url))">
+                          }
+                        }
+                      </div>
+                    }
                     <span class="msg-time">{{ msg.time | date:'HH:mm' }}</span>
 
                     <!-- Acciones inline -->
@@ -321,7 +304,7 @@ const QUICK_CHIPS = [
   styles: [`
     /* ── Shell ────────────────────────────────────────────────────────────── */
     .shell {
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: row;
       height: 100dvh; overflow: hidden;
       background: var(--c-bg);
     }
@@ -446,6 +429,7 @@ const QUICK_CHIPS = [
       border-radius: 4px 18px 18px 18px;
       box-shadow: 0 1px 4px rgba(0,0,0,.08);
     }
+    .bubble--media { background: transparent; padding: 0; box-shadow: none; border: none; }
     .bubble--user {
       background: linear-gradient(135deg, #1B3462, #2a4f8f);
       color: white;
@@ -732,13 +716,14 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
       tienda_id: this.auth.currentUser()?.tienda_id,
       tienda_nombre: this.tiendaNombre(),
       sesion_id: this.sesionId,
-      historial: this.messages().map(m => ({
-        de: m.from, texto: m.text, tiempo: m.time.toISOString(),
-      })),
+      // historial: this.messages().map(m => ({
+      //   de: m.from, texto: m.text, tiempo: m.time.toISOString(),
+      // })),
     };
 
     this.http.post<any>(this.proxyUrl, payload).pipe(
       takeUntil(this.destroy$),
+      timeout(115000),
       catchError(err => {
         if (err?.status === 503) {
           this.demoMode.set(true);
@@ -756,6 +741,9 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
         text: res.respuesta ?? res.output ?? 'No pude entender la respuesta.',
         accion: accion === 'continuar' ? null : accion,
         resumen: res.resumen,
+        mediaUrls: res.multimedia_url
+          ? res.multimedia_url.replace(/^=/, '').split(',').map((u: string) => u.trim()).filter((u: string) => u.length > 0)
+          : [],
       });
       this.needsScroll = true;
     });
@@ -851,6 +839,26 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     this.sesionId = this.newSesionId();
     this.pushWelcome();
   }
+
+  formatMsg(text: string): string {
+    if (!text) return '';
+    return text
+      .replace(/\n/g, '<br>')
+      .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
+      .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+      .replace(/~([^~\n]+)~/g, '<del>$1</del>')
+      .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px">$1</code>')
+      .replace(/^[•·]\s*/gm, '&bull;&nbsp;')
+      .replace(/^>\s*(.+)/gm, '<span style="border-left:3px solid #ccc;padding-left:8px;color:#888;display:block">$1</span>');
+  }
+
+  isVideo(url: string): boolean { return /\.mp4|\.mov|\.webm/i.test(url); }
+
+  toProxyUrl(url: string): string {
+    return environment.apiUrl + '/media/proxy?url=' + encodeURIComponent(url);
+  }
+
+  openMedia(url: string) { window.open(url, '_blank'); }
 
   logout() { this.auth.logout(); }
 

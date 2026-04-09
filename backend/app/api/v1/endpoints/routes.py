@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
@@ -310,11 +310,38 @@ def me(
 
 @router.post("/ai/classify", response_model=ClasificacionResponse)
 async def classify_ticket(
+    request: Request,
     req: ClasificacionRequest,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
 ):
-    """Clasifica texto libre → devuelve tipificación sugerida con confianza."""
+    """Clasifica texto libre → devuelve tipificación sugerida con confianza.
+    Acepta JWT de usuario O Dany token via Authorization header.
+    """
+    # Intentar validar como Dany token primero
+    auth_header = request.headers.get("Authorization", "")
+    token = auth_header.replace("Bearer ", "").strip()
+    if not _validar_token_dany(token):
+        # Si no es Dany token, intentar como JWT normal
+        try:
+            from app.core.security import get_current_user
+            from fastapi.security import OAuth2PasswordBearer
+            from jose import jwt as jose_jwt
+            from app.core.config import get_settings as _gs
+
+            _s = _gs()
+            payload = jose_jwt.decode(token, _s.SECRET_KEY, algorithms=[_s.ALGORITHM])
+            user_id = payload.get("sub")
+            if not user_id:
+                raise HTTPException(status_code=401, detail="No autorizado")
+            user = (
+                db.query(Usuario)
+                .filter(Usuario.id == int(user_id), Usuario.activo == True)
+                .first()
+            )
+            if not user:
+                raise HTTPException(status_code=401, detail="No autorizado")
+        except Exception:
+            raise HTTPException(status_code=401, detail="No autorizado")
     return await classify_with_ai(req.descripcion, db)
 
 
@@ -3443,6 +3470,7 @@ def dany_sesion_iniciar(
 
 @router.post("/dany/sesion/cerrar", response_model=DanySesionCierreOut)
 def dany_sesion_cerrar(
+    request: Request,
     body: DanySesionCierreRequest,
     x_dany_token: Optional[str] = None,
     db: Session = Depends(get_db),
@@ -3451,8 +3479,11 @@ def dany_sesion_cerrar(
     Registra el cierre de una sesión Dany.
     - resuelto_sin_ticket=True → deflexión exitosa (Dany resolvió)
     - resuelto_sin_ticket=False → Dany escaló, ya se creó ticket
+    Acepta token via query param x_dany_token O Authorization header.
     """
-    if not _validar_token_dany(x_dany_token or ""):
+    auth_header = request.headers.get("Authorization", "")
+    header_token = auth_header.replace("Bearer ", "").strip()
+    if not _validar_token_dany(x_dany_token or header_token):
         raise HTTPException(status_code=401, detail="Token Dany inválido")
 
     db.execute(
@@ -3660,7 +3691,7 @@ async def dany_chat_proxy(
     if not webhook_url:
         raise HTTPException(status_code=503, detail="DANY_WEBHOOK_URL no configurada")
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(webhook_url, json=payload)
             resp.raise_for_status()
             return resp.json()
@@ -3672,3 +3703,31 @@ async def dany_chat_proxy(
         raise HTTPException(
             status_code=502, detail="No se pudo conectar con el agente Dany"
         )
+
+
+# ─── GET /media/proxy ─────────────────────────────────────────────────────────
+# Proxy para archivos multimedia de Dany evitando restricciones CORS.
+
+
+@router.get("/media/proxy")
+async def media_proxy(url: str):
+    """Descarga un archivo multimedia desde el servidor de Dany y lo sirve con CORS abierto."""
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(
+                url,
+                headers={"X-API-Key": "dany-promo-2026-s3cur3-k3y"},
+                follow_redirects=True,
+            )
+            resp.raise_for_status()
+            content_type = resp.headers.get("content-type", "application/octet-stream")
+            return StreamingResponse(
+                iter([resp.content]),
+                media_type=content_type,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Cache-Control": "public, max-age=3600",
+                },
+            )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Error al obtener el archivo: {e}")

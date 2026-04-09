@@ -2,14 +2,19 @@
   "projects": {
     "default": "gen-lang-client-0189172552",
     "staging": "gen-lang-client-0189172552",
-    "prod":    "gen-lang-client-0189172552"
+    "prod": "gen-lang-client-0189172552"
   },
   "targets": {
     "gen-lang-client-0189172552": {
       "hosting": {
-        "staging": ["csn-staging"],
-        "prod":    ["csn-prod"]
+        "staging": [
+          "csn-staging"
+        ],
+        "prod": [
+          "csn-prod"
+        ]
       }
     }
-  }
+  },
+  "etags": {}
 }
