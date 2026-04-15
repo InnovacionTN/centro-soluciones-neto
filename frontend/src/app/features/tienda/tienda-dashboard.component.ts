@@ -69,10 +69,10 @@ const QUICK_CHIPS = [
               @if (thinking()) { <div class="thinking-ring"></div> }
             </div>
             <div>
-              <p class="chat-name">Dany</p>
+              <p class="chat-name">Daniel</p>
               <p class="chat-status">
-                @if (thinking()) { <span class="status-dot status-dot--thinking"></span> Analizando… }
-                @else { <span class="status-dot status-dot--online"></span> En línea · Asistente IA }
+                @if (thinking()) { <span class="status-dot status-dot--thinking"></span> Escribiendo… }
+                @else { <span class="status-dot status-dot--online"></span> En línea }
               </p>
             </div>
             @if (messages().length > 1) {
@@ -99,8 +99,9 @@ const QUICK_CHIPS = [
                       <div class="bubble bubble--media">
                         @for (url of msg.mediaUrls; track url) {
                           @if (isVideo(url)) {
-                            <video controls style="max-width:100%;border-radius:8px;margin-top:6px;display:block">
-                              <source [src]="toProxyUrl(url)">
+                            <video controls [src]="toProxyUrl(url)"
+                                   style="max-width:280px;width:100%;border-radius:8px;margin-top:6px;display:block"
+                                   preload="metadata">
                             </video>
                           } @else {
                             <img [src]="toProxyUrl(url)" alt="Imagen"
@@ -112,35 +113,7 @@ const QUICK_CHIPS = [
                     }
                     <span class="msg-time">{{ msg.time | date:'HH:mm' }}</span>
 
-                    <!-- Acciones inline -->
-                    @if (msg.accion === 'escalar' && !ticketCreado()) {
-                      <div class="msg-actions">
-                        <button class="action-btn action-btn--primary"
-                                [disabled]="creatingTicket()"
-                                (click)="crearTicket(msg.resumen)">
-                          @if (creatingTicket()) { ⏳ Creando… }
-                          @else { 🎫 Crear reporte ahora }
-                        </button>
-                        <button class="action-btn action-btn--ghost"
-                                (click)="sendQuick('Dame más tiempo, lo sigo revisando')">
-                          Seguir probando
-                        </button>
-                      </div>
-                    }
-                    @if (msg.accion === 'resuelto' && !ticketCreado()) {
-                      <div class="msg-actions">
-                        <button class="action-btn action-btn--success"
-                                [disabled]="creatingTicket()"
-                                (click)="registrarResuelto(msg.resumen ?? '')">
-                          @if (creatingTicket()) { ⏳ Guardando… }
-                          @else { ✅ Sí, quedó resuelto }
-                        </button>
-                        <button class="action-btn action-btn--ghost"
-                                (click)="sendQuick('No, el problema sigue')">
-                          No, sigue el problema
-                        </button>
-                      </div>
-                    }
+                    <!-- Acciones inline deshabilitadas temporalmente -->
                   </div>
                 </div>
               }
@@ -222,7 +195,7 @@ const QUICK_CHIPS = [
 
           <!-- Footer disclaimer -->
           <p class="chat-disclaimer">
-            Dany es un asistente IA · Si no puede resolver tu problema, creará un reporte automáticamente
+            Daniel · Si no puede resolver tu problema, creará un reporte con un agente especializado
           </p>
         </div>
 
@@ -708,8 +681,8 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
 
   private send(text: string) {
     this.addMsg({ from: 'user', text });
-    this.thinking.set(true);
     this.needsScroll = true;
+    setTimeout(() => { this.thinking.set(true); this.needsScroll = true; }, 1000);
 
     const payload = {
       mensaje: text,
@@ -730,7 +703,7 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
           setTimeout(() => this.handleDemoResponse(text), 800);
           return of(null);
         }
-        return of({ respuesta: 'Hubo un problema al conectar. Intenta de nuevo.', accion: 'continuar' });
+        return of({ respuesta: 'Tardé más de lo esperado en responder 😅 ¿Puedes intentarlo de nuevo?', accion: 'continuar' });
       })
     ).subscribe(res => {
       if (res === null) return;
@@ -867,7 +840,7 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     const nombre = this.tiendaNombre();
     this.addMsg({
       from: 'dany',
-      text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Dany, tu asistente de soporte. ¿En qué puedo ayudarte hoy? Cuéntame qué está pasando en tu tienda.`,
+      text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Daniel, del equipo de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando.`,
     });
   }
 

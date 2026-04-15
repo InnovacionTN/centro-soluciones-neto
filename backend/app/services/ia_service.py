@@ -297,7 +297,7 @@ DESCRIPCION DEL TICKET:
 Responde con el siguiente JSON (sin texto adicional, sin markdown):
 {json_schema}"""
 
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-3-flash-preview")
         response = model.generate_content(
             prompt,
             generation_config=genai.GenerationConfig(
@@ -347,7 +347,7 @@ async def suggest_solution(
 
         genai.configure(api_key=settings.GEMINI_API_KEY)
 
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-3-flash-preview")
         response = model.generate_content(
             f"""Eres asistente del Call Center de Centro de Soluciones Neto.
 Area tecnica: {area_tecnica}

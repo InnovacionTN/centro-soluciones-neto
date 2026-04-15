@@ -1,7 +1,16 @@
 from datetime import datetime, timedelta
 from typing import Optional
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Query,
+    UploadFile,
+    File,
+    Request,
+    Header,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session, joinedload
@@ -16,6 +25,7 @@ from app.core.security import (
     create_token,
     verify_password,
     hash_password,
+    verify_dany_token,
 )
 from app.core.config import get_settings
 from app.models.models import (
@@ -310,38 +320,13 @@ def me(
 
 @router.post("/ai/classify", response_model=ClasificacionResponse)
 async def classify_ticket(
-    request: Request,
     req: ClasificacionRequest,
     db: Session = Depends(get_db),
+    _: None = Depends(verify_dany_token),
 ):
-    """Clasifica texto libre → devuelve tipificación sugerida con confianza.
-    Acepta JWT de usuario O Dany token via Authorization header.
+    """Clasifica texto libre → tipificación sugerida con confianza.
+    Autenticación: header X-Dany-Token.
     """
-    # Intentar validar como Dany token primero
-    auth_header = request.headers.get("Authorization", "")
-    token = auth_header.replace("Bearer ", "").strip()
-    if not _validar_token_dany(token):
-        # Si no es Dany token, intentar como JWT normal
-        try:
-            from app.core.security import get_current_user
-            from fastapi.security import OAuth2PasswordBearer
-            from jose import jwt as jose_jwt
-            from app.core.config import get_settings as _gs
-
-            _s = _gs()
-            payload = jose_jwt.decode(token, _s.SECRET_KEY, algorithms=[_s.ALGORITHM])
-            user_id = payload.get("sub")
-            if not user_id:
-                raise HTTPException(status_code=401, detail="No autorizado")
-            user = (
-                db.query(Usuario)
-                .filter(Usuario.id == int(user_id), Usuario.activo == True)
-                .first()
-            )
-            if not user:
-                raise HTTPException(status_code=401, detail="No autorizado")
-        except Exception:
-            raise HTTPException(status_code=401, detail="No autorizado")
     return await classify_with_ai(req.descripcion, db)
 
 
@@ -664,19 +649,11 @@ def get_ticket(
 async def crear_ticket_desde_dany(
     body: TicketDanyCreate,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(get_current_user),
+    _: None = Depends(verify_dany_token),
 ):
+    """Crea un ticket originado por Dany.
+    Autenticación: header X-Dany-Token.
     """
-    Crea un ticket originado por Dany.
-    Requiere autenticación (token del sistema/admin).
-    El ticket llega pre-clasificado — no se invoca la IA de clasificación.
-    """
-    # Solo ADMIN o AGENTE puede llamar a este endpoint (no tiendas directo)
-    if current_user.rol == RolUsuario.TIENDA:
-        raise HTTPException(
-            status_code=403, detail="Endpoint reservado para integración Dany"
-        )
-
     ticket = create_ticket_desde_dany(
         db=db,
         tienda_id=body.tienda_id,
@@ -3410,38 +3387,14 @@ def update_incidente(
     return incidente
 
 
-# ─── Autenticación por token fijo para n8n ────────────────────────────────────
-
-
-def _validar_token_dany(request_token: str) -> bool:
-    """
-    Valida el token estático que usa n8n para llamar a los endpoints de Dany.
-    Si DANY_SYSTEM_TOKEN está vacío en .env, acepta cualquier token (solo dev).
-    """
-    system_token = get_settings().DANY_SYSTEM_TOKEN
-    if not system_token:
-        return True  # dev mode: sin restricción
-    return request_token == system_token
-
-
 # ─── POST /dany/sesion/iniciar ────────────────────────────────────────────────
-
-
 @router.post("/dany/sesion/iniciar", response_model=DanySesionInicioOut)
 def dany_sesion_iniciar(
     body: DanySesionInicioRequest,
-    x_dany_token: Optional[str] = None,
     db: Session = Depends(get_db),
+    _: None = Depends(verify_dany_token),
 ):
-    """
-    Registra el inicio de una sesión de Dany.
-    Llamado por n8n al recibir el primer mensaje del usuario.
-    Autenticación: header X-Dany-Token (token estático configurado en .env).
-    """
-    if not _validar_token_dany(x_dany_token or ""):
-        raise HTTPException(status_code=401, detail="Token Dany inválido")
-
-    # Upsert: si ya existe la sesión (reintento), no duplicar
+    """Registra inicio de sesión Dany. Autenticación: X-Dany-Token."""
     existing = db.execute(
         sql_text("SELECT id FROM dany_sesiones WHERE sesion_id = :sid"),
         {"sid": body.sesion_id},
@@ -3451,9 +3404,9 @@ def dany_sesion_iniciar(
         db.execute(
             sql_text(
                 """
-            INSERT INTO dany_sesiones (sesion_id, tienda_id, canal, fecha_inicio)
-            VALUES (:sid, :tid, :canal, NOW())
-        """
+                INSERT INTO dany_sesiones (sesion_id, tienda_id, canal, fecha_inicio)
+                VALUES (:sid, :tid, :canal, NOW())
+            """
             ),
             {"sid": body.sesion_id, "tid": body.tienda_id, "canal": body.canal},
         )
@@ -3470,33 +3423,22 @@ def dany_sesion_iniciar(
 
 @router.post("/dany/sesion/cerrar", response_model=DanySesionCierreOut)
 def dany_sesion_cerrar(
-    request: Request,
     body: DanySesionCierreRequest,
-    x_dany_token: Optional[str] = None,
     db: Session = Depends(get_db),
+    _: None = Depends(verify_dany_token),
 ):
-    """
-    Registra el cierre de una sesión Dany.
-    - resuelto_sin_ticket=True → deflexión exitosa (Dany resolvió)
-    - resuelto_sin_ticket=False → Dany escaló, ya se creó ticket
-    Acepta token via query param x_dany_token O Authorization header.
-    """
-    auth_header = request.headers.get("Authorization", "")
-    header_token = auth_header.replace("Bearer ", "").strip()
-    if not _validar_token_dany(x_dany_token or header_token):
-        raise HTTPException(status_code=401, detail="Token Dany inválido")
-
+    """Registra cierre de sesión Dany. Autenticación: X-Dany-Token."""
     db.execute(
         sql_text(
             """
-        UPDATE dany_sesiones SET
-            resuelto_sin_ticket     = :resuelto,
-            mensajes_count          = :msgs,
-            tipificacion_detectada  = :tip,
-            motivo_escalacion       = :motivo,
-            fecha_fin               = NOW()
-        WHERE sesion_id = :sid
-    """
+            UPDATE dany_sesiones SET
+                resuelto_sin_ticket    = :resuelto,
+                mensajes_count         = :msgs,
+                tipificacion_detectada = :tip,
+                motivo_escalacion      = :motivo,
+                fecha_fin              = NOW()
+            WHERE sesion_id = :sid
+        """
         ),
         {
             "sid": body.sesion_id,

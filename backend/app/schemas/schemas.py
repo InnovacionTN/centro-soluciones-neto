@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Literal
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from app.models.models import (
     RolUsuario,
     EstatusTicket,
@@ -112,13 +112,25 @@ class TicketCreate(BaseModel):
 
 class TicketDanyCreate(BaseModel):
     tienda_id: int
-    descripcion: str
     sesion_id: str
+    descripcion: str
+    ia_area: str
+    pasos_intentados: Optional[str] = None
     tipificacion_id: Optional[int] = None
-    ia_area: Optional[str] = None
     ia_tipificacion_id: Optional[int] = None
-    ia_confianza: Optional[int] = None
-    pasos_intentados: Optional[list[str]] = None
+    ia_confianza: Optional[float] = None
+
+    @validator("tienda_id", "tipificacion_id", "ia_tipificacion_id", pre=True)
+    def coerce_int(cls, v):
+        if v is None or v == "":
+            return None
+        return int(float(str(v)))
+
+    @validator("ia_confianza", pre=True)
+    def coerce_float(cls, v):
+        if v is None or v == "":
+            return None
+        return float(str(v))
 
 
 class TicketUpdate(BaseModel):

@@ -6,9 +6,7 @@
     "build": "ng build --configuration production",
     "build:staging": "ng build --configuration staging",
     "deploy:staging": "ng build --configuration staging && cd .. && firebase deploy --only hosting:staging --project gen-lang-client-0189172552",
-    "deploy:prod": "ng build --configuration production && cd .. && firebase deploy --only hosting:prod --project gen-lang-client-0189172552",
-    "backend:staging": "gcloud builds submit ../backend --tag gcr.io/gen-lang-client-0189172552/csn-api-staging:latest --project gen-lang-client-0189172552 && gcloud run deploy csn-api-staging --image gcr.io/gen-lang-client-0189172552/csn-api-staging:latest --region us-central1 --platform managed --allow-unauthenticated --set-secrets DATABASE_URL=csn-database-url-staging:latest,SECRET_KEY=csn-secret-key-staging:latest --set-env-vars ENVIRONMENT=staging --memory 512Mi --cpu 1 --min-instances 0 --max-instances 5 --project gen-lang-client-0189172552",
-    "backend:prod": "gcloud builds submit ../backend --tag gcr.io/gen-lang-client-0189172552/csn-api-prod:latest --project gen-lang-client-0189172552 && gcloud run deploy csn-api-prod --image gcr.io/gen-lang-client-0189172552/csn-api-prod:latest --region us-central1 --platform managed --allow-unauthenticated --set-secrets DATABASE_URL=csn-database-url-prod:latest,SECRET_KEY=csn-secret-key-prod:latest --set-env-vars ENVIRONMENT=production --memory 1Gi --cpu 2 --min-instances 1 --max-instances 10 --project gen-lang-client-0189172552"
+    "deploy:prod": "ng build --configuration production && cd .. && firebase deploy --only hosting:prod --project gen-lang-client-0189172552"
   },
   "dependencies": {
     "@angular/animations": "^17.3.0",
