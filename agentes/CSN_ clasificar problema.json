@@ -1,0 +1,90 @@
+{
+  "name": "CSN: clasificar problema",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "descripcion"
+            },
+            {
+              "name": "tienda_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "adb43361-8a87-4b07-bd97-ee85e348d304",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/ai/classify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"descripcion\": \"={{ $json.descripcion }}\",\n  \"tienda_id\": {{ $json.tienda_id }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "3e7d9b5b-e670-4024-9b7f-2d156740e9f8",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "descripcion": "Ventanas frontales rotas con vidrio expuesto y riesgo de seguridad en tienda PANZACOLA.",
+          "tienda_id": "749"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "569ceb3f-f916-4f4c-a018-108c8480d7ce",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "gAQptjwgwzJf6PSP",
+  "tags": []
+}

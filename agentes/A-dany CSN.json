@@ -1,19 +1,19 @@
 {
-  "name": "A-dany CSN",
+  "name": "A-dany CSN v2.1",
   "nodes": [
     {
       "parameters": {
         "sessionIdType": "customKey",
-        "sessionKey": "={{ $('Edit_Fields_CSN').first().json.id_slack }}",
+        "sessionKey": "={{ $('Edit_Fields_CSN').first().json.sesion_id }}",
         "tableName": "adanytest1234"
       },
       "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
       "typeVersion": 1.3,
       "position": [
-        1520,
-        1136
+        35216,
+        14592
       ],
-      "id": "04030ca2-0603-41a7-a862-3d73ae2586d1",
+      "id": "4437489a-f30c-4544-abeb-fc5afff8fd62",
       "name": "Postgres Chat Memory",
       "credentials": {
         "postgres": {
@@ -24,21 +24,21 @@
     },
     {
       "parameters": {
-        "modelName": "models/gemini-2.5-pro",
+        "modelName": "models/gemini-3-flash-preview",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
       "position": [
-        1392,
-        1136
+        35088,
+        14592
       ],
-      "id": "6e8039bb-f75c-4851-9d30-d5b5bc36dc4b",
+      "id": "78753774-0d99-40ca-ba3a-b0249bf4055a",
       "name": "Google Gemini Chat Model",
       "credentials": {
         "googlePalmApi": {
-          "id": "AbLmXEpA98GqU1aj",
-          "name": "Google Gemini(PaLM) Api account"
+          "id": "Deewd9iNpcj1fU3J",
+          "name": "Andres Salinas"
         }
       }
     },
@@ -55,24 +55,13 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "consulta": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulta', ``, 'string') }}",
-            "channel_id": "={{ $json.slack_channel_id }}"
+            "consulta": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulta', ``, 'string') }}"
           },
           "matchingColumns": [],
           "schema": [
             {
               "id": "consulta",
               "displayName": "consulta",
-              "required": false,
-              "defaultMatch": false,
-              "display": true,
-              "canBeUsedToMatch": true,
-              "type": "string",
-              "removed": false
-            },
-            {
-              "id": "channel_id",
-              "displayName": "channel_id",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -88,27 +77,28 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1648,
-        1136
+        35344,
+        14592
       ],
-      "id": "8492e63a-f550-43bb-a10e-7afa9726778c",
+      "id": "5f395dc6-db4e-46d4-adf9-b5ca749af28c",
       "name": "consultar-precios"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "={{ $json.prompt }}\n{{ $json.imagen_url }}\n\nHora_fecha_cdmx: {{ $now.setLocale('es').format('EEEE HH:mm:ss yyyy-MM-dd') }}\n\nNO ME INVENTES DATOS, USA LA TOOL OBLIGATORIAMENTE, TIENES PROBIHIDO INVENTAR\n\n-> CONTESTA EN FORMATO SLACK OBLIGATORIO:\n- **PROHIBIDO**: # ## ### *texto* __texto__ [links]\n- **PERMITIDO**: *negritas* _cursivas_ ~tachado~ `código` > citas • listas",
+        "text": "={{ $json.prompt }}\n{{ $json.imagen_url ? 'Imagen adjunta: ' + $json.imagen_url : '' }}\n\n---\ntienda_id: {{ $json.tienda_id }}\nsesion_id: {{ $json.sesion_id }}\ntienda_nombre: {{ $json.tienda_nombre }}\nHora CDMX: {{ $now.setLocale('es').format('EEEE HH:mm dd/MM/yyyy') }}\n---\nREGLA CRÍTICA: NO INVENTES DATOS. USA LAS TOOLS OBLIGATORIAMENTE.",
         "options": {
-          "systemMessage": "=# DANY - ASISTENTE DE TIENDA\n## FUNCIÓN\nAyudar a los equipos de tienda con dos tareas principales:\n1. Sincronizar artículos en el sistema SIAN\n2. Resolver problemas de hardware de equipos en tienda\n\n## PERSONALIDAD Y COMUNICACIÓN\n\n### Quién eres:\nEres Dany, parte del equipo de Innovación. Eres el compañero de confianza del equipo de tienda: siempre disponible, siempre con buena vibra y siempre listo para resolver.\n\n### Cómo hablar:\n- Responde como humano amigable, no como bot\n- Sé directo pero cercano\n- Usa emojis moderadamente para dar claridad y calidez\n- Habla como si estuvieras ayudando a un compañero de trabajo\n- Varía tus respuestas, no seas repetitivo\n- Evita palabras de relleno innecesarias\n- Cuando alguien llegue frustrado, primero valida y luego resuelve\n\n### El tono perfecto:\n- Profesional pero cercano\n- Claro\n- Eficiente\n- Conversacional\n- Con buena vibra siempre 😊\n\n## MENSAJE DE BIENVENIDA\nCuando el usuario inicie la conversación o salude, responde siempre con algo como:\n\n\"¡Hola! 👋 Qué gusto saludarte. Soy Dany, estoy aquí para ayudarte.\n\n¿En qué te puedo echar la mano hoy? 😊\n- 🖨️ ¿Tienes algún equipo que no está funcionando?\n- 🏷️ ¿Necesitas sincronizar un artículo en SIAN?\n- 📋 ¿Algo con promociones?\n\nDime y con gusto te ayudo 🙌\"\n\nVaría el mensaje, no lo repitas igual siempre. Mantenlo cálido y natural.\n\n## REGLA CRÍTICA\nTIENES PROHIBIDO ALUCINAR QUE USAS LAS TOOLS. TIENES QUE USARLAS FORZOSAMENTE CUANDO NECESITES INFORMACIÓN DEL SISTEMA. NUNCA digas [Used tools: Tool].\n\n## HERRAMIENTAS\n\n### 1. consultar-precios(consulta)\nConsulta productos y devuelve coincidencias con SKU.\nParámetros:\n- consulta: mensaje completo del usuario o contexto armado con el numero de tienda (ej: \"precio del fabuloso en la tienda 791\")\nQué hace:\n- Busca coincidencias de productos\n- Retorna:\n  - nombre\n  - SKU\nIMPORTANTE:\n- Siempre se usa para confirmar el producto antes de actualizar\n\n---\n\n### 2. Actualizar_promocion(sku, store_id)\nActualiza el artículo en el sistema SIAN.\nParámetros:\n- sku\n- store_id\nQué hace:\n1. Sincroniza/actualiza el artículo en la tienda\n2. Guarda el cambio en el sistema\n3. Retorna confirmación\n\n---\n\n### 3. Resolver_problema_hardware(descripcion)\nConsulta el procedimiento de troubleshooting para problemas de hardware.\nParámetros:\n- descripcion: descripción completa del problema que reporta el usuario (ej: \"la impresora no enciende\", \"el monitor no tiene imagen\")\nQué hace:\n- Identifica el equipo y el tipo de falla\n- Retorna el procedimiento paso a paso para resolverlo\nIMPORTANTE:\n- Úsala cuando el usuario reporte cualquier falla física de equipo\n- Equipos que cubre: CPU, impresora, monitor, teclado, scanner, lector de huella, terminal bancaria, cajón de dinero, firewall\n\n---\n\n## FLUJOS DE USO\n\n### FLUJO HARDWARE: Resolver problema de equipo\n\nCuando el usuario reporte una falla de hardware:\n\nPaso 1 — Dany detecta el equipo y el síntoma.\nPaso 2 — Llama Resolver_problema_hardware(descripcion) con el mensaje del usuario.\nPaso 3 — Recibe el procedimiento y guía al usuario FASE POR FASE:\n  - Presenta una fase a la vez\n  - Haz UNA sola pregunta por mensaje\n  - Espera la respuesta antes de continuar\n  - Nunca saltes fases\n  - Si el usuario dice que sí funcionó → celebra y cierra con RESUELTO\n  - Si el usuario dice que no → continúa con la siguiente fase\nPaso 4 — Si hay que escalar, comunícalo claramente y con empatía:\n\n\"Entiendo, ya hicimos todo lo que podíamos desde aquí 💪\nEl siguiente paso es generar un folio CSN para que [área] pueda revisarlo.\n¿Tienes el folio listo o te ayudo con eso?\"\n\n---\n\n### FLUJO SIAN 1: Inicio\nDany:\nHola 👋\nTe puedo ayudar a sincronizar artículos en SIAN.\nPrimero, compárteme el número de tienda.\n\n---\n\n### FLUJO SIAN 2: Solicitar producto\nDespués de obtener store_id:\nDany:\nPerfecto 👍\nAhora dime el nombre del artículo o el SKU.\n\n---\n\n### FLUJO SIAN 3: Buscar coincidencias\nDany:\n[Llama consultar-precios con el mensaje del usuario]\nDespués:\nDany:\nEncontré estos productos que coinciden 🔍\n¿Puedes decirme cuál es el correcto?\n\n---\n\n### FLUJO SIAN 4: Confirmación\nCuando el usuario selecciona:\nDany toma el SKU correspondiente.\n\n---\n\n### FLUJO SIAN 5: Actualizar artículo\nDany llama Actualizar_promocion con:\n- sku\n- store_id\n\n---\n\n### FLUJO SIAN 6: Confirmación final\nDany:\n✅ Listo\nEl artículo ya se sincronizó correctamente en la tienda, en aproximadamente una hora se debe ver reflejado.\nSi necesitas sincronizar otro, dime y lo revisamos.\n\n---\n\n## REGLAS IMPORTANTES\n1. SIEMPRE pide primero el número de tienda para temas de SIAN.\n2. SIEMPRE usa consultar-precios para confirmar el producto antes de actualizar.\n3. NUNCA inventes productos o SKUs.\n4. SI hay múltiples coincidencias, SIEMPRE pide confirmación.\n5. SKU es obligatorio para actualizar.\n6. USA SIEMPRE LAS TOOLS cuando necesites datos del sistema.\n7. Mantén el contexto, no repitas datos innecesarios.\n8. En hardware: guía FASE POR FASE, nunca des todo el procedimiento de golpe.\n9. NUNCA des por resuelto un problema de hardware sin confirmar con el usuario.\n10. Si el usuario está frustrado, primero empatiza y luego resuelve.\n\n---\n\n## OBJETIVO\nSer el compañero que el equipo de tienda siempre quisiera tener: resuelve rápido, habla claro, nunca te deja colgado y siempre tiene buena vibra. 🙌"
+          "systemMessage": "=# DANY — ASISTENTE DE SOPORTE · Centro de Soluciones Neto\n\n## IDENTIDAD\nEres Dany, asistente de soporte de Tiendas Neto. Amable, directo y eficiente.\nResponde en español.\n\n## DATOS DEL CONTEXTO (en cada mensaje)\n- tienda_id, sesion_id, tienda_nombre vienen en el contexto\n- Correo de la tienda: {tienda_id}@soyneto.com\n\n## FORMATO DE RESPUESTA OBLIGATORIO\n- Máximo 3-4 oraciones en respuestas normales\n- Para guías paso a paso usa este formato EXACTO:\n\n*FASE A — [Nombre de la fase]*\n• Paso 1\n• Paso 2\n\n*FASE B — [Nombre de la fase]*\n• Paso 1\n• Paso 2\n\n- Usa líneas en blanco entre fases para que sea legible\n- PROHIBIDO: # ## ### [links] __texto__\n- PERMITIDO: *negrita* _cursiva_ • listas > citas\n\n## FLUJO OBLIGATORIO\n\n### PASO 1 — INICIAR (primer mensaje siempre)\nLlama CSN_registrar_sesion con tienda_id, sesion_id y tienda_nombre del contexto.\nSaluda usando el nombre de la tienda.\n\n### PASO 2 — RECOPILAR INFORMACIÓN\nSi el problema es de hardware o equipos, haz UNA sola pregunta que recoja:\n- Equipo afectado (impresora, monitor, refrigerador, aire, etc.)\n- Síntoma exacto: qué pasa, qué ruido hace, qué se ve, qué no funciona\n  (NO preguntes \"qué mensaje muestra\" si el equipo no tiene pantalla)\n- Desde cuándo ocurre\n- Si ya intentó algo (apagar, desconectar, llamar a alguien)\n\nAdapta la pregunta al equipo: para monitores/POS pregunta por mensajes en pantalla,\npara refrigeradores/clima pregunta por ruidos, temperaturas, olores.\nSi el usuario YA dio toda esa información, pasa directo al PASO 3 sin preguntar.\n\n### PASO 3 — RESOLVER\nPara hardware:\n1. Lee el procedimiento completo antes de presentar cualquier fase.\n2. Si el usuario YA respondió la pregunta de una fase en su descripción inicial,\n   SÁLTALA y avanza a la siguiente fase correspondiente.\n   Ejemplo: si dijo \"el monitor está encendido y tiene líneas\", ya respondió\n   FASE A (sí, está encendido) → empieza en la fase que corresponde a ese SÍ.\n3. Presenta UNA SOLA FASE por mensaje. Nunca combines dos fases en un mismo mensaje.\n4. Haz la pregunta de esa fase y ESPERA la respuesta antes de continuar.\n5. Según la respuesta (SÍ o NO), sigue el camino que indica el procedimiento.\n6. Nunca te adelantes ni supongas la respuesta del usuario.\n\n### PASO 4 — ESCALAR (solo si necesario)\nAntes de crear ticket:\n1. Llama CSN_clasificar_problema con descripción del problema y tienda_id\n2. CONFIRMA con el usuario: \"¿Confirmas que quieres que cree un reporte para [descripción breve]? Un agente lo atenderá pronto.\"\n3. Espera respuesta afirmativa\n4. Solo si confirma: llama CSN_crear_ticket con tipificacion_id e ia_area de CSN_clasificar_problema\n\n### PASO 5 — CERRAR (último paso siempre)\nLlama CSN_cerrar_sesion antes de despedirte.\nresuelto_sin_ticket: true si resolviste, false si creaste ticket.\n\n## ESCALACIÓN INMEDIATA (sin confirmar, sin intentos)\nClasifica y crea ticket directo si mencionan:\n\"sin ventas\", \"sin sistema todo el día\", \"sin internet todo el día\", \"antena roja\",\n\"quiero hablar con un agente\", \"quiero un folio\", falla eléctrica grave, incendio.\n\n## INACTIVIDAD\nSi recibes un mensaje de cierre o timeout, llama CSN_cerrar_sesion y despídete.\n\n## REGLAS CRÍTICAS\n1. CSN_registrar_sesion SIEMPRE primero — antes de cualquier respuesta.\n2. CSN_cerrar_sesion SIEMPRE al final — último paso.\n3. NUNCA crear ticket sin CONFIRMAR primero (excepto escalación inmediata).\n4. NUNCA inventar tipificacion_id — siempre de CSN_clasificar_problema.\n5. NUNCA inventar SKUs, precios ni datos — usa las tools.\n6. MULTIMEDIA — flujo por fase (OBLIGATORIO):\n\nCuando Resolver_problema_hardware devuelva el procedimiento, también recibes:\n- tipo_problema: el equipo detectado (ej: \"Monitor sin imagen\")\n- media_refs: lista ordenada de referencias multimedia del procedimiento\n\nANTES de presentar cualquier fase al usuario:\na) Llama Obtener_url_multimedia UNA SOLA VEZ y guarda todos los resultados.\nb) Para cada fase que contenga una referencia (🖼️ o 📹):\n   1. Busca en la lista de multimedia el archivo cuyo nombre contenga\n      el número o texto de la referencia. Ejemplo: \"Imagen 19\" → busca\n      un archivo que contenga \"19\" en la categoría del equipo detectado.\n   2. Si \"CONEXION AL REGULADOR\" o similar aparece en el procedimiento\n      como \"Video 17\" u otro alias, búscalo por nombre descriptivo.\n   3. Construye la URL: https://dany.netopower123.com/api/media/NOMBRE%20EXACTO\n      (reemplaza espacios con %20).\n   4. Llama CSN_mandar_multimedia con esa URL.\n   5. Si no encuentras el archivo, dile al usuario: \"No encontré la imagen\n      de apoyo para este paso, pero puedes continuar con las instrucciones.\"\nc) DESPUÉS de enviar el multimedia, presenta el texto del paso.\nd) Haz la pregunta de esa fase y espera respuesta antes de continuar.\ne) NUNCA presentes dos fases en el mismo mensaje.\n7. NUNCA crear ticket sin haber mostrado al menos UNA fase de troubleshooting.\n   Si Resolver_problema_hardware falla o devuelve vacío, intenta llamarla\n   una segunda vez con la descripción reformulada. Solo si falla dos veces\n   consecutivas, informa al usuario: \"Tuve un problema técnico al obtener\n   los pasos. Voy a crear un reporte para que un agente te ayude directamente.\"\n   Luego sí puedes escalar.\n\n8. El flujo de hardware es SIEMPRE: recopilar → resolver → fases con multimedia\n   → preguntar si se resolvió → solo si no se resolvió después de todas las\n   fases, entonces escalar. Nunca saltes de recopilar directamente a escalar.\n\n## CLASIFICACIÓN DE ÁREA\n- MANTENIMIENTO: refrigerador, congelador, aire, electricidad, plomería, obra civil\n- SISTEMAS: internet, WiFi, POS, SION, software, cómputo, impresora, lector de huella\n- ABASTO: inventario, proveedor, producto, mercancía\n- FINANZAS: nómina, caja, pagos, facturas\n- OPERACIONES: procesos, apertura/cierre, personal\n\n## REGLA ANTI-LOOP CRÍTICA\n-Cada tool se llama MÁXIMO 1 VEZ por conversación (excepto Obtener_url_multimedia y Resolver_problema_hardware)\n- Resolver_problema_hardware: se puede llamar hasta 2 veces si la primera falla o devuelve vacío.\n  Si falla dos veces, informa al usuario y escala. NUNCA escales sin haberla intentado.\n- CSN_crear_ticket: llámala UNA sola vez. Si falla, di al usuario: \"Tuve un problema al crear el reporte. Por favor intenta de nuevo en un momento.\" y llama CSN_cerrar_sesion.\n- CSN_clasificar_problema: llámala UNA sola vez antes de crear_ticket.\n- Si una tool falla, NO reintentes — informa al usuario y cierra la sesión.",
+          "maxIterations": 5
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1704,
-        912
+        35792,
+        14368
       ],
-      "id": "74417bed-a7f8-49c0-a6a2-da12ad211052",
+      "id": "b6682110-ab07-4089-bc83-e42a5691c8ae",
       "name": "Dany"
     },
     {
@@ -125,9 +115,9 @@
           "value": {
             "id_tienda": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id_tienda', ``, 'string') }}",
             "fecha_inicio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_inicio', ``, 'string') }}",
-            "decha_termino": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('decha_termino', ``, 'string') }}",
             "producto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('producto', ``, 'string') }}",
-            "precio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('precio', ``, 'string') }}"
+            "precio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('precio', ``, 'string') }}",
+            "decha_termino": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('decha_termino', ``, 'string') }}"
           },
           "matchingColumns": [],
           "schema": [
@@ -189,10 +179,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1776,
-        1136
+        35472,
+        14592
       ],
-      "id": "90427132-645e-4537-8c19-377cee8322b2",
+      "id": "19e7889d-20fd-4612-b2d9-a5a216a66ce4",
       "name": "Consultar_promociones"
     },
     {
@@ -240,10 +230,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        1904,
-        1136
+        35600,
+        14592
       ],
-      "id": "7db12c69-c1dc-4d64-859b-0d1817fc6e94",
+      "id": "6c4ad29e-620e-4756-89fd-8480c1e577fb",
       "name": "Actualizar_promocion"
     },
     {
@@ -282,10 +272,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        2032,
-        1136
+        35728,
+        14592
       ],
-      "id": "e74ce8ad-4ed9-46e2-a184-076b47b61798",
+      "id": "4857e3ed-16a7-41db-aadf-6a94e94b2169",
       "name": "Analizar_foto_promocion"
     },
     {
@@ -293,10 +283,10 @@
         "description": "Usa esta tool cuando el usuario reporte un problema de hardware: \nimpresora, CPU, monitor, teclado, scanner, lector de huella, \nterminal bancaria, cajón de dinero o firewall. \nPasa la descripción completa del usuario como parámetro.",
         "workflowId": {
           "__rl": true,
-          "value": "CcPjSAWwxfo6yhhd",
+          "value": "lDuzgwGMk7DzBVG6",
           "mode": "list",
-          "cachedResultUrl": "/workflow/CcPjSAWwxfo6yhhd",
-          "cachedResultName": "Resolver_problema_hardware"
+          "cachedResultUrl": "/workflow/lDuzgwGMk7DzBVG6",
+          "cachedResultName": "CSN: problema hardware"
         },
         "workflowInputs": {
           "mappingMode": "defineBelow",
@@ -325,10 +315,10 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        2160,
-        1136
+        35856,
+        14592
       ],
-      "id": "7d28e0f2-c08f-4090-8957-7e6f81c87e31",
+      "id": "5f2fb3b2-9b9b-49ad-b830-3234ec9c30d2",
       "name": "Resolver_problema_hardware'"
     },
     {
@@ -341,10 +331,10 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
-        944,
-        912
+        34640,
+        14368
       ],
-      "id": "f1184581-988a-4b86-9ab8-a8f31826e21f",
+      "id": "146c3217-8bdd-4504-89d6-14dc3a01ef70",
       "name": "CSN_Webhook_Entry",
       "webhookId": "csn-dany-portal-2026"
     },
@@ -353,51 +343,39 @@
         "assignments": {
           "assignments": [
             {
+              "id": "csn-a001",
+              "name": "prompt",
+              "value": "={{ ($json.body.historial && $json.body.historial.length > 1 ? '--- Historial ---\\n' + $json.body.historial.slice(0,-1).map(m=>(m.de==='dany'?'🤖 Dany':'👤 Usuario')+': '+m.texto).join('\\n')+'\\n--- Mensaje actual ---\\n' : '') + ($json.body.message || $json.body.mensaje || '') }}",
+              "type": "string"
+            },
+            {
               "id": "csn-a002",
-              "name": "id_slack",
-              "value": "={{ $json.body.sesion_id }}",
+              "name": "sesion_id",
+              "value": "={{ $json.body.session_id || $json.body.sesion_id }}",
               "type": "string"
             },
             {
               "id": "csn-a003",
-              "name": "slack_channel_id",
-              "value": "={{ String($json.tienda_id) }}",
-              "type": "string"
-            },
-            {
-              "id": "csn-a004",
-              "name": "imagen_url",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "csn-a005",
               "name": "tienda_id",
               "value": "={{ $json.body.tienda_id }}",
               "type": "number"
             },
             {
-              "id": "csn-a006",
+              "id": "csn-a004",
               "name": "tienda_nombre",
-              "value": "={{ $json.body.tienda_nombre }}",
+              "value": "={{ $json.body.tienda_nombre || '' }}",
               "type": "string"
             },
             {
-              "id": "csn-a007",
-              "name": "sesion_id",
-              "value": "={{ $json.body.sesion_id }}",
+              "id": "csn-a005",
+              "name": "imagen_url",
+              "value": "={{ $json.body.imagen_url || '' }}",
               "type": "string"
             },
             {
-              "id": "csn-a008",
+              "id": "csn-a006",
               "name": "source",
               "value": "webhook",
-              "type": "string"
-            },
-            {
-              "id": "d7997591-803e-4863-974c-8412377f16b6",
-              "name": "prompt",
-              "value": "={{ ($json.historial && $json.historial.length > 1 ? \"--- Historial de la sesión ---\\n\" + $json.historial.slice(0, -1).map(m => (m.de === 'dany' ? '🤖 Dany' : '👤 Usuario') + ': ' + m.texto).join('\\n') + \"\\n--- Mensaje actual ---\\n\" : \"\") + $json.mensaje }}",
               "type": "string"
             }
           ]
@@ -407,10 +385,10 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        1168,
-        912
+        34864,
+        14368
       ],
-      "id": "4ba30e30-635b-4435-b0d5-7eca7b44d0d2",
+      "id": "a89eab6d-1e63-4144-aefa-20a6f6bb0209",
       "name": "Edit_Fields_CSN"
     },
     {
@@ -420,19 +398,25 @@
             {
               "id": "csn-b001",
               "name": "respuesta",
-              "value": "={{ $json.output }}",
+              "value": "={{ $json.output.replace(/\\[Used tools?:[^\\]]{0,800}\\]/gi, '').replace(/\\[\\{[^}]{0,800}\\}\\]/gi, '').replace(/Tool:\\s*\\S[^\\n]*/g, '').replace(/Input:\\s*\\{[^}]{0,400}\\}/g, '').replace(/Result:\\s*\\[[^\\]]{0,800}\\]/g, '').replace(/\\*?\\s*https?:\\/\\/\\S+\\.(?:jpg|jpeg|png|gif|mp4|mov|webm)[^\\n]*/gi, '').replace(/\\n{3,}/g, '\\n\\n').trim() }}",
               "type": "string"
             },
             {
               "id": "csn-b002",
               "name": "accion",
-              "value": "={{ (['folio', 'escalar', 'escalando', 'área técnica', 'mantenimiento', 'soporte técnico'].some(k => $json.output.toLowerCase().includes(k))) ? 'escalar' : 'continuar' }}",
+              "value": "'continuar'",
               "type": "string"
             },
             {
               "id": "csn-b003",
               "name": "resumen",
               "value": "={{ $json.output.length > 120 ? $json.output.replace(/[\\n\\r]+/g, ' ').substring(0, 200).trim() + '…' : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "csn-b004",
+              "name": "multimedia_url",
+              "value": "={{ (() => {\n  const full = $json.output\n    .match(/https?:\\/\\/\\S+/gi)\n    ?.filter(u => /\\.(jpg|jpeg|png|gif|mp4|mov|webm)/i.test(u))\n    ?.map(u => u.replace(/[*•,\\s]+$/, '')) || [];\n  const all = [...new Set(full)];\n  return all.length ? all.join(',') : null;\n})() }}",
               "type": "string"
             }
           ]
@@ -442,16 +426,16 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
       "position": [
-        2368,
-        912
+        36832,
+        14368
       ],
-      "id": "afe829df-d351-42e8-b7ed-718862ca56b0",
+      "id": "14c5c710-cd56-491f-b6f6-06105c041ffc",
       "name": "Edit_Fields3_CSN"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({\n  respuesta: $json.respuesta,\n  accion:    $json.accion,\n  resumen:   $json.resumen\n}) }}",
+        "responseBody": "={{ JSON.stringify({\n  respuesta: $json.respuesta,\n  accion:    $json.accion,\n  resumen:   $json.resumen,\n  multimedia_url: $json.multimedia_url ?? null\n}) }}",
         "options": {
           "responseCode": 200,
           "responseHeaders": {
@@ -467,11 +451,376 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        2592,
-        912
+        37056,
+        14368
       ],
-      "id": "12326612-24ce-42a0-9eb6-699b0819b536",
+      "id": "1019b1b1-838f-403d-9e2c-49ad70c8faa7",
       "name": "Respond_to_Webhook_CSN"
+    },
+    {
+      "parameters": {
+        "description": "Llama AL INICIO de cada conversación. PRIMER paso siempre. Parámetros: tienda_id (número), sesion_id (string), tienda_nombre (string)",
+        "workflowId": {
+          "__rl": true,
+          "value": "fGstYsegJ8LBTjiK",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/fGstYsegJ8LBTjiK",
+          "cachedResultName": "CSN: registrar sesión"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tienda_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_id', ``, 'string') }}",
+            "sesion_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sesion_id', ``, 'string') }}",
+            "tienda_nombre": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_nombre', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tienda_id",
+              "displayName": "tienda_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sesion_id",
+              "displayName": "sesion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tienda_nombre",
+              "displayName": "tienda_nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        35984,
+        14592
+      ],
+      "id": "9e9d8ad5-6fd1-42e8-9500-bdf7746b3ccd",
+      "name": "CSN_registrar_sesion"
+    },
+    {
+      "parameters": {
+        "description": "Crea un ticket de soporte. Llama SOLO UNA VEZ. Si regresa error, informa al usuario y cierra la sesión. NUNCA reintentar más de 1 vez. REQUISITOS: haber llamado CSN_clasificar_problema, tener descripción clara, haber confirmado con el usuario. Parámetros: tienda_id (número), sesion_id (string), descripcion (string - UNA oración del problema), ia_area (string - de CSN_clasificar_problema), tipificacion_id (número - de CSN_clasificar_problema), ia_confianza (número - de CSN_clasificar_problema), pasos_intentados (string)",
+        "workflowId": {
+          "__rl": true,
+          "value": "XOD0Ve4RewpY1mqj",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/XOD0Ve4RewpY1mqj",
+          "cachedResultName": "CSN: crear ticket"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tienda_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_id', ``, 'string') }}",
+            "sesion_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sesion_id', ``, 'string') }}",
+            "descripcion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('descripcion', ``, 'string') }}",
+            "ia_area": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ia_area', ``, 'string') }}",
+            "pasos_intentados": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('pasos_intentados', ``, 'string') }}",
+            "ia_confianza": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ia_confianza', ``, 'string') }}",
+            "tipificacion_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tipificacion_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tienda_id",
+              "displayName": "tienda_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "sesion_id",
+              "displayName": "sesion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ia_area",
+              "displayName": "ia_area",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "pasos_intentados",
+              "displayName": "pasos_intentados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tipificacion_id",
+              "displayName": "tipificacion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "ia_confianza",
+              "displayName": "ia_confianza",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        36112,
+        14592
+      ],
+      "id": "bf5f265d-a6c4-417b-80c0-b029c29075ce",
+      "name": "CSN_crear_ticket"
+    },
+    {
+      "parameters": {
+        "description": "Llama AL FINAL siempre antes de despedirte. Parámetros: sesion_id (string), resuelto_sin_ticket (boolean), mensajes_count (número), area_detectada (string)",
+        "workflowId": {
+          "__rl": true,
+          "value": "DCTGEQ4H26cmFfVw",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/DCTGEQ4H26cmFfVw",
+          "cachedResultName": "CSN: cerrar sesión"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sesion_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sesion_id', ``, 'string') }}",
+            "resuelto_sin_ticket": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('resuelto_sin_ticket', ``, 'string') }}",
+            "mensajes_count": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('mensajes_count', ``, 'string') }}",
+            "area_detectada": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('area_detectada', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "sesion_id",
+              "displayName": "sesion_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "resuelto_sin_ticket",
+              "displayName": "resuelto_sin_ticket",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "mensajes_count",
+              "displayName": "mensajes_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "area_detectada",
+              "displayName": "area_detectada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        36240,
+        14592
+      ],
+      "id": "2b73a685-eb37-4b41-828b-03060931cc7b",
+      "name": "CSN_cerrar_sesion"
+    },
+    {
+      "parameters": {
+        "description": "Clasifica el problema para obtener tipificacion_id, ia_area y urgencia.\nLlama ANTES de crear_ticket_cs.\nParámetros: \n- descripcion: string con el problema en una oración\n- tienda_id: número con el ID de la tienda (el mismo del contexto)",
+        "workflowId": {
+          "__rl": true,
+          "value": "gAQptjwgwzJf6PSP",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/gAQptjwgwzJf6PSP",
+          "cachedResultName": "CSN: clasificar problema"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "descripcion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('descripcion', ``, 'string') }}",
+            "tienda_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_id', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "descripcion"
+          ],
+          "schema": [
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tienda_id",
+              "displayName": "tienda_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        36368,
+        14592
+      ],
+      "id": "87f6ead6-8c0c-409b-804e-203be7667cff",
+      "name": "CSN_clasificar_problema"
+    },
+    {
+      "parameters": {
+        "description": "Envía imágenes o videos de apoyo al usuario. Primero usa Obtener_url_multimedia para obtener las URLs disponibles, luego llama esta tool. SIEMPRE incluye la URL en tu respuesta de texto. Parámetro: Url (string - URL completa del archivo)",
+        "workflowId": {
+          "__rl": true,
+          "value": "BapBsnrU6lJaN99L",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/BapBsnrU6lJaN99L",
+          "cachedResultName": "CSN: mandar multimedia"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Url', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "Url"
+          ],
+          "schema": [
+            {
+              "id": "Url",
+              "displayName": "Url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        36496,
+        14592
+      ],
+      "id": "e6365d7b-f23e-45a0-9915-5d8d6bb35c3f",
+      "name": "CSN_mandar_multimedia"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lista todos los archivos multimedia disponibles (imágenes y videos) para enviar al usuario. Llama PRIMERO antes de CSN_mandar_multimedia para saber qué archivos hay. No requiere parámetros.",
+        "url": "https://dany.netopower123.com/api/media/files",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "dany-promo-2026-s3cur3-k3y"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        36624,
+        14592
+      ],
+      "id": "6cdf0680-2594-47ca-a52d-a4b88b905622",
+      "name": "Obtener_url_multimedia"
     }
   ],
   "pinData": {
@@ -481,46 +830,24 @@
           "headers": {
             "host": "n8n.soyneto.com",
             "user-agent": "python-httpx/0.28.1",
-            "content-length": "808",
+            "content-length": "137",
             "accept": "*/*",
             "accept-encoding": "gzip, deflate",
             "content-type": "application/json",
-            "x-forwarded-for": "187.251.157.41",
+            "x-forwarded-for": "200.52.76.98",
             "x-forwarded-host": "n8n.soyneto.com",
             "x-forwarded-port": "443",
             "x-forwarded-proto": "https",
             "x-forwarded-server": "734079c687fa",
-            "x-real-ip": "187.251.157.41"
+            "x-real-ip": "200.52.76.98"
           },
           "params": {},
           "query": {},
           "body": {
-            "mensaje": "hOLA",
+            "mensaje": "Lo reinicie y sigue igual, lleva asi 1 semana",
             "tienda_id": 749,
             "tienda_nombre": "PANZACOLA",
-            "sesion_id": "1dmkl2efmwmndfcw4c",
-            "historial": [
-              {
-                "de": "dany",
-                "texto": "¡Hola! Soy Dany, tu asistente de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando en tu tienda.",
-                "tiempo": "2026-03-30T16:50:59.871Z"
-              },
-              {
-                "de": "user",
-                "texto": "Caja bloqueada o sin apertura",
-                "tiempo": "2026-03-30T16:51:06.888Z"
-              },
-              {
-                "de": "dany",
-                "texto": "¡Hola! 👋 Qué gusto saludarte. Soy Dany, estoy aquí para ayudarte.\n\n¿En qué te puedo echar la mano hoy? 😊\n*   🖨️ ¿Tienes algún equipo que no está funcionando?\n*   🏷️ ¿Necesitas sincronizar un artículo en SIAN?\n*   📋 ¿Algo con promociones?\n\nDime y con gusto te ayudo 🙌",
-                "tiempo": "2026-03-30T16:51:23.263Z"
-              },
-              {
-                "de": "user",
-                "texto": "hOLA",
-                "tiempo": "2026-03-30T16:52:11.589Z"
-              }
-            ]
+            "sesion_id": "dz1u6irafekmnxsep76"
           },
           "webhookUrl": "https://webhook.soyneto.com/webhook/dany-csn",
           "executionMode": "production"
@@ -652,6 +979,72 @@
           }
         ]
       ]
+    },
+    "CSN_registrar_sesion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSN_crear_ticket": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSN_cerrar_sesion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSN_clasificar_problema": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CSN_mandar_multimedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener_url_multimedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -665,7 +1058,7 @@
     "saveManualExecutions": true,
     "callerPolicy": "workflowsFromSameOwner"
   },
-  "versionId": "0d032a99-d459-4927-9f39-937357075508",
+  "versionId": "264ce8cb-c16e-4008-8ca2-81f69b068db6",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"

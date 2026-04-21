@@ -15,6 +15,7 @@ frontend/node_modules/
 frontend/.angular/
 frontend/dist/
 frontend/.env
+frontend/src/assets/
 
 # ─── IDEs / OS ───────────────────────────────────────────────────────────────
 .vscode/

@@ -1,0 +1,110 @@
+{
+  "name": "CSN: crear ticket",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "tienda_id"
+            },
+            {
+              "name": "sesion_id"
+            },
+            {
+              "name": "descripcion"
+            },
+            {
+              "name": "ia_area"
+            },
+            {
+              "name": "pasos_intentados"
+            },
+            {
+              "name": "tipificacion_id"
+            },
+            {
+              "name": "ia_confianza"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -368,
+        -32
+      ],
+      "id": "b8f0432d-88f0-467d-ab7e-e9cc9b84c8bf",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/tickets/desde-dany",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tienda_id\": {{ parseInt($json.tienda_id) }},\n  \"sesion_id\": \"{{ $json.sesion_id }}\",\n  \"descripcion\": \"{{ $json.descripcion }}\",\n  \"ia_area\": \"{{ $json.ia_area }}\",\n  \"pasos_intentados\": \"{{ $json.pasos_intentados }}\",\n  \"tipificacion_id\": {{ parseInt($json.tipificacion_id) }},\n  \"ia_confianza\": {{ parseFloat($json.ia_confianza) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -128,
+        -32
+      ],
+      "id": "9dea76b3-7dfc-4ce2-a9cf-e5dac99b3f07",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "tienda_id": "749",
+          "sesion_id": "wvfb8w49r39mnzkdkbe",
+          "descripcion": "Aire acondicionado no enciende en tienda PANZACOLA.",
+          "ia_area": "MANTENIMIENTO",
+          "pasos_intentados": "Se revisaron las pastillas eléctricas pero el equipo sigue sin encender.",
+          "tipificacion_id": "46",
+          "ia_confianza": "63"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "48f9ea63-ed22-4912-91a3-bbe005f50f90",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "XOD0Ve4RewpY1mqj",
+  "tags": []
+}

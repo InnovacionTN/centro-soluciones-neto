@@ -1,0 +1,94 @@
+{
+  "name": "CSN: registrar sesión",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "tienda_id"
+            },
+            {
+              "name": "sesion_id"
+            },
+            {
+              "name": "tienda_nombre"
+            }
+          ]
+        }
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/dany/sesion/iniciar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tienda_id\": {{ $json.tienda_id }},\n  \"sesion_id\": \"{{ $json.sesion_id }}\",\n  \"tienda_nombre\": \"{{ $json.tienda_nombre }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        480,
+        352
+      ],
+      "id": "c2372f2d-d381-4d0b-8d64-6baece94e476",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "tienda_id": "749",
+          "sesion_id": "xp8vkw1mj6mnz6opec",
+          "tienda_nombre": "PANZACOLA"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "6e2cfea1-9c79-4aa1-9743-6b01bedcbe45",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "fGstYsegJ8LBTjiK",
+  "tags": []
+}
