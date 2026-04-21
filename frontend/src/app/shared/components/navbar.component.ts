@@ -25,10 +25,7 @@ interface Notificaciones {
       <div class="sidebar__brand">
         <div class="brand-left">
           <div class="brand-logo-csn">
-            <span class="csn-text">CSN</span>
-            <svg class="csn-arrow" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12h14m-6-6l6 6-6 6" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="assets/logo-csn.png" alt="CSN" style="height: 36px; width: auto; object-fit: contain;">
           </div>
           <div class="brand-text">
             <span class="brand-title">Centro Soluciones</span>

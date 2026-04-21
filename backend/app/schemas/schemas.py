@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional, Literal
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, field_validator, model_validator
 from app.models.models import (
     RolUsuario,
     EstatusTicket,
@@ -44,8 +44,7 @@ class UsuarioOut(UsuarioBase):
     activo: bool
     grupo_nombre: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── SLA Policy ───────────────────────────────────────────────────────────────
@@ -57,8 +56,7 @@ class SlaPolicyOut(BaseModel):
     horas_limite: int
     tipo_calendario: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Tipificación ─────────────────────────────────────────────────────────────
@@ -76,8 +74,7 @@ class TipificacionOut(BaseModel):
     urgencia: UrgenciaTipificacion
     requiere_foto: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── IA ────────────────────────────────────────────────────────────────────────
@@ -85,7 +82,7 @@ class TipificacionOut(BaseModel):
 
 class ClasificacionRequest(BaseModel):
     descripcion: str
-    tienda_id: int
+    tienda_id: Optional[int] = None  # opcional — n8n lo manda, frontend no siempre
 
 
 class ClasificacionResponse(BaseModel):
@@ -111,6 +108,12 @@ class TicketCreate(BaseModel):
 
 
 class TicketDanyCreate(BaseModel):
+    """
+    Payload que manda n8n para crear ticket desde Dany.
+    Todos los campos numéricos se coercionan desde string
+    porque n8n los serializa así por defecto.
+    """
+
     tienda_id: int
     sesion_id: str
     descripcion: str
@@ -118,19 +121,33 @@ class TicketDanyCreate(BaseModel):
     pasos_intentados: Optional[str] = None
     tipificacion_id: Optional[int] = None
     ia_tipificacion_id: Optional[int] = None
-    ia_confianza: Optional[float] = None
+    ia_confianza: Optional[int] = None  # int — coincide con ticket_service y TicketOut
 
-    @validator("tienda_id", "tipificacion_id", "ia_tipificacion_id", pre=True)
-    def coerce_int(cls, v):
+    @field_validator("tienda_id", mode="before")
+    @classmethod
+    def coerce_tienda_id(cls, v: object) -> int:
+        if v is None or v == "":
+            raise ValueError("tienda_id es requerido")
+        return int(float(str(v)))
+
+    @field_validator("tipificacion_id", "ia_tipificacion_id", mode="before")
+    @classmethod
+    def coerce_optional_int(cls, v: object) -> Optional[int]:
         if v is None or v == "":
             return None
         return int(float(str(v)))
 
-    @validator("ia_confianza", pre=True)
-    def coerce_float(cls, v):
+    @field_validator("ia_confianza", mode="before")
+    @classmethod
+    def coerce_confianza(cls, v: object) -> Optional[int]:
+        """Acepta '22', '0.95', 22, 0.95 → siempre devuelve int 0-100."""
         if v is None or v == "":
             return None
-        return float(str(v))
+        raw = float(str(v))
+        # Si viene como proporción (0.0–1.0) la convierte a porcentaje
+        if 0.0 < raw <= 1.0:
+            return int(raw * 100)
+        return int(raw)
 
 
 class TicketUpdate(BaseModel):
@@ -150,8 +167,7 @@ class EvidenciaMinOut(BaseModel):
     tipo_mime: Optional[str]
     tamanio_bytes: Optional[int]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class EventoOut(BaseModel):
@@ -165,8 +181,7 @@ class EventoOut(BaseModel):
     timestamp: datetime
     usuario: Optional[UsuarioOut]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 SlaStatusType = Literal["VERDE", "AMARILLO", "ROJO", "SIN_SLA"]
@@ -206,8 +221,7 @@ class TicketOut(BaseModel):
     csat_comentario: Optional[str] = None
     incidente_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CsatRequest(BaseModel):
@@ -239,8 +253,7 @@ class TicketListItem(BaseModel):
     pieza_requerida: Optional[str] = None
     incidente_id: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Dashboard ─────────────────────────────────────────────────────────────────
@@ -264,9 +277,11 @@ class GrupoOut(BaseModel):
     id: int
     nombre: str
     area_tecnica: str
+    region_id: Optional[int] = None
+    slack_canal: Optional[str] = None
+    activo: bool = True
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class EscalacionRequest(BaseModel):
@@ -284,8 +299,7 @@ class EvidenciaOut(BaseModel):
     timestamp: datetime
     usuario: Optional[UsuarioOut] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Admin: Usuarios ──────────────────────────────────────────────────────────
@@ -299,6 +313,7 @@ class UsuarioCreate(BaseModel):
     grupo_id: Optional[int] = None
     tienda_id: Optional[int] = None
     zona_id: Optional[int] = None
+    area_restriccion: Optional[str] = None
 
 
 class UsuarioUpdate(BaseModel):
@@ -310,6 +325,7 @@ class UsuarioUpdate(BaseModel):
     tienda_id: Optional[int] = None
     zona_id: Optional[int] = None
     activo: Optional[bool] = None
+    area_restriccion: Optional[str] = None
 
 
 class UsuarioAdminOut(BaseModel):
@@ -322,12 +338,12 @@ class UsuarioAdminOut(BaseModel):
     grupo_id: Optional[int]
     tienda_id: Optional[int]
     zona_id: Optional[int] = None
+    area_restriccion: Optional[str] = None
     created_at: Optional[datetime]
     last_login: Optional[datetime]
     grupo: Optional[GrupoOut] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Admin: Tipificaciones ────────────────────────────────────────────────────
@@ -371,8 +387,7 @@ class TipificacionAdminOut(BaseModel):
     requiere_foto: bool
     activo: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Admin: Matriz de Ruteo ───────────────────────────────────────────────────
@@ -394,8 +409,7 @@ class ReglaRuteoOut(BaseModel):
     tipificacion: Optional[TipificacionAdminOut] = None
     grupo: Optional[GrupoOut] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Admin: Grupos ────────────────────────────────────────────────────────────
@@ -404,13 +418,57 @@ class ReglaRuteoOut(BaseModel):
 class GrupoCreate(BaseModel):
     nombre: str
     area_tecnica: str
+    region_id: Optional[int] = None
     slack_canal: Optional[str] = None
 
 
 class GrupoUpdate(BaseModel):
     nombre: Optional[str] = None
     area_tecnica: Optional[str] = None
+    region_id: Optional[int] = None
     slack_canal: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+# ─── Admin: Regiones ──────────────────────────────────────────────────────────
+
+
+class RegionOut(BaseModel):
+    id: int
+    nombre: str
+    activo: bool
+
+    model_config = {"from_attributes": True}
+
+
+class RegionCreate(BaseModel):
+    nombre: str
+
+
+class RegionUpdate(BaseModel):
+    nombre: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+# ─── Admin: Zonas ─────────────────────────────────────────────────────────────
+
+
+class ZonaOut(BaseModel):
+    id: int
+    nombre: str
+    region_id: int
+    activo: bool
+
+    model_config = {"from_attributes": True}
+
+
+class ZonaCreate(BaseModel):
+    nombre: str
+    region_id: int
+
+
+class ZonaUpdate(BaseModel):
+    nombre: Optional[str] = None
     activo: Optional[bool] = None
 
 
@@ -437,8 +495,7 @@ class TiendaOut(BaseModel):
     empresa: Optional[str] = None
     activo: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── Plantillas ───────────────────────────────────────────────────────────────
@@ -459,8 +516,7 @@ class PlantillaOut(BaseModel):
     tipificacion_id: Optional[int] = None
     activo: bool
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 # ─── KPIs / Helpers ───────────────────────────────────────────────────────────
@@ -475,8 +531,7 @@ class TicketSimilarOut(BaseModel):
     fecha_cierre: Optional[datetime]
     tiempo_resolucion_horas: Optional[float]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class KpiAgente(BaseModel):
@@ -524,8 +579,7 @@ class IncidenteMasivoOut(BaseModel):
     fecha_inicio: datetime
     fecha_cierre: Optional[datetime]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class IncidenteMasivoUpdate(BaseModel):
@@ -619,53 +673,85 @@ class TicketCoordinadorItem(BaseModel):
     sla_status: str = "SIN_SLA"
     sla_porcentaje: Optional[float] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
-# =============================================================================
-# ADICIONES Sprint 4 — pegar al final de schemas.py
-# =============================================================================
-# Agregar estas clases al final del schemas.py actual
+# ─── Sprint 3: Sesión Dany ────────────────────────────────────────────────────
 
-from typing import Optional, Literal
-from datetime import datetime
-from pydantic import BaseModel
 
-# ─── KPI Ejecutivo (nivel 1 — solo ADMIN) ────────────────────────────────────
+class DanySesionInicioRequest(BaseModel):
+    sesion_id: str
+    tienda_id: int
+    canal: str = "portal"  # portal | slack | whatsapp
+
+    @field_validator("tienda_id", mode="before")
+    @classmethod
+    def coerce_tienda_id(cls, v: object) -> int:
+        if v is None or v == "":
+            raise ValueError("tienda_id es requerido")
+        return int(float(str(v)))
+
+
+class DanySesionInicioOut(BaseModel):
+    sesion_id: str
+    tienda_id: int
+    mensaje: str = "Sesión registrada"
+
+
+class DanySesionCierreRequest(BaseModel):
+    sesion_id: str
+    resuelto_sin_ticket: bool
+    mensajes_count: int = 0
+    tipificacion_detectada: Optional[str] = None
+    motivo_escalacion: Optional[str] = None
+
+    @field_validator("resuelto_sin_ticket", mode="before")
+    @classmethod
+    def coerce_bool(cls, v: object) -> bool:
+        """n8n puede mandar 'true'/'false' como string."""
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "yes")
+        return bool(v)
+
+    @field_validator("mensajes_count", mode="before")
+    @classmethod
+    def coerce_mensajes(cls, v: object) -> int:
+        if v is None or v == "":
+            return 0
+        return int(float(str(v)))
+
+
+class DanySesionCierreOut(BaseModel):
+    sesion_id: str
+    deflexion: bool
+    mensaje: str
+
+
+# ─── Sprint 4: KPIs ───────────────────────────────────────────────────────────
 
 
 class KpiEjecutivo(BaseModel):
-    """Vista de 30,000 pies para directores."""
-
     periodo_desde: datetime
     periodo_hasta: datetime
-    # Volumen
     total_tickets: int
     tickets_abiertos: int
     tickets_cerrados: int
     tickets_por_dia_promedio: float
-    # SLA
-    sla_cumplido_pct: float  # % tickets cerrados dentro del SLA
-    tickets_sin_sla: int  # tickets sin política SLA asignada
+    sla_cumplido_pct: float
+    tickets_sin_sla: int
     tiempo_resolucion_p50_horas: Optional[float]
     tiempo_resolucion_p90_horas: Optional[float]
-    # CSAT
     csat_respuestas: int
-    csat_tasa_respuesta_pct: float  # % de tickets que recibieron calificación
-    csat_satisfaccion_pct: float  # % calificaciones positivas
-    # IA / Dany (stubbed hasta Sprint 3)
+    csat_tasa_respuesta_pct: float
+    csat_satisfaccion_pct: float
     tickets_origen_dany: int
     tickets_origen_portal: int
-    tasa_deflexion_dany_pct: float  # % resueltos por Dany sin ticket
-    # Reaperturas
+    tasa_deflexion_dany_pct: float
     total_reaperturas: int
     tasa_reapertura_pct: float
 
 
 class KpiTendencia(BaseModel):
-    """Un punto de datos mensual para gráfica de tendencia."""
-
     mes: str  # "2026-01"
     total_tickets: int
     sla_cumplido_pct: Optional[float]
@@ -674,11 +760,8 @@ class KpiTendencia(BaseModel):
     tickets_dany: int
 
 
-# ─── KPI por Área / Dirección (nivel 2) ──────────────────────────────────────
-
-
 class KpiPorArea(BaseModel):
-    area: str  # SISTEMAS, MANTENIMIENTO, etc.
+    area: str
     total_tickets: int
     pct_del_total: float
     sla_cumplido_pct: Optional[float]
@@ -688,9 +771,6 @@ class KpiPorArea(BaseModel):
     tickets_vencidos: int
     tickets_sin_sla: int
     reaperturas: int
-
-
-# ─── KPI por Grupo (nivel 3) ─────────────────────────────────────────────────
 
 
 class KpiPorGrupo(BaseModel):
@@ -705,10 +785,6 @@ class KpiPorGrupo(BaseModel):
     csat_pct: Optional[float]
     agentes_activos: int
     tickets_vencidos: int
-
-
-# ─── KPI por Agente — versión extendida (nivel 4) ────────────────────────────
-# KpiAgente ya existe; usamos KpiAgenteExtendido para el drill-down
 
 
 class KpiAgenteExtendido(BaseModel):
@@ -729,9 +805,6 @@ class KpiAgenteExtendido(BaseModel):
     disponible: bool
 
 
-# ─── Exportación CSV ──────────────────────────────────────────────────────────
-
-
 class ExportRequest(BaseModel):
     desde: Optional[str] = None  # YYYY-MM-DD
     hasta: Optional[str] = None
@@ -741,51 +814,10 @@ class ExportRequest(BaseModel):
     incluir_bitacora: bool = False
 
 
-# ─── CSAT Recordatorio (interno) ─────────────────────────────────────────────
-
-
 class CsatReminderResult(BaseModel):
     procesados: int
     enviados: int
     folios: list[str]
-
-
-# =============================================================================
-# AGREGAR al final de schemas.py — Sprint 3
-# =============================================================================
-
-from typing import Optional
-from datetime import datetime
-from pydantic import BaseModel
-
-
-# ─── Sesión Dany ──────────────────────────────────────────────────────────────
-
-
-class DanySesionInicioRequest(BaseModel):
-    sesion_id: str
-    tienda_id: int
-    canal: str = "portal"  # portal | slack | whatsapp
-
-
-class DanySesionInicioOut(BaseModel):
-    sesion_id: str
-    tienda_id: int
-    mensaje: str = "Sesión registrada"
-
-
-class DanySesionCierreRequest(BaseModel):
-    sesion_id: str
-    resuelto_sin_ticket: bool  # True = Dany resolvió sola (deflexión)
-    mensajes_count: int = 0
-    tipificacion_detectada: Optional[str] = None
-    motivo_escalacion: Optional[str] = None  # si resuelto_sin_ticket=False
-
-
-class DanySesionCierreOut(BaseModel):
-    sesion_id: str
-    deflexion: bool
-    mensaje: str
 
 
 # ─── KPIs Dany ────────────────────────────────────────────────────────────────
@@ -794,15 +826,11 @@ class DanySesionCierreOut(BaseModel):
 class KpiDany(BaseModel):
     periodo_desde: datetime
     periodo_hasta: datetime
-    # Volumen
     sesiones_totales: int
-    sesiones_resueltas: int  # sin crear ticket
-    sesiones_escaladas: int  # crearon ticket
-    tasa_deflexion_pct: float  # sesiones_resueltas / sesiones_totales
-    # Tickets creados por Dany
+    sesiones_resueltas: int
+    sesiones_escaladas: int
+    tasa_deflexion_pct: float
     tickets_creados: int
-    tiempo_primera_respuesta_agente_horas: Optional[float]  # desde que Dany escala
-    # Canal
-    por_canal: dict[str, int]  # portal, slack, whatsapp
-    # Tipificaciones más frecuentes detectadas por Dany
-    top_tipificaciones: list[dict]  # [{nombre, count}]
+    tiempo_primera_respuesta_agente_horas: Optional[float]
+    por_canal: dict[str, int]
+    top_tipificaciones: list[dict]

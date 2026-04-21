@@ -21,6 +21,7 @@ const API = environment.apiUrl + '/admin';
 export interface UsuarioAdmin {
   id: number; email: string; nombre: string; rol: string;
   activo: boolean; disponible: boolean; grupo_id: number | null; tienda_id: number | null;
+  zona_id: number | null; area_restriccion: string | null;
   created_at: string | null; last_login: string | null;
 }
 
@@ -51,6 +52,19 @@ export interface TiendaAdmin {
   correo_corporativo: string; centro_costos: string | null; activo: boolean;
 }
 
+export interface RegionAdmin {
+  id: number; nombre: string; activo: boolean;
+}
+
+export interface ZonaAdmin {
+  id: number; nombre: string; region_id: number; activo: boolean;
+}
+
+export interface GrupoAdmin {
+  id: number; nombre: string; area_tecnica: string;
+  region_id: number | null; slack_canal: string | null; activo: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   constructor(private http: HttpClient) { }
@@ -75,9 +89,27 @@ export class AdminService {
   updateTipificacion(id: number, body: any) { return this.http.patch<TipAdmin>(`${API}/tipificaciones/${id}`, body); }
 
   // Grupos
-  getGrupos() { return this.http.get<any[]>('/api/v1/grupos'); }
-  createGrupo(body: any) { return this.http.post<any>(`${API}/grupos`, body); }
-  updateGrupo(id: number, body: any) { return this.http.patch<any>(`${API}/grupos/${id}`, body); }
+  getGrupos(area?: string) {
+    const params: any = {};
+    if (area) params['area'] = area;
+    return this.http.get<GrupoAdmin[]>('/api/v1/grupos', { params });
+  }
+  createGrupo(body: any) { return this.http.post<GrupoAdmin>(`${API}/grupos`, body); }
+  updateGrupo(id: number, body: any) { return this.http.patch<GrupoAdmin>(`${API}/grupos/${id}`, body); }
+
+  // Regiones
+  getRegiones() { return this.http.get<RegionAdmin[]>(`${API}/regiones`); }
+  createRegion(body: any) { return this.http.post<RegionAdmin>(`${API}/regiones`, body); }
+  updateRegion(id: number, body: any) { return this.http.patch<RegionAdmin>(`${API}/regiones/${id}`, body); }
+
+  // Zonas
+  getZonas(region_id?: number) {
+    const params: any = {};
+    if (region_id) params['region_id'] = region_id;
+    return this.http.get<ZonaAdmin[]>(`${API}/zonas`, { params });
+  }
+  createZona(body: any) { return this.http.post<ZonaAdmin>(`${API}/zonas`, body); }
+  updateZona(id: number, body: any) { return this.http.patch<ZonaAdmin>(`${API}/zonas/${id}`, body); }
 
   // Ruteo
   getRuteo() { return this.http.get<ReglaRuteo[]>(`${API}/ruteo`); }

@@ -26,6 +26,8 @@ from app.core.security import (
     verify_password,
     hash_password,
     verify_dany_token,
+    is_admin,
+    check_area_access,
 )
 from app.core.config import get_settings
 from app.models.models import (
@@ -36,6 +38,7 @@ from app.models.models import (
     Tienda,
     ReglaRuteo,
     Zona,
+    Region,
     EstatusTicket,
     RolUsuario,
     BitacoraEvento,
@@ -73,6 +76,12 @@ from app.schemas.schemas import (
     ReglaRuteoOut,
     GrupoCreate,
     GrupoUpdate,
+    RegionOut,
+    RegionCreate,
+    RegionUpdate,
+    ZonaOut,
+    ZonaCreate,
+    ZonaUpdate,
     TiendaCreate,
     TiendaOut,
     PlantillaCreate,
@@ -581,6 +590,12 @@ def list_tickets(
             q = q.join(Tienda, Ticket.tienda_id == Tienda.id).filter(
                 Tienda.zona_id == current_user.zona_id
             )
+    elif current_user.rol == RolUsuario.ADMIN_AREA:
+        # ADMIN_AREA ve solo tickets de su dirección
+        if current_user.area_restriccion:
+            q = q.join(
+                Tipificacion, Ticket.tipificacion_id == Tipificacion.id, isouter=True
+            ).filter(Tipificacion.area_tecnica == current_user.area_restriccion)
 
     if solo_mios:
         q = q.filter(Ticket.agente_id == current_user.id)
@@ -1006,6 +1021,10 @@ def list_grupos(
 
     if area:
         q = q.filter(Grupo.area_tecnica == area.upper())
+
+    # ADMIN_AREA solo ve grupos de su dirección técnica
+    if current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+        q = q.filter(Grupo.area_tecnica == current_user.area_restriccion)
 
     return q.order_by(Grupo.area_tecnica, Grupo.nombre).all()
 
@@ -1715,8 +1734,8 @@ def get_dashboard(
 
 
 def _require_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
-    """Dependency que lanza 403 si el usuario no es ADMIN."""
-    if current_user.rol != RolUsuario.ADMIN:
+    """Dependency que lanza 403 si el usuario no es ADMIN ni ADMIN_AREA."""
+    if current_user.rol not in (RolUsuario.ADMIN, RolUsuario.ADMIN_AREA):
         raise HTTPException(403, detail="Acceso restringido a administradores")
     return current_user
 
@@ -1764,6 +1783,8 @@ def admin_create_usuario(
         rol=body.rol,
         grupo_id=body.grupo_id,
         tienda_id=body.tienda_id,
+        zona_id=body.zona_id,
+        area_restriccion=body.area_restriccion,
     )
     db.add(usuario)
     db.commit()
@@ -1794,6 +1815,10 @@ def admin_update_usuario(
         usuario.tienda_id = body.tienda_id
     if body.activo is not None:
         usuario.activo = body.activo
+    if body.zona_id is not None:
+        usuario.zona_id = body.zona_id
+    if body.area_restriccion is not None:
+        usuario.area_restriccion = body.area_restriccion
     if body.password:
         usuario.hashed_password = hash_password(body.password)
 
@@ -1810,7 +1835,7 @@ def admin_list_tipificaciones(
     activo: Optional[bool] = None,
     area: Optional[str] = None,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(_require_admin),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
 ):
     q = db.query(Tipificacion)
     if activo is not None:
@@ -1826,7 +1851,7 @@ def admin_list_tipificaciones(
 def admin_create_tipificacion(
     body: TipificacionCreate,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(_require_admin),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
 ):
     tip = Tipificacion(
         area_tecnica=body.area_tecnica.upper(),
@@ -1848,7 +1873,7 @@ def admin_update_tipificacion(
     tip_id: int,
     body: TipificacionUpdate,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(_require_admin),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
 ):
     tip = db.query(Tipificacion).filter(Tipificacion.id == tip_id).first()
     if not tip:
@@ -1888,6 +1913,7 @@ def admin_create_grupo(
     grupo = Grupo(
         nombre=body.nombre,
         area_tecnica=body.area_tecnica.upper(),
+        region_id=body.region_id,
         slack_canal=body.slack_canal,
     )
     db.add(grupo)
@@ -1911,6 +1937,8 @@ def admin_update_grupo(
         grupo.nombre = body.nombre
     if body.area_tecnica is not None:
         grupo.area_tecnica = body.area_tecnica.upper()
+    if body.region_id is not None:
+        grupo.region_id = body.region_id
     if body.slack_canal is not None:
         grupo.slack_canal = body.slack_canal
     if body.activo is not None:
@@ -1919,6 +1947,101 @@ def admin_update_grupo(
     db.commit()
     db.refresh(grupo)
     return grupo
+
+
+# ─── Regiones ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/admin/regiones", response_model=list[RegionOut])
+def admin_list_regiones(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(_require_admin),
+):
+    return db.query(Region).order_by(Region.nombre).all()
+
+
+@router.post("/admin/regiones", response_model=RegionOut, status_code=201)
+def admin_create_region(
+    body: RegionCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    nombre = body.nombre.upper().strip()
+    if db.query(Region).filter(Region.nombre == nombre).first():
+        raise HTTPException(400, detail="Ya existe una región con ese nombre")
+    r = Region(nombre=nombre)
+    db.add(r)
+    db.commit()
+    db.refresh(r)
+    return r
+
+
+@router.patch("/admin/regiones/{region_id}", response_model=RegionOut)
+def admin_update_region(
+    region_id: int,
+    body: RegionUpdate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    r = db.query(Region).filter(Region.id == region_id).first()
+    if not r:
+        raise HTTPException(404, detail="Región no encontrada")
+    if body.nombre is not None:
+        r.nombre = body.nombre.upper().strip()
+    if body.activo is not None:
+        r.activo = body.activo
+    db.commit()
+    db.refresh(r)
+    return r
+
+
+# ─── Zonas ────────────────────────────────────────────────────────────────────
+
+
+@router.get("/admin/zonas", response_model=list[ZonaOut])
+def admin_list_zonas(
+    region_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(_require_admin),
+):
+    q = db.query(Zona)
+    if region_id:
+        q = q.filter(Zona.region_id == region_id)
+    return q.order_by(Zona.nombre).all()
+
+
+@router.post("/admin/zonas", response_model=ZonaOut, status_code=201)
+def admin_create_zona(
+    body: ZonaCreate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    if not db.query(Region).filter(Region.id == body.region_id).first():
+        raise HTTPException(404, detail="Región no encontrada")
+    z = Zona(nombre=body.nombre.strip(), region_id=body.region_id)
+    db.add(z)
+    db.commit()
+    db.refresh(z)
+    return z
+
+
+@router.patch("/admin/zonas/{zona_id}", response_model=ZonaOut)
+def admin_update_zona(
+    zona_id: int,
+    body: ZonaUpdate,
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    z = db.query(Zona).filter(Zona.id == zona_id).first()
+    if not z:
+        raise HTTPException(404, detail="Zona no encontrada")
+    if body.nombre is not None:
+        z.nombre = body.nombre.strip()
+    if body.activo is not None:
+        z.activo = body.activo
+    db.commit()
+    db.refresh(z)
+    return z
 
 
 # ─── Matriz de Ruteo ──────────────────────────────────────────────────────────

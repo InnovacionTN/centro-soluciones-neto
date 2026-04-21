@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.service';
@@ -10,7 +10,10 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
   template: `
     <div class="admin-section">
       <div class="section-bar">
-        <h2 class="section-title">Matriz de ruteo</h2>
+        <div class="section-bar-left">
+          <h2 class="section-title">Matriz de ruteo</h2>
+          <span class="total-badge">{{ reglasFiltradas().length }} de {{ reglas().length }}</span>
+        </div>
         <button class="btn btn--primary btn--sm" (click)="showForm.set(!showForm())">
           {{ showForm() ? 'Cancelar' : '+ Nueva regla' }}
         </button>
@@ -19,6 +22,18 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
         Define qué grupo del Call Center atiende cada tipo de problema por zona.
         Zona vacía = aplica a todas las zonas.
       </p>
+
+      <!-- Filtro por área -->
+      <div class="filter-row">
+        <button class="filter-btn" [class.filter-btn--active]="filtroArea() === ''" (click)="filtroArea.set('')">
+          Todas <span class="filter-count">{{ reglas().length }}</span>
+        </button>
+        @for (a of areas; track a) {
+          <button class="filter-btn" [class.filter-btn--active]="filtroArea() === a" (click)="filtroArea.set(a)">
+            {{ a }} <span class="filter-count">{{ contarArea(a) }}</span>
+          </button>
+        }
+      </div>
 
       @if (showForm()) {
         <div class="form-card slide-down">
@@ -58,25 +73,27 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
 
       @if (loading()) {
         <div class="loading-msg">Cargando matriz de ruteo...</div>
+      } @else if (reglasFiltradas().length === 0) {
+        <div class="empty-msg">No hay reglas con el filtro seleccionado.</div>
       } @else {
         <div class="tabla-wrapper">
-        <div class="admin-table">
-          <div class="table-head-ruteo">
-            <span>Tipificación</span><span>Área</span><span>Grupo destino</span><span>Zona</span><span>Prioridad</span><span></span>
-          </div>
-          @for (r of reglas(); track r.id) {
-            <div class="table-row-ruteo">
-              <span class="text-sm font-medium">{{ r.tipificacion?.problema ?? '#' + r.tipificacion_id }}</span>
-              <span><span class="badge badge--blue">{{ r.tipificacion?.area_tecnica ?? '?' }}</span></span>
-              <span class="text-sm">{{ r.grupo?.nombre ?? '#' + r.grupo_id }}</span>
-              <span class="text-sm text-muted">{{ r.zona_id ? '#' + r.zona_id : 'Todas' }}</span>
-              <span class="text-sm">{{ r.prioridad }}</span>
-              <span>
-                <button class="btn btn--ghost btn--sm" style="color:var(--c-red)" (click)="deleteRegla(r)">Eliminar</button>
-              </span>
+          <div class="admin-table">
+            <div class="table-head-ruteo">
+              <span>Tipificación</span><span>Área</span><span>Grupo destino</span><span>Zona</span><span>Prioridad</span><span></span>
             </div>
-          }
-        </div>
+            @for (r of reglasFiltradas(); track r.id) {
+              <div class="table-row-ruteo">
+                <span class="text-sm font-medium">{{ r.tipificacion?.problema ?? '#' + r.tipificacion_id }}</span>
+                <span><span class="badge badge--blue">{{ r.tipificacion?.area_tecnica ?? '?' }}</span></span>
+                <span class="text-sm">{{ r.grupo?.nombre ?? '#' + r.grupo_id }}</span>
+                <span class="text-sm text-muted">{{ r.zona_id ? '#' + r.zona_id : 'Todas' }}</span>
+                <span class="text-sm">{{ r.prioridad }}</span>
+                <span>
+                  <button class="btn btn--ghost btn--sm btn--danger" (click)="deleteRegla(r)">Eliminar</button>
+                </span>
+              </div>
+            }
+          </div>
         </div>
       }
     </div>
@@ -84,20 +101,29 @@ import { AdminService, ReglaRuteo, TipAdmin } from '../../core/services/admin.se
   styles: [`
     .admin-section { display: flex; flex-direction: column; gap: 16px; }
     .section-bar { display: flex; justify-content: space-between; align-items: center; }
+    .section-bar-left { display: flex; align-items: center; gap: 10px; }
     .section-title { font-size: 17px; font-weight: 600; }
+    .total-badge { font-size: 12px; color: var(--c-muted); background: var(--c-bg); border: 1px solid var(--c-border); border-radius: 10px; padding: 2px 8px; }
     .section-desc { margin-top: -8px; }
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn { display: flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 16px; font-size: 13px; border: 1px solid var(--c-border); background: var(--c-surface); color: var(--c-muted); cursor: pointer; }
+    .filter-btn--active { background: var(--c-blue-lt); border-color: var(--c-blue-md); color: var(--c-blue); font-weight: 500; }
+    .filter-count { font-size: 11px; background: var(--c-border); border-radius: 8px; padding: 0 5px; min-width: 18px; text-align: center; }
+    .filter-btn--active .filter-count { background: var(--c-blue-md); color: white; }
     .form-card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 20px; }
     .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 120px; gap: 14px; margin-bottom: 14px; }
     @media (max-width: 640px) { .form-grid-3 { grid-template-columns: 1fr; } }
+    .field__hint { font-size: 11px; color: var(--c-muted); margin-top: 4px; display: block; }
     .form-error { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
     .form-actions { display: flex; justify-content: flex-end; }
-    .loading-msg { padding: 40px; text-align: center; color: var(--c-muted); }
-        .tabla-wrapper { overflow-x: auto; max-height: 65vh; overflow-y: auto; border-radius: var(--radius-lg); }
+    .loading-msg, .empty-msg { padding: 40px; text-align: center; color: var(--c-muted); }
+    .tabla-wrapper { overflow-x: auto; max-height: 65vh; overflow-y: auto; border-radius: var(--radius-lg); }
     .admin-table { background: var(--c-surface); border: 1px solid var(--c-border); min-width: 700px; }
     .table-head-ruteo { display: grid; grid-template-columns: 1fr 110px 1fr 80px 80px 90px; gap: 10px; padding: 10px 16px; background: var(--c-bg); border-bottom: 1px solid var(--c-border); font-size: 11px; font-weight: 600; color: var(--c-muted); text-transform: uppercase; }
     .table-row-ruteo { display: grid; grid-template-columns: 1fr 110px 1fr 80px 80px 90px; gap: 10px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--c-border); font-size: 13px; }
     .table-row-ruteo:last-child { border-bottom: none; }
     .table-row-ruteo:hover { background: var(--c-bg); }
+    .btn--danger { color: var(--c-red) !important; border-color: var(--c-red-md) !important; }
   `],
 })
 export class AdminRuteoComponent implements OnInit {
@@ -108,9 +134,23 @@ export class AdminRuteoComponent implements OnInit {
   showForm = signal(false);
   saving = signal(false);
   formError = signal('');
+  filtroArea = signal('');
+
+  areas = ['ABASTO', 'SISTEMAS', 'MANTENIMIENTO', 'FINANZAS', 'COMERCIAL', 'RRHH', 'OPERACIONES'];
   form = { tipificacion_id: 0, grupo_id: 0, zona_id: null as number | null, prioridad: 1 };
 
+  reglasFiltradas = computed(() => {
+    const area = this.filtroArea();
+    if (!area) return this.reglas();
+    return this.reglas().filter(r => r.tipificacion?.area_tecnica === area);
+  });
+
+  contarArea(area: string): number {
+    return this.reglas().filter(r => r.tipificacion?.area_tecnica === area).length;
+  }
+
   constructor(private admin: AdminService) { }
+
   ngOnInit() {
     this.admin.getRuteo().subscribe({ next: rs => { this.reglas.set(rs); this.loading.set(false); }, error: () => this.loading.set(false) });
     this.admin.getTipificaciones(true).subscribe({ next: ts => this.tips.set(ts) });
@@ -121,7 +161,11 @@ export class AdminRuteoComponent implements OnInit {
     if (!this.form.tipificacion_id || !this.form.grupo_id) { this.formError.set('Tipificación y grupo son obligatorios'); return; }
     this.saving.set(true);
     this.admin.createRegla(this.form).subscribe({
-      next: r => { this.reglas.update(list => [...list, r]); this.saving.set(false); this.showForm.set(false); this.form = { tipificacion_id: 0, grupo_id: 0, zona_id: null, prioridad: 1 }; },
+      next: r => {
+        this.reglas.update(list => [...list, r]);
+        this.saving.set(false); this.showForm.set(false);
+        this.form = { tipificacion_id: 0, grupo_id: 0, zona_id: null, prioridad: 1 };
+      },
       error: err => { this.saving.set(false); this.formError.set(err.error?.detail ?? 'Error'); },
     });
   }

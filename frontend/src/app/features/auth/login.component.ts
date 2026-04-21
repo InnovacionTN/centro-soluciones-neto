@@ -16,12 +16,7 @@ import { AuthService } from '../../core/services/auth.service';
         <div class="brand-overlay"></div>
         <div class="brand-content">
           <div class="brand-logo">
-            <svg width="56" height="56" viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect width="56" height="56" rx="16" fill="white" fill-opacity="0.15"/>
-              <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle"
-                    fill="white" font-family="Montserrat,sans-serif"
-                    font-weight="700" font-size="22" letter-spacing="-1">CSN</text>
-            </svg>
+            <img src="assets/logo-csn.png" alt="Centro de Soluciones Neto" style="height: 90px; width: auto; object-fit: contain;">
           </div>
           <h1 class="brand-title">Centro de<br><span>Soluciones</span><br>Neto</h1>
           <p class="brand-tagline">

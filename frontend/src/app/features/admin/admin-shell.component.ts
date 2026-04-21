@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../shared/components/navbar.component';
@@ -9,8 +9,23 @@ import { AdminGruposComponent } from './admin-grupos.component';
 import { AdminKpisComponent } from './admin-kpis.component';
 import { AdminTorreComponent } from './admin-torre.component';
 import { AdminIncidentesComponent } from './admin-incidentes.component';
+import { AdminRegionesComponent } from './admin-regiones.component';
+import { AdminZonasComponent } from './admin-zonas.component';
+import { AuthService } from '../../core/services/auth.service';
 
-type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis';
+type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'grupos' | 'kpis' | 'regiones' | 'zonas';
+
+const ALL_TABS: { id: Tab; label: string; icon: string; soloAdmin?: boolean }[] = [
+  { id: 'torre',          label: 'Torre de Control', icon: '🗼' },
+  { id: 'incidentes',     label: 'Incidentes',       icon: '🚨' },
+  { id: 'kpis',           label: 'KPIs agentes',     icon: '📊' },
+  { id: 'usuarios',       label: 'Usuarios',         icon: '👤' },
+  { id: 'tipificaciones', label: 'Tipificaciones',   icon: '🗂',  soloAdmin: true },
+  { id: 'ruteo',          label: 'Matriz de ruteo',  icon: '🧭',  soloAdmin: true },
+  { id: 'grupos',         label: 'Grupos CC',        icon: '👥' },
+  { id: 'regiones',       label: 'Regiones',         icon: '🗺',  soloAdmin: true },
+  { id: 'zonas',          label: 'Zonas',            icon: '📍',  soloAdmin: true },
+];
 
 @Component({
   selector: 'app-admin-shell',
@@ -20,6 +35,7 @@ type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'g
     AdminUsuariosComponent, AdminTipificacionesComponent,
     AdminRuteoComponent, AdminGruposComponent, AdminKpisComponent,
     AdminTorreComponent, AdminIncidentesComponent,
+    AdminRegionesComponent, AdminZonasComponent,
   ],
   template: `
     <div class="page">
@@ -32,7 +48,7 @@ type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'g
 
         <!-- Tabs -->
         <div class="admin-tabs">
-          @for (tab of tabs; track tab.id) {
+          @for (tab of tabs(); track tab.id) {
             <button
               class="admin-tab"
               [class.admin-tab--active]="activeTab === tab.id"
@@ -52,6 +68,8 @@ type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'g
           @if (activeTab === 'ruteo')          { <app-admin-ruteo /> }
           @if (activeTab === 'grupos')         { <app-admin-grupos /> }
           @if (activeTab === 'kpis')           { <app-admin-kpis /> }
+          @if (activeTab === 'regiones')       { <app-admin-regiones /> }
+          @if (activeTab === 'zonas')          { <app-admin-zonas /> }
         </div>
 
       </div>
@@ -65,6 +83,7 @@ type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'g
       gap: 4px;
       border-bottom: 2px solid var(--c-border);
       margin-bottom: 24px;
+      flex-wrap: wrap;
     }
     .admin-tab {
       padding: 10px 18px;
@@ -87,13 +106,11 @@ type Tab = 'torre' | 'incidentes' | 'usuarios' | 'tipificaciones' | 'ruteo' | 'g
 })
 export class AdminShellComponent {
   activeTab: Tab = 'torre';
-  tabs = [
-    { id: 'torre'          as Tab, label: 'Torre de Control', icon: '🗼' },
-    { id: 'incidentes'     as Tab, label: 'Incidentes',       icon: '🚨' },
-    { id: 'kpis'           as Tab, label: 'KPIs agentes',     icon: '📊' },
-    { id: 'usuarios'       as Tab, label: 'Usuarios',         icon: '👤' },
-    { id: 'tipificaciones' as Tab, label: 'Tipificaciones',   icon: '🗂' },
-    { id: 'ruteo'          as Tab, label: 'Matriz de ruteo',  icon: '🗺' },
-    { id: 'grupos'         as Tab, label: 'Grupos CC',        icon: '👥' },
-  ];
+
+  tabs = computed(() => {
+    const esSuperAdmin = this.auth.rol() === 'ADMIN';
+    return ALL_TABS.filter(t => esSuperAdmin || !t.soloAdmin);
+  });
+
+  constructor(private auth: AuthService) {}
 }

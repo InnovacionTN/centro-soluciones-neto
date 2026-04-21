@@ -1,18 +1,28 @@
 """
 Motor de IA — Centro de Soluciones Neto
-Modelo : Gemini 2.5 Flash (google-generativeai)
+Modelo : gemini-2.0-flash (google-generativeai)
 Fallback: clasificación por palabras clave ponderadas
+
+Notas de configuración:
+- GEMINI_API_KEY debe existir en Secret Manager (gemini-api-key → latest)
+- Sin key configurada el sistema opera en modo fallback (reglas)
+- El fallback garantiza que el sistema nunca devuelva error al clasificar
 """
 
 import json
 import unicodedata
 from typing import Optional
+
 from sqlalchemy.orm import Session
+
 from app.core.config import get_settings
-from app.models.models import Tipificacion, AreaTecnica, UrgenciaTipificacion
+from app.models.models import AreaTecnica, Tipificacion, UrgenciaTipificacion
 from app.schemas.schemas import ClasificacionResponse
 
 settings = get_settings()
+
+# Modelo a usar — centralizado para cambiar en un solo lugar
+GEMINI_MODEL = "gemini-2.0-flash"
 
 
 # ─── Normalización ────────────────────────────────────────────────────────────
@@ -72,7 +82,7 @@ STOP_WORDS = {
 }
 
 
-# ─── Urgencia por frases (sin acentos, se comparan con _norm) ─────────────────
+# ─── Urgencia por frases ──────────────────────────────────────────────────────
 
 URGENCY_KEYWORDS = {
     "CRITICA": [
@@ -157,7 +167,7 @@ def detect_urgency_from_text(text: str) -> Optional[str]:
     return None
 
 
-# ─── Ejemplos reales few-shot ─────────────────────────────────────────────────
+# ─── Ejemplos few-shot ────────────────────────────────────────────────────────
 
 FEW_SHOT_EXAMPLES = """
 EJEMPLOS REALES (usa como referencia de clasificacion):
@@ -182,7 +192,7 @@ EJEMPLOS REALES (usa como referencia de clasificacion):
 def classify_by_rules(descripcion: str, db: Session) -> ClasificacionResponse:
     """
     Clasificación sin IA. Pesa keywords por longitud, ignora stop words.
-    Siempre disponible como respaldo.
+    Siempre disponible como respaldo — nunca lanza excepción.
     """
     text = _norm(descripcion)
     tipificaciones = db.query(Tipificacion).filter(Tipificacion.activo == True).all()
@@ -205,7 +215,7 @@ def classify_by_rules(descripcion: str, db: Session) -> ClasificacionResponse:
             if kw in STOP_WORDS or len(kw) <= 2:
                 continue
             if kw in text:
-                score += len(kw) / 4.0  # "internet"(8)=2.0, "red"(3)=0.75
+                score += len(kw) / 4.0
                 found.append(kw)
         if score > best_score:
             best_score = score
@@ -238,9 +248,9 @@ def classify_by_rules(descripcion: str, db: Session) -> ClasificacionResponse:
 
 async def classify_with_ai(descripcion: str, db: Session) -> ClasificacionResponse:
     """
-    Clasificación con Gemini 2.5 Flash.
-    Usa response_mime_type="application/json" para forzar JSON puro —
-    sin markdown, sin texto de razonamiento, sin truncamiento.
+    Clasificación con Gemini.
+    Si GEMINI_API_KEY no está configurada o Gemini falla,
+    usa classify_by_rules como fallback — nunca devuelve error al caller.
     """
     if not settings.GEMINI_API_KEY:
         return classify_by_rules(descripcion, db)
@@ -260,7 +270,6 @@ async def classify_with_ai(descripcion: str, db: Session) -> ClasificacionRespon
             ]
         )
 
-        # Esquema JSON explícito que Gemini debe respetar
         json_schema = """{
   "tipificacion_id": <número entero del ID del catálogo>,
   "area_tecnica": "<ABASTO|SISTEMAS|MANTENIMIENTO|FINANZAS|COMERCIAL|RRHH>",
@@ -297,12 +306,11 @@ DESCRIPCION DEL TICKET:
 Responde con el siguiente JSON (sin texto adicional, sin markdown):
 {json_schema}"""
 
-        model = genai.GenerativeModel("gemini-3-flash-preview")
+        model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(
             prompt,
             generation_config=genai.GenerationConfig(
                 temperature=0.1,
-                # response_mime_type fuerza JSON puro — elimina markdown y texto extra
                 response_mime_type="application/json",
             ),
         )
@@ -338,6 +346,7 @@ async def suggest_solution(
     """
     Genera una sugerencia de respuesta inicial para el agente.
     El agente puede usarla, editarla o ignorarla.
+    Sin GEMINI_API_KEY devuelve None silenciosamente.
     """
     if not settings.GEMINI_API_KEY:
         return None
@@ -347,7 +356,7 @@ async def suggest_solution(
 
         genai.configure(api_key=settings.GEMINI_API_KEY)
 
-        model = genai.GenerativeModel("gemini-3-flash-preview")
+        model = genai.GenerativeModel(GEMINI_MODEL)
         response = model.generate_content(
             f"""Eres asistente del Call Center de Centro de Soluciones Neto.
 Area tecnica: {area_tecnica}

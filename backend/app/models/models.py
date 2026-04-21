@@ -22,6 +22,7 @@ from app.db.session import Base
 
 class RolUsuario(str, enum.Enum):
     ADMIN = "ADMIN"
+    ADMIN_AREA = "ADMIN_AREA"
     AGENTE = "AGENTE"
     TIENDA = "TIENDA"
     COORDINADOR = "COORDINADOR"
@@ -167,11 +168,13 @@ class Grupo(Base):
     id = Column(Integer, primary_key=True)
     nombre = Column(String(150), nullable=False)
     area_tecnica = Column(Enum(AreaTecnica), nullable=False)
+    region_id = Column(Integer, ForeignKey("cat_regiones.id"), nullable=True)
     slack_canal = Column(String(100))
     activo = Column(Boolean, default=True)
     usuarios = relationship("Usuario", back_populates="grupo")
     reglas_ruteo = relationship("ReglaRuteo", back_populates="grupo")
     tickets = relationship("Ticket", back_populates="grupo")
+    region = relationship("Region", backref="grupos", foreign_keys=[region_id])
 
 
 class Usuario(Base):
@@ -184,6 +187,7 @@ class Usuario(Base):
     grupo_id = Column(Integer, ForeignKey("cat_grupos.id"), nullable=True)
     tienda_id = Column(Integer, ForeignKey("tiendas.id"), nullable=True)
     zona_id = Column(Integer, ForeignKey("cat_zonas.id"), nullable=True)
+    area_restriccion = Column(Enum(AreaTecnica), nullable=True)
     activo = Column(Boolean, default=True)
     disponible = Column(Boolean, default=True)
     last_login = Column(DateTime, nullable=True)
