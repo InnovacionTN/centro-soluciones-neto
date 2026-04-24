@@ -1,4 +1,7 @@
-import { Component, OnInit, OnDestroy, AfterViewChecked, ElementRef, ViewChild, signal, inject, computed } from '@angular/core';
+import {
+  Component, OnInit, OnDestroy, AfterViewChecked,
+  ElementRef, ViewChild, signal, inject, computed, effect
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -15,8 +18,6 @@ import { environment } from '../../../environments/environment';
 
 interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date; }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 @Component({
   selector: 'app-agente-dashboard',
   standalone: true,
@@ -25,420 +26,429 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
     <div class="page">
       <app-navbar section="Dashboard" />
 
-      <div class="dash-body">
+      <div class="workspace" [class.workspace--no-daniel]="!danielOpen()">
 
-        <!-- ══ COLUMNA IZQUIERDA: métricas + tickets asignados ═════════════ -->
-        <div class="left-col">
-
-          <!-- Top bar del agente -->
-          <div class="agent-topbar">
-            <div>
-              <h1 class="page-title">{{ auth.currentUser()?.nombre }}</h1>
-              <p class="page-sub">{{ now | date:'EEEE dd/MM/yyyy' }} · {{ grupoNombre() }}</p>
+        <!-- ══ CENTRO: TICKETS ════════════════════════════════════════════════ -->
+        <main class="center-col">
+          <div class="center-header">
+            <div class="agent-info-row">
+              <div class="agent-avatar">{{ initials() }}</div>
+              <div>
+                <h1 class="page-title">{{ firstName() }}</h1>
+                <p class="page-sub">{{ grupoNombre() }} · {{ fechaEsp() }}</p>
+              </div>
             </div>
-            <button
-              class="disponibilidad-btn"
-              [class.disponibilidad-btn--activo]="disponible()"
-              [class.disponibilidad-btn--pausa]="!disponible()"
-              (click)="toggleDisponibilidad()"
-              [disabled]="togglingDisp()">
-              <span class="disp-dot"
-                    [class.disp-dot--verde]="disponible()"
-                    [class.disp-dot--rojo]="!disponible()"></span>
-              {{ disponible() ? 'Disponible' : 'En pausa' }}
-            </button>
+            <div class="center-header-right">
+              <a routerLink="/agente/cola" class="btn-cola">Cola completa →</a>
+              <button class="daniel-btn" (click)="danielOpen.set(!danielOpen())"
+                      [class.daniel-btn--on]="danielOpen()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="10" rx="2"/>
+                  <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
+                  <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
+                  <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                @if (!danielOpen()) { Daniel } @else { Cerrar }
+              </button>
+            </div>
           </div>
 
-          <!-- KPI chips homologados -->
+          <!-- KPI bar: cada chip navega a la Cola con filtro pre-aplicado -->
           @if (metrics()) {
-            <div class="kpi-row">
-              <a routerLink="/agente/cola" class="kpi-card kpi-card--blue">
-                <span class="kpi-val">{{ metrics()!.total_abiertos }}</span>
-                <span class="kpi-lbl">Sin asignar</span>
+            <div class="kpi-bar">
+
+              <!-- Sin tomar: tickets del grupo sin agente — motiva a entrar a la cola -->
+              <a [routerLink]="['/agente/cola']" [queryParams]="{f:'__sin_asignar__'}"
+                 class="kchip kchip--dashed"
+                 title="Tickets de tu grupo que aún no tiene nadie asignado. Haz clic para tomarlos.">
+                <span class="kchip-n kchip-n--muted">{{ metrics()!.total_abiertos }}</span>
+                <span class="kchip-l">Sin tomar</span>
+                <span class="kchip-hint">del grupo</span>
               </a>
-              <a routerLink="/agente/cola" class="kpi-card kpi-card--purple">
-                <span class="kpi-val">{{ metrics()!.total_en_proceso }}</span>
-                <span class="kpi-lbl">Tomados</span>
+
+              <!-- Separador visual: mis tickets vs grupo -->
+              <div class="kchip-sep"></div>
+
+              <!-- Mis asignados -->
+              <a [routerLink]="['/agente/cola']" [queryParams]="{f:'__mis_asignados__'}"
+                 class="kchip kchip--purple"
+                 title="Tickets que ya tomaste y están en trabajo activo (En proceso o Esperando tu respuesta)">
+                <span class="kchip-n">{{ metrics()!.total_en_proceso }}</span>
+                <span class="kchip-l">Mis asignados</span>
               </a>
-              <a routerLink="/agente/cola" class="kpi-card kpi-card--amber">
-                <span class="kpi-val">{{ metrics()!.total_confirmar_solucion }}</span>
-                <span class="kpi-lbl">Confirmados</span>
+
+              <!-- Esp. confirmación -->
+              <a [routerLink]="['/agente/cola']" [queryParams]="{f:'ESPERANDO_TIENDA'}"
+                 class="kchip kchip--amber"
+                 title="Enviaste solución y esperas que la tienda confirme si quedó resuelto">
+                <span class="kchip-n">{{ metrics()!.total_confirmar_solucion }}</span>
+                <span class="kchip-l">Esp. tienda</span>
               </a>
-              <a routerLink="/agente/cola" class="kpi-card"
-                 [class.kpi-card--red]="metrics()!.total_vencidos > 0">
-                <span class="kpi-val" [class.val-red]="metrics()!.total_vencidos > 0">
-                  {{ metrics()!.total_vencidos }}
-                </span>
-                <span class="kpi-lbl">🔴 SLA Vencido</span>
-              </a>
-              <a routerLink="/agente/cola" class="kpi-card"
-                 [class.kpi-card--amber]="metrics()!.por_sla_status.AMARILLO > 0">
-                <span class="kpi-val">{{ metrics()!.por_sla_status.AMARILLO }}</span>
-                <span class="kpi-lbl">🟡 En riesgo</span>
-              </a>
-              <div class="kpi-card kpi-card--green">
-                <span class="kpi-val">{{ metrics()!.total_cerrados_hoy }}</span>
-                <span class="kpi-lbl">Cerrados hoy</span>
-              </div>
+
+              <!-- SLA Vencido: solo si hay alguno -->
+              @if (metrics()!.total_vencidos > 0) {
+                <a [routerLink]="['/agente/cola']" [queryParams]="{sla:'ROJO'}"
+                   class="kchip kchip--red kchip--pulse"
+                   title="Tickets cuyo tiempo límite de resolución ya venció. Atención inmediata.">
+                  <span class="kchip-n">{{ metrics()!.total_vencidos }}</span>
+                  <span class="kchip-l">🔴 SLA Vencido</span>
+                </a>
+              }
+
+              <!-- Re-abiertos: solo si hay alguno -->
+              @if (metrics()!.total_rechazados > 0) {
+                <a [routerLink]="['/agente/cola']" [queryParams]="{f:'RECHAZADO'}"
+                   class="kchip kchip--red"
+                   title="La tienda rechazó la solución propuesta. Requieren re-atención urgente.">
+                  <span class="kchip-n">{{ metrics()!.total_rechazados }}</span>
+                  <span class="kchip-l">⚠ Re-abiertos</span>
+                </a>
+              }
             </div>
           }
 
-          <!-- Mis tickets asignados (ordenados por prioridad) -->
-          <div class="section-header">
-            <h2 class="section-title">Mis tickets asignados</h2>
-            <a routerLink="/agente/cola" class="ver-todos-link">Ver cola completa →</a>
-          </div>
-
-          @if (loadingTickets()) {
-            @for (i of [1,2,3]; track i) {
-              <div class="tcard tcard--skeleton">
-                <div class="skeleton" style="height:11px;width:80px;border-radius:3px;margin-bottom:6px"></div>
-                <div class="skeleton" style="height:13px;width:75%;border-radius:3px"></div>
+          <!-- Tickets list -->
+          <div class="tickets-wrap">
+            @if (loadingTickets()) {
+              @for (i of [1,2,3,4]; track i) {
+                <div class="tcard tcard--skeleton">
+                  <div class="skeleton sk-line sk-line--sm"></div>
+                  <div class="skeleton sk-line sk-line--lg"></div>
+                </div>
+              }
+            } @else if (misTickets().length === 0) {
+              <div class="empty-state">
+                <span class="empty-icon">✅</span>
+                <p class="empty-txt">Sin tickets asignados a ti</p>
+                @if ((metrics()?.total_abiertos ?? 0) > 0) {
+                  <a [routerLink]="['/agente/cola']" [queryParams]="{f:'__sin_asignar__'}"
+                     class="empty-cola-link">
+                    👀 Hay {{ metrics()!.total_abiertos }} ticket(s) sin tomar en tu grupo →
+                  </a>
+                }
               </div>
-            }
-          } @else if (misTickets().length === 0) {
-            <div class="empty-tickets">
-              <span style="font-size:28px">✅</span>
-              <p style="font-size:13px;color:var(--c-muted);margin:4px 0 0">Sin tickets asignados · Todo al día</p>
-            </div>
-          } @else {
-            <div class="tickets-list">
+            } @else {
               @for (t of misTickets(); track t.id) {
                 <a class="tcard" [routerLink]="['/agente/ticket', t.id]"
-                   [class.tcard--rojo]="t.sla_status === 'ROJO'"
-                   [class.tcard--amarillo]="t.sla_status === 'AMARILLO'">
-                  <div class="tcard-top">
-                    <span class="sla-dot" [style.background]="slaColor(t.sla_status)"></span>
+                   [class.tcard--red]="t.sla_status === 'ROJO'"
+                   [class.tcard--amber]="t.sla_status === 'AMARILLO'">
+                  <div class="tcard-row">
+                    <span class="sla-pip" [style.background]="slaColor(t.sla_status)"></span>
                     <span class="tcard-folio">{{ t.folio }}</span>
-                    <app-status-badge [status]="t.estatus" />
-                    @if (t.sla_vencido) {
-                      <span class="badge badge--red" style="font-size:10px">⚠</span>
-                    }
+                    <app-status-badge [status]="$any(t.estatus)" />
+                    @if (t.sla_vencido) { <span class="badge-vencido">⚠ SLA</span> }
+                    <span class="tcard-prio prio--{{ t.prioridad?.toLowerCase() }}">{{ t.prioridad }}</span>
                   </div>
                   <p class="tcard-desc">{{ t.descripcion }}</p>
-                  <div class="tcard-meta">
+                  <div class="tcard-footer">
                     @if (t.cat_nivel1) { <span class="tcard-area">{{ t.cat_nivel1 }}</span> }
                     <span class="tcard-fecha">{{ t.fecha_apertura | date:'dd/MM · HH:mm' }}</span>
                   </div>
                 </a>
               }
-            </div>
-          }
-        </div>
+            }
+          </div>
+        </main>
 
-        <!-- ══ COLUMNA DERECHA: Dany copiloto ══════════════════════════════ -->
-        <div class="dany-col">
-          <div class="dany-card">
-
-            <!-- Header Dany -->
-            <div class="dany-header">
-              <div class="dany-avatar-wrap">
-                <div class="dany-orb"></div>
-                @if (thinking()) { <div class="thinking-ring"></div> }
-              </div>
-              <div>
-                <p class="dany-name">Dany · Copiloto IA</p>
-                <p class="dany-status">
-                  @if (thinking()) {
-                    <span class="dot dot--thinking"></span> Analizando…
-                  } @else {
-                    <span class="dot dot--online"></span> Listo para ayudarte
-                  }
-                </p>
-              </div>
-              @if (chatMsgs().length > 1) {
-                <button class="reset-btn" (click)="resetChat()">↺</button>
-              }
+        <!-- ══ DANIEL — PANEL DERECHO ════════════════════════════════════════ -->
+        @if (danielOpen()) {
+        <aside class="dany-panel">
+          <div class="dany-topbar">
+            <div class="dany-orb-wrap">
+              <div class="dany-orb" [class.dany-orb--pulse]="thinking()"></div>
             </div>
-
-            <!-- Mensajes -->
-            <div class="dany-messages" #chatRef>
-              @for (msg of chatMsgs(); track msg.id) {
-                @if (msg.from === 'dany') {
-                  <div class="dmsg dmsg--dany">
-                    <div class="dmsg-orb">
-                      <div class="dany-orb dany-orb--xs"></div>
-                    </div>
-                    <div class="bubble bubble--dany">{{ msg.text }}</div>
-                  </div>
-                } @else {
-                  <div class="dmsg dmsg--user">
-                    <div class="bubble bubble--user">{{ msg.text }}</div>
-                  </div>
-                }
-              }
-              @if (thinking()) {
-                <div class="dmsg dmsg--dany">
-                  <div class="dmsg-orb"><div class="dany-orb dany-orb--xs"></div></div>
-                  <div class="typing">
-                    <span></span><span></span><span></span>
-                  </div>
-                </div>
-              }
+            <div class="dany-topbar-info">
+              <span class="dany-topbar-name">Daniel</span>
+              <span class="dany-topbar-sub">
+                @if (thinking()) { Analizando… } @else { En línea }
+              </span>
             </div>
-
-            <!-- Input -->
-            <div class="dany-input-area">
-              <input
-                class="dany-input"
-                [(ngModel)]="chatInput"
-                placeholder="Pregunta a Dany sobre un ticket…"
-                [disabled]="thinking()"
-                (keydown.enter)="sendChat()"
-              />
-              <button class="dany-send-btn"
-                      [disabled]="!chatInput.trim() || thinking()"
-                      (click)="sendChat()">
-                ➤
-              </button>
-            </div>
-
-            <!-- Chips de contexto rápido para el agente -->
-            <div class="dany-chips">
-              <button class="dany-chip" (click)="sendChatQuick('¿Cuántos tickets tengo pendientes?')">
-                📊 Mis pendientes
-              </button>
-              <button class="dany-chip" (click)="sendChatQuick('¿Qué SLA están en riesgo?')">
-                ⚠ SLA en riesgo
-              </button>
-              <button class="dany-chip" (click)="sendChatQuick('¿Qué debo atender primero?')">
-                🎯 Prioridad
-              </button>
-            </div>
+            @if (chatMsgs().length > 1) {
+              <button class="dany-reset" (click)="resetChat()" title="Nueva conversación">↺</button>
+            }
           </div>
 
-          <!-- Métricas Dany (tasa de deflexión) -->
-          @if (deflexion() !== null) {
-            <div class="deflexion-card">
-              <div class="deflexion-orb">
-                <div class="dany-orb" style="width:36px;height:36px"></div>
-              </div>
-              <div>
-                <p class="deflexion-val">{{ deflexion() | number:'1.1-1' }}%</p>
-                <p class="deflexion-lbl">Tasa deflexión Dany · últimos 30d</p>
-              </div>
-              <div class="deflexion-bar-wrap">
-                <div class="deflexion-bar"
-                     [style.width.%]="(deflexion()! / 25) * 100 | number:'1.0-0'"
-                     [class.deflexion-bar--ok]="deflexion()! >= 25">
+          <div class="dany-messages" #chatRef>
+            @for (msg of chatMsgs(); track msg.id) {
+              <div class="dmsg" [class.dmsg--dany]="msg.from === 'dany'" [class.dmsg--user]="msg.from === 'user'">
+                @if (msg.from === 'dany') {
+                  <div class="dany-mini-orb"><div class="dany-orb dany-orb--xs"></div></div>
+                }
+                <div class="bubble" [class.bubble--dany]="msg.from === 'dany'" [class.bubble--user]="msg.from === 'user'">
+                  {{ msg.text }}
                 </div>
               </div>
-              <span class="deflexion-meta">Meta 25%</span>
-            </div>
-          }
-        </div>
+            }
+            @if (thinking()) {
+              <div class="dmsg dmsg--dany">
+                <div class="dany-mini-orb"><div class="dany-orb dany-orb--xs"></div></div>
+                <div class="typing"><span></span><span></span><span></span></div>
+              </div>
+            }
+          </div>
+
+          <div class="dany-chips">
+            <button class="dchip" (click)="sendChatQuick('¿Cuántos tickets tengo pendientes?')">📊 Pendientes</button>
+            <button class="dchip" (click)="sendChatQuick('¿Qué SLA están en riesgo?')">⚠ SLA riesgo</button>
+            <button class="dchip" (click)="sendChatQuick('¿Qué debo atender primero?')">🎯 Prioridad</button>
+          </div>
+
+          <div class="dany-input-row">
+            <input
+              class="dany-input"
+              [(ngModel)]="chatInput"
+              placeholder="Pregunta a Daniel…"
+              [disabled]="thinking()"
+              (keydown.enter)="sendChat()"
+            />
+            <button class="dany-send" [disabled]="!chatInput.trim() || thinking()" (click)="sendChat()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </aside>
+        }
 
       </div>
     </div>
+
   `,
   styles: [`
-    .dash-body {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      padding: 20px;
-      height: 100vh;
-      overflow-y: auto;
-      box-sizing: border-box;
-      min-width: 0;
+    /* ── Layout ────────────────────────────────────────────────────────────── */
+    .workspace {
+      flex:1; display:grid; min-height:0; height:100vh; overflow:hidden;
+      grid-template-columns: 1fr 360px; transition:grid-template-columns .2s;
     }
-
-    /* ── Columna principal (KPIs + tickets) ─────────────────────────────── */
-    .left-col { display: flex; flex-direction: column; gap: 16px; }
-    .left-col::-webkit-scrollbar { width: 4px; }
-    .left-col::-webkit-scrollbar-thumb { background: var(--c-border); }
-
-    .agent-topbar { display: flex; justify-content: space-between; align-items: flex-start; }
-    .page-title  { font-size: 20px; font-weight: 700; margin: 0; }
-    .page-sub    { font-size: 12px; color: var(--c-muted); margin: 2px 0 0; }
-
-    .kpi-row {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+    .workspace--no-daniel { grid-template-columns: 1fr 0px; }
+    .daniel-btn {
+      display:flex; align-items:center; gap:7px;
+      padding:9px 16px; border-radius:22px;
+      background:linear-gradient(135deg,#1B3462,#2563eb);
+      color:white; border:none; cursor:pointer; font-size:13px; font-weight:500;
+      box-shadow:0 4px 14px rgba(27,52,98,.3); transition:all .18s;
     }
-    .kpi-card {
-      background: var(--c-surface); border: 1px solid var(--c-border);
-      border-radius: var(--radius-md); padding: 12px 14px;
-      display: flex; flex-direction: column; gap: 2px;
-      text-decoration: none; color: inherit; transition: transform .1s;
-      border-top: 3px solid var(--c-border);
+    .daniel-btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(27,52,98,.4); }
+    .daniel-btn--on { background:linear-gradient(135deg,#0f1f42,#1B3462); box-shadow:0 2px 8px rgba(27,52,98,.25); }
+
+    /* ── Centro ─────────────────────────────────────────────────────────────── */
+    .center-col {
+      display:flex; flex-direction:column; overflow-y:auto;
+      padding:20px; gap:16px; min-height:0; background:var(--c-bg);
     }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,.07); }
-    .kpi-card--blue   { border-top-color: var(--c-blue); }
-    .kpi-card--purple { border-top-color: var(--c-purple); }
-    .kpi-card--amber  { border-top-color: var(--c-amber); }
-    .kpi-card--red    { border-top-color: var(--c-red); }
-    .kpi-card--green  { border-top-color: var(--c-green); }
-    .kpi-val { font-size: 26px; font-weight: 800; line-height: 1; }
-    .kpi-lbl { font-size: 11px; color: var(--c-muted); }
-    .val-red { color: var(--c-red); }
+    .center-col::-webkit-scrollbar { width:4px; }
+    .center-col::-webkit-scrollbar-thumb { background:var(--c-border); }
 
-    .section-header { display: flex; justify-content: space-between; align-items: center; }
-    .section-title  { font-size: 15px; font-weight: 600; margin: 0; }
-    .ver-todos-link { font-size: 12px; color: var(--c-blue); text-decoration: none; }
-    .ver-todos-link:hover { text-decoration: underline; }
+    .center-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+    .agent-info-row { display:flex; align-items:center; gap:10px; }
+    .agent-avatar {
+      width:38px; height:38px; border-radius:50%; flex-shrink:0;
+      background:linear-gradient(135deg,#1B3462,#2a4f8f);
+      color:white; font-size:13px; font-weight:700;
+      display:flex; align-items:center; justify-content:center;
+    }
+    .center-header-right { display:flex; align-items:center; gap:10px; }
+    .page-title { font-size:18px; font-weight:700; margin:0; }
+    .page-sub { font-size:11px; color:var(--c-muted); margin:2px 0 0; text-transform:capitalize; }
 
-    .tickets-list { display: flex; flex-direction: column; gap: 8px; }
+    .btn-cola {
+      font-size:12px; color:var(--c-blue); text-decoration:none;
+      padding:6px 12px; border:1px solid var(--c-blue-md); border-radius:8px;
+      transition:background .15s;
+    }
+    .btn-cola:hover { background:var(--c-blue-lt); }
+
+    .kpi-bar { display:flex; gap:8px; }
+    .kchip {
+      flex:1; display:flex; flex-direction:column; gap:2px;
+      padding:10px 12px; border-radius:12px; border:1px solid var(--c-border);
+      background:var(--c-surface); text-decoration:none; color:inherit;
+      transition:transform .15s, box-shadow .15s;
+      border-top:3px solid transparent;
+    }
+    .kchip:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.07); }
+    .kchip--blue   { border-top-color:var(--c-blue); }
+    .kchip--purple { border-top-color:var(--c-purple); }
+    .kchip--amber  { border-top-color:var(--c-amber); }
+    .kchip--red    { border-top-color:var(--c-red); }
+    .kchip--dashed { border-top:2px dashed var(--c-border); background:var(--c-bg); opacity:.85; }
+    .kchip--dashed:hover { opacity:1; }
+    .kchip--pulse  { animation:chip-pulse 2s ease-in-out infinite; }
+    @keyframes chip-pulse {
+      0%,100% { box-shadow:0 0 0 0 rgba(239,68,68,0); }
+      50%      { box-shadow:0 0 0 4px rgba(239,68,68,.15); }
+    }
+    .kchip-sep { width:1px; background:var(--c-border); align-self:stretch; margin:4px 0; flex-shrink:0; }
+    .kchip-n { font-size:24px; font-weight:800; line-height:1; }
+    .kchip-n--muted { color:var(--c-muted); }
+    .kchip-l { font-size:11px; color:var(--c-muted); }
+    .kchip-hint { font-size:9px; color:var(--c-muted); opacity:.7; }
+    .empty-cola-link {
+      font-size:12px; color:var(--c-blue); text-decoration:none;
+      padding:6px 12px; border:1px solid var(--c-blue-md); border-radius:8px;
+      transition:background .15s; margin-top:4px;
+    }
+    .empty-cola-link:hover { background:var(--c-blue-lt); }
+
+    .tickets-wrap { display:flex; flex-direction:column; gap:8px; }
+
     .tcard {
-      display: block; padding: 10px 12px; border-radius: 10px;
-      border: 1px solid var(--c-border); background: var(--c-surface);
-      text-decoration: none; color: inherit; transition: all .15s;
+      display:block; padding:12px 14px; border-radius:12px;
+      border:1px solid var(--c-border); background:var(--c-surface);
+      text-decoration:none; color:inherit;
+      transition:all .2s; border-left:3px solid transparent;
     }
-    .tcard:hover { border-color: var(--c-blue); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.07); }
-    .tcard--rojo    { border-left: 3px solid var(--c-red) !important; }
-    .tcard--amarillo{ border-left: 3px solid var(--c-amber) !important; }
-    .tcard--skeleton{ pointer-events: none; }
-    .tcard-top  { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-    .tcard-folio{ font-family: monospace; font-size: 11px; font-weight: 700; color: var(--c-blue); }
-    .tcard-desc { font-size: 13px; margin: 0 0 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .tcard-meta { display: flex; align-items: center; gap: 8px; }
-    .tcard-area { font-size: 10px; background: var(--c-border); padding: 1px 6px; border-radius: 6px; color: var(--c-muted); }
-    .tcard-fecha{ font-size: 10px; color: var(--c-muted); }
-    .sla-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .tcard:hover { border-color:var(--c-blue); transform:translateY(-1px); box-shadow:0 4px 14px rgba(0,0,0,.07); }
+    .tcard--red    { border-left-color:var(--c-red) !important; background:#fef2f2; }
+    .tcard--amber  { border-left-color:var(--c-amber) !important; background:#fffbeb; }
+    .tcard--skeleton { pointer-events:none; background:var(--c-surface); }
 
-    .empty-tickets { display: flex; flex-direction: column; align-items: center; padding: 32px; }
-
-    /* ── Dany sección ───────────────────────────────────────────────────── */
-    .dany-col {
-      display: flex; flex-direction: column; gap: 12px;
+    .tcard-row { display:flex; align-items:center; gap:6px; margin-bottom:6px; flex-wrap:wrap; }
+    .sla-pip { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .tcard-folio { font-family:monospace; font-size:11px; font-weight:700; color:var(--c-blue); }
+    .badge-vencido {
+      font-size:10px; background:#fef2f2; color:var(--c-red);
+      border:1px solid #fecaca; padding:1px 6px; border-radius:6px;
     }
-    .dany-card {
-      display: flex; flex-direction: column;
-      background: var(--c-surface); border: 1px solid var(--c-border);
-      border-radius: var(--radius-lg); overflow: hidden;
-      height: 480px;
+    .tcard-prio {
+      margin-left:auto; font-size:10px; font-weight:600; padding:1px 7px;
+      border-radius:6px; text-transform:lowercase; letter-spacing:.02em;
+    }
+    .prio--critica { background:#fef2f2; color:var(--c-red); }
+    .prio--alta    { background:#fff3e0; color:#e65100; }
+    .prio--media   { background:#fffbeb; color:#d97706; }
+    .prio--baja    { background:var(--c-bg); color:var(--c-muted); }
+
+    .tcard-desc { font-size:13px; margin:0 0 6px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .tcard-footer { display:flex; align-items:center; gap:8px; }
+    .tcard-area {
+      font-size:10px; background:var(--c-border); padding:2px 7px;
+      border-radius:6px; color:var(--c-muted);
+    }
+    .tcard-fecha { font-size:10px; color:var(--c-muted); margin-left:auto; }
+
+    .empty-state { display:flex; flex-direction:column; align-items:center; padding:48px 20px; gap:8px; }
+    .empty-icon { font-size:36px; }
+    .empty-txt { font-size:13px; color:var(--c-muted); }
+
+    /* Skeleton */
+    .skeleton { background:linear-gradient(90deg,var(--c-border) 25%,var(--c-bg) 50%,var(--c-border) 75%); background-size:200% 100%; animation:shimmer 1.4s infinite; border-radius:4px; }
+    .sk-line { height:10px; margin-bottom:8px; }
+    .sk-line--sm { width:40%; }
+    .sk-line--lg { width:75%; }
+    @keyframes shimmer { 0%{background-position:200% 0;} 100%{background-position:-200% 0;} }
+
+    /* ── Dany Panel ─────────────────────────────────────────────────────────── */
+    .dany-panel {
+      display:flex; flex-direction:column;
+      border-left:1px solid var(--c-border);
+      background:var(--c-surface);
+      height:100vh; overflow:hidden;
     }
 
-    /* Dany orb */
+    .dany-topbar {
+      display:flex; align-items:center; gap:10px;
+      padding:14px 16px; border-bottom:1px solid var(--c-border);
+      flex-shrink:0;
+      background:linear-gradient(135deg,#0f1f42,#1B3462);
+    }
+
+    .dany-orb-wrap { position:relative; flex-shrink:0; }
     .dany-orb {
-      border-radius: 50%; flex-shrink: 0;
-      background: radial-gradient(circle at 35% 35%, #4f8aff, #1B3462);
-      box-shadow: 0 2px 10px rgba(27,52,98,.3);
-      width: 36px; height: 36px;
+      width:34px; height:34px; border-radius:50%;
+      background:radial-gradient(circle at 32% 32%, #6ba3ff, #1B3462);
+      box-shadow:0 0 12px rgba(79,138,255,.4);
     }
-    .dany-orb--xs { width: 22px; height: 22px; }
-    .dany-avatar-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
-    .thinking-ring {
-      position: absolute; inset: -4px; border-radius: 50%;
-      border: 2px solid transparent; border-top-color: #4f8aff;
-      animation: spin 1s linear infinite;
+    .dany-orb--xs { width:22px; height:22px; }
+    .dany-orb--pulse { animation:orb-pulse 1.5s ease-in-out infinite; }
+    @keyframes orb-pulse {
+      0%,100% { box-shadow:0 0 8px rgba(79,138,255,.4); }
+      50%      { box-shadow:0 0 20px rgba(79,138,255,.8); }
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .dany-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 12px 14px; border-bottom: 1px solid var(--c-border);
-      flex-shrink: 0;
+    .dany-topbar-name { font-size:14px; font-weight:700; color:white; display:block; }
+    .dany-topbar-sub  { font-size:11px; color:rgba(255,255,255,.6); display:block; }
+    .dany-reset {
+      margin-left:auto; width:28px; height:28px; border-radius:50%;
+      border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.08);
+      color:white; cursor:pointer; font-size:14px; transition:background .15s;
     }
-    .dany-name   { font-size: 14px; font-weight: 700; margin: 0; }
-    .dany-status { font-size: 11px; color: var(--c-muted); margin: 0; display: flex; align-items: center; gap: 4px; }
-    .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
-    .dot--online   { background: #22c55e; }
-    .dot--thinking { background: #f59e0b; animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.4;} }
-    .reset-btn {
-      margin-left: auto; width: 28px; height: 28px; border-radius: 50%;
-      border: 1px solid var(--c-border); background: transparent;
-      cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center;
-    }
-    .reset-btn:hover { background: var(--c-bg); }
+    .dany-reset:hover { background:rgba(255,255,255,.18); }
 
     .dany-messages {
-      flex: 1; overflow-y: auto; padding: 12px;
-      display: flex; flex-direction: column; gap: 10px; min-height: 0;
+      flex:1; overflow-y:auto; padding:16px 14px;
+      display:flex; flex-direction:column; gap:12px;
+      min-height:0; height:0;
     }
-    .dany-messages::-webkit-scrollbar { width: 3px; }
-    .dany-messages::-webkit-scrollbar-thumb { background: var(--c-border); }
+    .dany-messages::-webkit-scrollbar { width:3px; }
+    .dany-messages::-webkit-scrollbar-thumb { background:var(--c-border); }
 
-    .dmsg { display: flex; align-items: flex-end; gap: 6px; max-width: 90%; }
-    .dmsg--dany { align-self: flex-start; }
-    .dmsg--user { align-self: flex-end; flex-direction: row-reverse; }
-    .dmsg-orb   { flex-shrink: 0; }
+    .dmsg { display:flex; align-items:flex-end; gap:7px; max-width:92%; }
+    .dmsg--dany { align-self:flex-start; }
+    .dmsg--user { align-self:flex-end; flex-direction:row-reverse; }
+    .dany-mini-orb { flex-shrink:0; margin-bottom:2px; }
 
-    .bubble { padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.45; }
+    .bubble {
+      padding:9px 13px; border-radius:16px; font-size:13px;
+      line-height:1.5; white-space:pre-wrap; word-break:break-word;
+      animation:bubble-in .2s ease;
+    }
+    @keyframes bubble-in { from{opacity:0;transform:translateY(4px);} to{opacity:1;transform:translateY(0);} }
     .bubble--dany {
-      background: var(--c-bg); color: var(--c-text);
-      border-radius: 3px 14px 14px 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      background:var(--c-bg); color:var(--c-text);
+      border:1px solid var(--c-border);
+      border-bottom-left-radius:4px;
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
     }
     .bubble--user {
-      background: linear-gradient(135deg, #1B3462, #2a4f8f);
-      color: white; border-radius: 14px 3px 14px 14px;
+      background:linear-gradient(135deg,#1B3462,#2563eb);
+      color:white; border-bottom-right-radius:4px;
     }
 
     .typing {
-      display: flex; gap: 4px; padding: 10px 14px;
-      background: var(--c-bg); border-radius: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.07);
+      display:flex; gap:5px; padding:11px 15px;
+      background:var(--c-bg); border:1px solid var(--c-border);
+      border-radius:16px; border-bottom-left-radius:4px;
     }
     .typing span {
-      width: 7px; height: 7px; background: var(--c-blue);
-      border-radius: 50%; animation: bounce 1.2s infinite;
+      width:7px; height:7px; background:var(--c-blue);
+      border-radius:50%; animation:bounce 1.2s ease-in-out infinite;
     }
-    .typing span:nth-child(2) { animation-delay: .2s; }
-    .typing span:nth-child(3) { animation-delay: .4s; }
-    @keyframes bounce { 0%,80%,100%{transform:translateY(0);opacity:.4;} 40%{transform:translateY(-5px);opacity:1;} }
-
-    .dany-input-area {
-      display: flex; gap: 8px; padding: 10px 12px;
-      border-top: 1px solid var(--c-border); flex-shrink: 0;
+    .typing span:nth-child(2){animation-delay:.2s;}
+    .typing span:nth-child(3){animation-delay:.4s;}
+    @keyframes bounce {
+      0%,80%,100%{transform:translateY(0);opacity:.4;}
+      40%{transform:translateY(-6px);opacity:1;}
     }
-    .dany-input {
-      flex: 1; border-radius: 10px; border: 1.5px solid var(--c-border);
-      padding: 8px 12px; font-size: 13px; font-family: inherit;
-      background: var(--c-bg); transition: border-color .15s;
-    }
-    .dany-input:focus { outline: none; border-color: var(--c-blue); }
-    .dany-send-btn {
-      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
-      background: var(--c-blue); color: white; border: none;
-      cursor: pointer; font-size: 14px; transition: all .15s;
-    }
-    .dany-send-btn:not(:disabled):hover { filter: brightness(.88); }
-    .dany-send-btn:disabled { opacity: .4; cursor: not-allowed; }
 
     .dany-chips {
-      display: flex; gap: 6px; flex-wrap: wrap;
-      padding: 0 12px 10px; flex-shrink: 0;
+      display:flex; gap:6px; flex-wrap:wrap;
+      padding:10px 14px; border-top:1px solid var(--c-border);
+      flex-shrink:0;
     }
-    .dany-chip {
-      padding: 4px 10px; border-radius: 12px; font-size: 11px;
-      border: 1px solid var(--c-blue-md); background: var(--c-surface);
-      color: var(--c-blue); cursor: pointer; transition: all .15s;
+    .dchip {
+      padding:5px 11px; border-radius:20px; font-size:11px; font-weight:500;
+      border:1px solid var(--c-blue-md); background:var(--c-surface);
+      color:var(--c-blue); cursor:pointer; transition:all .15s;
     }
-    .dany-chip:hover { background: var(--c-blue-lt); }
+    .dchip:hover { background:var(--c-blue-lt); transform:translateY(-1px); }
 
-    /* Deflexión card */
-    .deflexion-card {
-      background: var(--c-surface); border: 1px solid var(--c-border);
-      border-radius: var(--radius-md); padding: 12px 14px;
-      display: grid; grid-template-columns: auto 1fr; gap: 8px;
-      align-items: center; flex-shrink: 0;
+    .dany-input-row {
+      display:flex; align-items:center; gap:8px;
+      padding:12px 14px; border-top:1px solid var(--c-border); flex-shrink:0;
     }
-    .deflexion-orb { grid-row: span 2; }
-    .deflexion-val  { font-size: 20px; font-weight: 800; color: #1B3462; margin: 0; }
-    .deflexion-lbl  { font-size: 11px; color: var(--c-muted); margin: 0; }
-    .deflexion-bar-wrap {
-      grid-column: 2; height: 6px;
-      background: var(--c-border); border-radius: 3px; overflow: hidden;
+    .dany-input {
+      flex:1; border-radius:22px; border:1.5px solid var(--c-border);
+      padding:9px 16px; font-size:13px; font-family:inherit;
+      background:var(--c-bg); color:var(--c-text); transition:border-color .15s;
     }
-    .deflexion-bar { height: 100%; background: var(--c-blue); border-radius: 3px; transition: width .5s; max-width: 100%; }
-    .deflexion-bar--ok { background: #00A878; }
-    .deflexion-meta { grid-column: 2; font-size: 10px; color: var(--c-muted); }
-
-    /* Misc */
-    .disponibilidad-btn {
-      display: flex; align-items: center; gap: 6px;
-      padding: 6px 12px; border-radius: var(--radius-md); font-size: 12px;
-      font-weight: 500; cursor: pointer; border: 1px solid; transition: all .15s;
+    .dany-input:focus { outline:none; border-color:var(--c-blue); }
+    .dany-input::placeholder { color:var(--c-muted); }
+    .dany-send {
+      width:38px; height:38px; border-radius:50%; flex-shrink:0;
+      background:var(--c-blue); color:white; border:none;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all .15s;
     }
-    .disponibilidad-btn--activo { background: #E8F5E9; color: #2E7D32; border-color: #A5D6A7; }
-    .disponibilidad-btn--pausa  { background: #FFF3E0; color: #E65100; border-color: #FFCC80; }
-    .disponibilidad-btn:disabled { opacity: .6; cursor: not-allowed; }
-    .disp-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .disp-dot--verde { background: #2E7D32; }
-    .disp-dot--rojo  { background: #E65100; }
+    .dany-send:hover:not(:disabled) { filter:brightness(.88); transform:scale(1.05); }
+    .dany-send:disabled { opacity:.4; cursor:not-allowed; }
   `],
 })
 export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChecked {
@@ -450,7 +460,7 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
   private http = inject(HttpClient);
   private destroy$ = new Subject<void>();
 
-  // ── Estado métricas ────────────────────────────────────────────────────────
+
   metrics = signal<DashboardMetrics | null>(null);
   loadingTickets = signal(true);
   allTickets = signal<any[]>([]);
@@ -459,10 +469,21 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
   deflexion = signal<number | null>(null);
   now = new Date();
 
-  grupoNombre = computed(() => {
-    const user = this.auth.currentUser();
-    return (user as any)?.grupo_nombre ?? '';
+  initials = computed(() => {
+    const nombre = this.auth.currentUser()?.nombre ?? '';
+    return nombre.split(' ').slice(0, 2).map((p: string) => p[0]).join('').toUpperCase();
   });
+
+  fechaEsp = computed(() => {
+    const d = new Date();
+    return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'short' });
+  });
+
+  firstName = computed(() =>
+    (this.auth.currentUser()?.nombre ?? '').split(' ')[0]
+  );
+
+  grupoNombre = computed(() => (this.auth.currentUser() as any)?.grupo_nombre ?? '');
 
   misTickets = computed(() => {
     const userId = this.auth.currentUser()?.id;
@@ -477,7 +498,9 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
       });
   });
 
-  // ── Chat Dany copiloto ─────────────────────────────────────────────────────
+  danielOpen = signal(true); // panel derecho abierto por defecto
+
+  // ── Chat ──────────────────────────────────────────────────────────────────
   chatMsgs = signal<DanyMsg[]>([]);
   chatInput = '';
   thinking = signal(false);
@@ -486,43 +509,42 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
 
   ngOnInit() {
     const user = this.auth.currentUser();
-    if (user) this.disponible.set(user.disponible ?? true);
+    if (user) this.disponible.set((user as any).disponible ?? true);
 
-    this.ticketSvc.dashboard().subscribe({
-      next: m => { this.metrics.set(m); },
-      error: () => { },
-    });
+    this.ticketSvc.dashboard().subscribe({ next: m => this.metrics.set(m), error: () => { } });
 
-    this.ticketSvc.list({}).subscribe({
+    const areaFilter = user?.rol === 'ADMIN_AREA' && user?.area_restriccion
+      ? { area: user.area_restriccion } : {};
+    this.ticketSvc.list(areaFilter).subscribe({
       next: ts => { this.allTickets.set(ts as any); this.loadingTickets.set(false); },
       error: () => this.loadingTickets.set(false),
     });
 
-    // Cargar deflexión Dany
-    this.http.get<any>(`${environment.apiUrl}/admin/kpis/dany`).pipe(
-      catchError(() => of(null))
-    ).subscribe(d => { if (d) this.deflexion.set(d.tasa_deflexion_pct ?? null); });
+    this.http.get<any>(`${environment.apiUrl}/admin/kpis/dany`).pipe(catchError(() => of(null)))
+      .subscribe(d => { if (d) this.deflexion.set(d.tasa_deflexion_pct ?? null); });
 
     this.pushWelcome();
+    setTimeout(() => {
+      const el = this.chatRef?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 100);
 
-    // Polling cada 90s
     interval(90_000).pipe(takeUntil(this.destroy$))
-      .subscribe(() => {
-        this.ticketSvc.list({}).subscribe({ next: ts => this.allTickets.set(ts as any), error: () => { } });
-      });
+      .subscribe(() => { const af2 = (() => { const u2 = this.auth.currentUser(); return u2?.rol === 'ADMIN_AREA' && u2?.area_restriccion ? { area: u2.area_restriccion } : {}; })(); this.ticketSvc.list(af2).subscribe({ next: ts => this.allTickets.set(ts as any), error: () => { } }); });
   }
 
   ngOnDestroy() { this.destroy$.next(); this.destroy$.complete(); }
 
   ngAfterViewChecked() {
     if (this.needsScroll) {
-      const el = this.chatRef?.nativeElement;
-      if (el) el.scrollTop = el.scrollHeight;
       this.needsScroll = false;
+      setTimeout(() => {
+        const el = this.chatRef?.nativeElement;
+        if (el) el.scrollTop = el.scrollHeight;
+      }, 50);
     }
   }
 
-  // ── Disponibilidad ────────────────────────────────────────────────────────
   toggleDisponibilidad() {
     const user = this.auth.currentUser();
     if (!user || this.togglingDisp()) return;
@@ -530,15 +552,13 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     const nuevo = !this.disponible();
     this.adminSvc.setDisponibilidad(user.id, nuevo).subscribe({
       next: () => {
-        this.disponible.set(nuevo);
-        this.togglingDisp.set(false);
+        this.disponible.set(nuevo); this.togglingDisp.set(false);
         this.auth.currentUser.update(u => u ? { ...u, disponible: nuevo } : u);
       },
       error: () => this.togglingDisp.set(false),
     });
   }
 
-  // ── Chat ──────────────────────────────────────────────────────────────────
   sendChat() {
     const text = this.chatInput.trim();
     if (!text || this.thinking()) return;
@@ -547,15 +567,14 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     this.thinking.set(true);
     this.needsScroll = true;
 
+    const user = this.auth.currentUser();
     const payload = {
       mensaje: text,
       tienda_id: null,
-      sesion_id: 'agente-' + this.auth.currentUser()?.id,
-      contexto: {
-        rol: 'agente',
-        grupo: this.grupoNombre(),
-        mis_tickets: this.misTickets().length,
-      },
+      sesion_id: 'agente-' + user?.id,
+      usuario_id: user?.id ?? null,
+      rol_usuario: user?.rol ?? 'AGENTE',  // usa el rol real del usuario
+      jwt: this.auth.getToken() ?? '',
       historial: this.chatMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
     };
 
@@ -569,46 +588,37 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     });
   }
 
-  sendChatQuick(text: string) {
-    this.chatInput = text;
-    this.sendChat();
-  }
-
-  resetChat() {
-    this.chatMsgs.set([]);
-    this.pushWelcome();
-  }
+  sendChatQuick(text: string) { this.chatInput = text; this.sendChat(); }
+  resetChat() { this.chatMsgs.set([]); this.pushWelcome(); }
 
   private agenteFallback(text: string): string {
     const l = text.toLowerCase();
-    if (l.includes('pendiente') || l.includes('cuántos')) {
-      return `Tienes ${this.misTickets().length} tickets asignados activos. Revísalos en la cola.`;
-    }
+    if (l.includes('pendiente') || l.includes('cuántos'))
+      return `Tienes ${this.misTickets().length} tickets asignados activos.`;
     if (l.includes('riesgo') || l.includes('sla')) {
       const n = this.misTickets().filter(t => t.sla_status === 'ROJO').length;
-      return n > 0 ? `⚠ Hay ${n} ticket(s) con SLA vencido. Atiéndelos primero.` : '✅ Todos tus SLA están en tiempo.';
+      return n > 0 ? `⚠ Hay ${n} ticket(s) con SLA vencido.` : '✅ Todos tus SLA están en tiempo.';
     }
     if (l.includes('prioridad') || l.includes('primero')) {
       const t = this.misTickets()[0];
-      return t ? `El más urgente es ${t.folio}: "${t.descripcion}".` : 'No tienes tickets asignados ahora mismo.';
+      return t ? `El más urgente es ${t.folio}: "${t.descripcion?.slice(0, 60)}"` : 'No tienes tickets asignados.';
     }
-    return 'Como copiloto estoy aquí para ayudarte a priorizar y resolver tickets. ¿Qué necesitas?';
+    return 'Soy Daniel, del equipo CSN. Pregúntame sobre tickets, prioridades o SLA.';
   }
 
   private pushWelcome() {
-    const nombre = this.auth.currentUser()?.nombre?.split(' ')[0] ?? '';
+    const nombre = this.firstName();
     this.addChatMsg({
       from: 'dany',
-      text: `Hola${nombre ? ` ${nombre}` : ''} 👋 Soy tu copiloto IA. Pregúntame sobre tus tickets, prioridades o cualquier consulta de soporte.`,
+      text: `Hola${nombre ? ` ${nombre}` : ''} 👋 Soy Daniel, parte del equipo CSN. Pregúntame sobre tu cola, prioridades o un ticket específico.`
     });
   }
 
-  private addChatMsg(partial: Omit<DanyMsg, 'id' | 'time'>) {
-    this.chatMsgs.update(m => [...m, { id: Math.random().toString(36).slice(2), time: new Date(), ...partial }]);
+  private addChatMsg(p: Omit<DanyMsg, 'id' | 'time'>) {
+    this.chatMsgs.update(m => [...m, { id: Math.random().toString(36).slice(2), time: new Date(), ...p }]);
   }
 
-  slaColor(status: string): string {
-    const map: Record<string, string> = { ROJO: '#EF4444', AMARILLO: '#F59E0B', VERDE: '#22C55E' };
-    return map[status] ?? '#9CA3AF';
+  slaColor(s: string): string {
+    return ({ ROJO: '#ef4444', AMARILLO: '#f59e0b', VERDE: '#22c55e' } as any)[s] ?? '#9ca3af';
   }
 }

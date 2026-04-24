@@ -700,6 +700,13 @@ export class AgenteTicketComponent implements OnInit {
     });
   }
 
+  iaChipTooltip(confianza: number | null): string {
+    if (confianza === null) return '';
+    if (confianza >= 80) return `Alta (${confianza}%): La IA identificó el problema con alta certeza. La tipificación es muy probable que sea correcta.`;
+    if (confianza >= 50) return `Media (${confianza}%): Hubo ambigüedad en la descripción. Verifica que la tipificación asignada sea la correcta.`;
+    return `Baja (${confianza}%): La descripción no coincidió bien con ninguna tipificación. Revisa si la categoría asignada es adecuada antes de atender.`;
+  }
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,

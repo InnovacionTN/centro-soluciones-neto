@@ -15,13 +15,13 @@ export const routes: Routes = [
   },
   {
     path: 'agente',
-    canActivate: [authGuard(['AGENTE', 'ADMIN'])],
+    canActivate: [authGuard(['AGENTE', 'ADMIN', 'ADMIN_AREA'])],
     loadChildren: () =>
       import('./features/agente/agente.routes').then(m => m.AGENTE_ROUTES),
   },
   {
     path: 'admin',
-    canActivate: [authGuard(['ADMIN'])],
+    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA'])],
     loadChildren: () =>
       import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
   },

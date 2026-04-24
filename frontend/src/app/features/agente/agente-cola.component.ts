@@ -1,13 +1,18 @@
-import { Component, OnInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, AfterViewChecked, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
-import { interval, Subscription } from 'rxjs';
+import { RouterModule, ActivatedRoute } from '@angular/router';
+import { interval, Subscription, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { environment } from '../../../environments/environment';
 import { TicketService } from '../../core/services/ticket.service';
 import { AuthService } from '../../core/services/auth.service';
 import { NavbarComponent } from '../../shared/components/navbar.component';
 import { StatusBadgeComponent } from '../../shared/components/status-badge.component';
 import { TicketListItem, SlaStatus, slaStatusColor, origenIcon } from '../../core/models';
+
+interface DanielMsg { id: string; from: 'daniel' | 'user'; text: string; time: Date; }
 
 const PRIORIDAD_ORDER: Record<string, number> = {
   CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3,
@@ -21,54 +26,98 @@ const PRIORIDAD_ORDER: Record<string, number> = {
     <div class="page">
       <app-navbar section="Call Center" />
 
-      <div class="content content--wide">
+      <!-- workspace: [content] + [daniel] al mismo nivel que navbar -->
+      <div class="cola-workspace" [class.cola-workspace--daniel]="danielOpen()">
 
-        <!-- Top bar -->
-        <div class="top-bar">
-          <div>
-            <h1 class="page-title">Cola de tickets</h1>
-            <p class="page-sub">
-              {{ auth.currentUser()?.nombre }} ·
-              Grupo: {{ grupoNombre() }}
-            </p>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="text-sm text-muted">Actualiza en {{ countdown() }}s</span>
-            <button class="btn btn--ghost btn--sm" (click)="load()">↻ Refrescar</button>
-          </div>
-        </div>
+        <!-- Columna principal -->
+        <div class="cola-main">
 
-        <!-- KPIs — Sprint 1: agregamos SIN_SLA -->
+          <!-- Top bar -->
+          <div class="top-bar">
+            <div>
+              <h1 class="page-title">Cola de tickets</h1>
+              <p class="page-sub">
+                {{ auth.currentUser()?.nombre }} · {{ grupoNombre() }}
+              </p>
+            </div>
+            <div class="top-bar-actions">
+              <span class="refresh-txt">Actualiza en {{ countdown() }}s</span>
+              <button class="btn btn--ghost btn--sm" (click)="load()">↻ Refrescar</button>
+              <button class="daniel-btn" (click)="danielOpen.set(!danielOpen())"
+                      [class.daniel-btn--on]="danielOpen()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="10" rx="2"/>
+                  <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
+                  <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
+                  <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
+                </svg>
+                @if (!danielOpen()) { Daniel } @else { Cerrar }
+              </button>
+            </div>
+          </div>
+
+          <div class="cola-content">
+        <!-- KPIs: cada card es un filtro clickeable -->
         <div class="kpi-row">
-          <div class="kpi-card">
-            <span class="kpi-val kpi-val--red">{{ counts().sin_asignar }}</span>
-            <span class="kpi-label">Sin asignar</span>
-          </div>
-          <div class="kpi-card">
+
+          <button class="kpi-card kpi-card--clickable"
+            [class.kpi-card--active]="filtroEstatus() === '__sin_asignar__'"
+            title="Tickets del grupo que nadie ha tomado aún. Clic para filtrar."
+            (click)="toggleFiltroEstatus('__sin_asignar__')">
+            <span class="kpi-val kpi-val--blue">{{ counts().sin_asignar }}</span>
+            <span class="kpi-label">Sin tomar</span>
+          </button>
+
+          <button class="kpi-card kpi-card--clickable"
+            [class.kpi-card--active]="filtroEstatus() === '__mis_asignados__'"
+            title="Tickets asignados a ti que están activos. Clic para filtrar."
+            (click)="toggleFiltroEstatus('__mis_asignados__')">
             <span class="kpi-val">{{ counts().mis_tickets }}</span>
-            <span class="kpi-label">Mis tickets activos</span>
-          </div>
-          <div class="kpi-card kpi-card--amber">
+            <span class="kpi-label">Mis asignados</span>
+          </button>
+
+          <button class="kpi-card kpi-card--clickable kpi-card--amber"
+            [class.kpi-card--active]="filtroEstatus() === 'ESPERANDO_TIENDA'"
+            title="Solución enviada, esperando confirmación de la tienda. Clic para filtrar."
+            (click)="toggleFiltroEstatus('ESPERANDO_TIENDA')">
             <span class="kpi-val kpi-val--amber">{{ counts().confirmar }}</span>
-            <span class="kpi-label">Por confirmar</span>
-          </div>
-          <div class="kpi-card kpi-card--red">
+            <span class="kpi-label">Esp. tienda</span>
+          </button>
+
+          <button class="kpi-card kpi-card--clickable kpi-card--red"
+            [class.kpi-card--active]="filtroSla === 'ROJO'"
+            title="SLA vencido. Atención inmediata. Clic para filtrar."
+            (click)="toggleFiltroSla('ROJO')">
             <span class="kpi-val kpi-val--red">{{ counts().vencidos }}</span>
-            <span class="kpi-label">SLA vencido 🔴</span>
-          </div>
-          <!-- NUEVO Sprint 1: alertas por semáforo -->
-          <div class="kpi-card kpi-card--amber">
+            <span class="kpi-label">🔴 SLA Vencido</span>
+          </button>
+
+          <button class="kpi-card kpi-card--clickable kpi-card--amber"
+            [class.kpi-card--active]="filtroSla === 'AMARILLO'"
+            title="Más del 75% del tiempo SLA consumido. Clic para filtrar."
+            (click)="toggleFiltroSla('AMARILLO')">
             <span class="kpi-val kpi-val--amber">{{ counts().amarillo }}</span>
-            <span class="kpi-label">SLA en riesgo 🟡</span>
-          </div>
-          <div class="kpi-card kpi-card--gray">
-            <span class="kpi-val kpi-val--gray">{{ counts().sin_sla }}</span>
-            <span class="kpi-label">Sin SLA</span>
-          </div>
-          <div class="kpi-card kpi-card--green">
+            <span class="kpi-label">🟡 SLA En riesgo</span>
+          </button>
+
+          @if (counts().rechazados > 0) {
+            <button class="kpi-card kpi-card--clickable kpi-card--red"
+              [class.kpi-card--active]="filtroEstatus() === 'RECHAZADO'"
+              title="La tienda rechazó la solución. Requieren re-atención urgente. Clic para filtrar."
+              (click)="toggleFiltroEstatus('RECHAZADO')">
+              <span class="kpi-val kpi-val--red">{{ counts().rechazados }}</span>
+              <span class="kpi-label">⚠ Re-abiertos</span>
+            </button>
+          }
+
+          <button class="kpi-card kpi-card--clickable kpi-card--green"
+            [class.kpi-card--active]="filtroEstatus() === '__cerrados_hoy__'"
+            title="Cerrados o resueltos hoy en el grupo. Clic para filtrar."
+            (click)="toggleFiltroEstatus('__cerrados_hoy__')">
             <span class="kpi-val kpi-val--green">{{ counts().cerrados_hoy }}</span>
             <span class="kpi-label">Cerrados hoy</span>
-          </div>
+          </button>
+
         </div>
 
         <!-- Buscador -->
@@ -87,35 +136,11 @@ const PRIORIDAD_ORDER: Record<string, number> = {
 
         <div class="filter-row">
           <div class="filter-group">
-            @for (f of statusFilters; track f.value) {
-              <button
-                class="filter-btn"
-                [class.filter-btn--active]="filtroEstatus() === f.value"
-                (click)="filtroEstatus.set(f.value)"
-              >
-                {{ f.label }}
-                @if (f.count(counts()) > 0) {
-                  <span class="filter-count">{{ f.count(counts()) }}</span>
-                }
-              </button>
-            }
-          </div>
-
-          <div class="filter-group">
-            <button
-              class="filter-btn"
-              [class.filter-btn--active]="soloMios()"
-              (click)="soloMios.set(!soloMios())"
-            >
-              Solo los míos
-            </button>
-            <!-- NUEVO Sprint 1: filtro por semáforo SLA -->
             <select class="input filter-select" [(ngModel)]="filtroSla" (change)="applyFilters()">
               <option value="">Todos los SLA</option>
               <option value="ROJO">🔴 Vencido</option>
               <option value="AMARILLO">🟡 En riesgo</option>
               <option value="VERDE">🟢 En tiempo</option>
-              <option value="SIN_SLA">⚪ Sin SLA</option>
             </select>
             <select class="input filter-select" [(ngModel)]="filtroPrioridad" (change)="applyFilters()">
               <option value="">Todas las prioridades</option>
@@ -124,6 +149,9 @@ const PRIORIDAD_ORDER: Record<string, number> = {
               <option value="MEDIA">Media</option>
               <option value="BAJA">Baja</option>
             </select>
+            @if (filtroEstatus() || filtroSla || filtroPrioridad) {
+              <button class="filter-btn filter-btn--clear" (click)="clearFilters()">✕ Limpiar</button>
+            }
           </div>
         </div>
 
@@ -216,28 +244,74 @@ const PRIORIDAD_ORDER: Record<string, number> = {
             }
           </div>
         }
-      </div>
-    </div>
+          </div><!-- /cola-content -->
+        </div><!-- /cola-main -->
+
+        <!-- Daniel panel — al nivel del workspace, full height -->
+        @if (danielOpen()) {
+          <div class="daniel-col">
+            <div class="daniel-head">
+              <div class="daniel-orb" [class.daniel-orb--pulse]="danielThinking()"></div>
+              <div>
+                <span class="daniel-head-name">Daniel</span>
+                <span class="daniel-head-sub">{{ danielThinking() ? 'Analizando…' : 'En línea' }}</span>
+              </div>
+              <button class="daniel-head-close" (click)="danielOpen.set(false)">✕</button>
+            </div>
+            <div class="daniel-msgs" #danielRef>
+              @for (m of danielMsgs(); track m.id) {
+                <div class="dmsg" [class.dmsg--daniel]="m.from==='daniel'" [class.dmsg--user]="m.from==='user'">
+                  @if (m.from === 'daniel') { <div class="daniel-orb daniel-orb--xs"></div> }
+                  <div class="dbubble" [class.dbubble--daniel]="m.from==='daniel'" [class.dbubble--user]="m.from==='user'">{{ m.text }}</div>
+                </div>
+              }
+              @if (danielThinking()) {
+                <div class="dmsg dmsg--daniel">
+                  <div class="daniel-orb daniel-orb--xs"></div>
+                  <div class="typing"><span></span><span></span><span></span></div>
+                </div>
+              }
+            </div>
+            <div class="daniel-chips">
+              <button class="dchip" (click)="danielQuick('¿Cuántos tickets tengo pendientes?')">📊 Pendientes</button>
+              <button class="dchip" (click)="danielQuick('¿Qué SLA están en riesgo?')">⚠ SLA riesgo</button>
+              <button class="dchip" (click)="danielQuick('¿Qué debo atender primero?')">🎯 Prioridad</button>
+            </div>
+            <div class="daniel-input-row">
+              <input class="daniel-input" [(ngModel)]="danielInput"
+                     placeholder="Pregunta a Daniel…"
+                     [disabled]="danielThinking()"
+                     (keydown.enter)="danielSend()" />
+              <button class="daniel-send" [disabled]="!danielInput.trim() || danielThinking()" (click)="danielSend()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
+        }
+      </div><!-- /cola-workspace -->
+    </div><!-- /page -->
+
   `,
   styles: [`
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 20px;
+      padding: 20px 32px 16px;
+      flex-shrink: 0;
+      margin-bottom: 0;
     }
     .page-title { font-size: 22px; font-weight: 600; }
     .page-sub   { font-size: 13px; color: var(--c-muted); margin-top: 2px; }
 
     /* SPRINT 1: 7 KPIs en lugar de 5 */
     .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
+      display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       margin-bottom: 20px;
     }
-    @media (max-width: 1100px) { .kpi-row { grid-template-columns: repeat(4, 1fr); } }
-    @media (max-width: 700px)  { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+    .kpi-row > * { flex: 1; min-width: 110px; }
 
     .kpi-card {
       background: var(--c-surface);
@@ -245,10 +319,17 @@ const PRIORIDAD_ORDER: Record<string, number> = {
       border-radius: var(--radius-md);
       padding: 12px 14px;
     }
-    .kpi-card--amber { border-top: 3px solid var(--c-amber); }
-    .kpi-card--red   { border-top: 3px solid var(--c-red);   }
-    .kpi-card--green { border-top: 3px solid var(--c-green); }
-    .kpi-card--gray  { border-top: 3px solid var(--c-muted); }
+    .kpi-card--amber  { border-top: 3px solid var(--c-amber); }
+    .kpi-card--red    { border-top: 3px solid var(--c-red);   }
+    .kpi-card--green  { border-top: 3px solid var(--c-green); }
+    .kpi-card--gray   { border-top: 3px solid var(--c-muted); }
+    button.kpi-card   { cursor:pointer; border:1px solid var(--c-border); text-align:left; font-family:inherit; width:100%; }
+    .kpi-card--clickable { transition:transform .15s, box-shadow .15s; }
+    .kpi-card--clickable:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,.07); }
+    .kpi-card--active { box-shadow:0 0 0 2px var(--c-blue) !important; border-color:var(--c-blue) !important; }
+    .kpi-card--active .kpi-label { color:var(--c-blue); font-weight:600; }
+    .filter-btn--clear { color:var(--c-red); border-color:var(--c-red); }
+    .filter-btn--clear:hover { background:#fef2f2; }
     .kpi-val   { display: block; font-size: 24px; font-weight: 700; line-height: 1.2; }
     .kpi-val--red   { color: var(--c-red);   }
     .kpi-val--amber { color: var(--c-amber); }
@@ -383,9 +464,112 @@ const PRIORIDAD_ORDER: Record<string, number> = {
       .ticket-row > span:nth-child(8),
       .ticket-row > span:nth-child(9) { display: none; }
     }
+
+    /* ── Layout workspace ──────────────────────────────────────────────── */
+    .cola-workspace {
+      flex:1; display:grid; min-height:0; height:100vh; overflow:hidden;
+      grid-template-columns: 1fr;
+    }
+    .cola-workspace--daniel { grid-template-columns: 1fr 320px; }
+    .cola-main {
+      display:flex; flex-direction:column; overflow:hidden; min-height:0;
+    }
+    .cola-content {
+      flex:1; overflow-y:auto; padding:0 32px 32px;
+    }
+    .cola-content::-webkit-scrollbar { width:4px; }
+    .cola-content::-webkit-scrollbar-thumb { background:var(--c-border); }
+    /* ── FAB Daniel ─────────────────────────────────────────────────────── */
+    .daniel-btn {
+      display:flex; align-items:center; gap:7px;
+      padding:9px 16px; border-radius:22px;
+      background:linear-gradient(135deg,#1B3462,#2563eb);
+      color:white; border:none; cursor:pointer; font-size:13px; font-weight:500;
+      box-shadow:0 4px 14px rgba(27,52,98,.3); transition:all .18s;
+    }
+    .daniel-btn:hover { transform:translateY(-1px); box-shadow:0 6px 18px rgba(27,52,98,.4); }
+    .daniel-btn--on { background:linear-gradient(135deg,#0f1f42,#1B3462); box-shadow:0 2px 8px rgba(27,52,98,.25); }
+    /* ── Daniel Panel ──────────────────────────────────────────────────── */
+    .top-bar-actions { display:flex; align-items:center; gap:10px; }
+    .refresh-txt { font-size:12px; color:var(--c-muted); }
+
+
+
+    .daniel-col {
+      width:320px; flex-shrink:0; display:flex; flex-direction:column;
+      border-left:1px solid var(--c-border); background:var(--c-surface);
+      height:calc(100vh - 56px); overflow:hidden;
+    }
+    .daniel-head {
+      display:flex; align-items:center; gap:10px; padding:12px 14px;
+      border-bottom:1px solid rgba(255,255,255,.1); flex-shrink:0;
+      background:linear-gradient(135deg,#0f1f42,#1B3462);
+    }
+    .daniel-orb {
+      width:30px; height:30px; border-radius:50%; flex-shrink:0;
+      background:radial-gradient(circle at 32% 32%,#6ba3ff,#1B3462);
+      box-shadow:0 0 10px rgba(79,138,255,.4);
+    }
+    .daniel-orb--xs { width:20px; height:20px; }
+    .daniel-orb--pulse { animation:orb-p 1.5s ease-in-out infinite; }
+    @keyframes orb-p { 0%,100%{box-shadow:0 0 8px rgba(79,138,255,.4);}50%{box-shadow:0 0 18px rgba(79,138,255,.8);} }
+    .daniel-head-name { font-size:13px; font-weight:700; color:white; display:block; }
+    .daniel-head-sub  { font-size:11px; color:rgba(255,255,255,.55); display:block; }
+    .daniel-head-close {
+      margin-left:auto; background:rgba(255,255,255,.1); border:none;
+      color:white; width:24px; height:24px; border-radius:50%;
+      cursor:pointer; font-size:12px; transition:background .15s;
+    }
+    .daniel-head-close:hover { background:rgba(255,255,255,.25); }
+
+    .daniel-msgs {
+      flex:1; overflow-y:auto; padding:12px; height:0;
+      display:flex; flex-direction:column; gap:10px;
+    }
+    .daniel-msgs::-webkit-scrollbar { width:3px; }
+    .daniel-msgs::-webkit-scrollbar-thumb { background:var(--c-border); }
+
+    .dmsg { display:flex; align-items:flex-end; gap:6px; max-width:92%; }
+    .dmsg--daniel { align-self:flex-start; }
+    .dmsg--user   { align-self:flex-end; flex-direction:row-reverse; }
+    .dbubble {
+      padding:8px 12px; border-radius:14px; font-size:12.5px;
+      line-height:1.45; white-space:pre-wrap; word-break:break-word;
+      animation:bin .18s ease;
+    }
+    @keyframes bin { from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);} }
+    .dbubble--daniel { background:var(--c-bg); border:1px solid var(--c-border); border-bottom-left-radius:3px; }
+    .dbubble--user   { background:linear-gradient(135deg,#1B3462,#2563eb); color:white; border-bottom-right-radius:3px; }
+
+    .typing { display:flex; gap:4px; padding:9px 13px; background:var(--c-bg); border:1px solid var(--c-border); border-radius:14px; border-bottom-left-radius:3px; }
+    .typing span { width:6px; height:6px; background:var(--c-blue); border-radius:50%; animation:b 1.2s ease-in-out infinite; }
+    .typing span:nth-child(2){animation-delay:.2s;} .typing span:nth-child(3){animation-delay:.4s;}
+    @keyframes b { 0%,80%,100%{transform:translateY(0);opacity:.4;}40%{transform:translateY(-5px);opacity:1;} }
+
+    .daniel-chips { display:flex; gap:5px; flex-wrap:wrap; padding:8px 12px; border-top:1px solid var(--c-border); flex-shrink:0; }
+    .dchip {
+      padding:4px 9px; border-radius:20px; font-size:11px;
+      border:1px solid var(--c-blue-md); background:var(--c-surface);
+      color:var(--c-blue); cursor:pointer; transition:all .15s;
+    }
+    .dchip:hover { background:var(--c-blue-lt); }
+    .daniel-input-row {
+      display:flex; align-items:center; gap:8px; padding:10px 12px;
+      border-top:1px solid var(--c-border); flex-shrink:0;
+    }
+    .daniel-input {
+      flex:1; border-radius:20px; border:1.5px solid var(--c-border);
+      padding:8px 14px; font-size:12.5px; font-family:inherit; background:var(--c-bg);
+    }
+    .daniel-input:focus { outline:none; border-color:var(--c-blue); }
+    .daniel-send {
+      width:34px; height:34px; border-radius:50%; background:var(--c-blue);
+      color:white; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all .15s;
+    }
+    .daniel-send:disabled { opacity:.4; cursor:not-allowed; }
   `],
 })
-export class AgenteColaComponent implements OnInit, OnDestroy {
+export class AgenteColaComponent implements OnInit, OnDestroy, AfterViewChecked {
   tickets = signal<TicketListItem[]>([]);
   loading = signal(true);
   filtroEstatus = signal('');
@@ -411,6 +595,7 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
       vencidos: activos.filter(t => t.sla_status === 'ROJO').length,
       amarillo: activos.filter(t => t.sla_status === 'AMARILLO').length,
       sin_sla: activos.filter(t => t.sla_status === 'SIN_SLA').length,
+      rechazados: ts.filter(t => t.estatus === 'RECHAZADO').length,
       cerrados_hoy: ts.filter(t =>
         ['CERRADO', 'RESUELTO'].includes(t.estatus) &&
         t.fecha_cierre && new Date(t.fecha_cierre).toDateString() === hoy
@@ -425,6 +610,15 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
 
     if (f === '__sin_asignar__') {
       ts = ts.filter(t => ['NUEVO', 'ASIGNADO'].includes(t.estatus) && !t.agente_id);
+    } else if (f === '__mis_asignados__') {
+      ts = ts.filter(t => t.agente_id === userId && !['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus));
+    } else if (f === '__cerrados_hoy__') {
+      const hoy = new Date().toDateString();
+      ts = ts.filter(t =>
+        ['CERRADO', 'RESUELTO'].includes(t.estatus) &&
+        !!t.fecha_cierre &&
+        new Date(t.fecha_cierre).toDateString() === hoy
+      );
     } else if (f === '__vencidos__') {
       ts = ts.filter(t => t.sla_status === 'ROJO' && !['CERRADO', 'RESUELTO', 'CANCELADO'].includes(t.estatus));
     } else if (f === 'EN_PROCESO') {
@@ -475,10 +669,89 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
     { label: '🔴 Vencidos', value: '__vencidos__', count: (c: any) => c.vencidos },
   ];
 
-  constructor(private ticketSvc: TicketService, public auth: AuthService) { }
+  constructor(
+    private ticketSvc: TicketService,
+    public auth: AuthService,
+    private http: HttpClient,
+    private route: ActivatedRoute,
+  ) {
+    // Mostrar bienvenida cuando se abre el panel por primera vez
+    effect(() => {
+      if (this.danielOpen() && this.danielMsgs().length === 0) {
+        setTimeout(() => this.danielWelcome(), 0);
+      }
+    });
+  }
+
+  // ── Daniel ────────────────────────────────────────────────────────────────
+  @ViewChild('danielRef') private danielRef?: ElementRef<HTMLDivElement>;
+  danielOpen = signal(false);
+  danielMsgs = signal<DanielMsg[]>([]);
+  danielInput = '';
+  danielThinking = signal(false);
+  private danielNeedsScroll = false;
+  private readonly proxyUrl = `${environment.apiUrl}/dany/chat`;
+
+  ngAfterViewChecked() {
+    if (this.danielNeedsScroll) {
+      this.danielNeedsScroll = false;
+      setTimeout(() => {
+        const el = this.danielRef?.nativeElement;
+        if (el) el.scrollTop = el.scrollHeight;
+      }, 50);
+    }
+  }
+
+  private danielWelcome() {
+    const nombre = this.auth.currentUser()?.nombre?.split(' ')[0] ?? '';
+    this.danielAddMsg({ from: 'daniel', text: `Hola${nombre ? ` ${nombre}` : ''} 👋 Soy Daniel, parte del equipo CSN. Pregúntame sobre tu cola, prioridades o un ticket específico.` });
+  }
+
+  danielSend() {
+    const text = this.danielInput.trim();
+    if (!text || this.danielThinking()) return;
+    this.danielInput = '';
+    if (this.danielMsgs().length === 0) this.danielWelcome();
+    this.danielAddMsg({ from: 'user', text });
+    this.danielThinking.set(true);
+
+    const user = this.auth.currentUser();
+    this.http.post<any>(this.proxyUrl, {
+      mensaje: text,
+      sesion_id: 'agente-' + user?.id,
+      usuario_id: user?.id ?? null,
+      rol_usuario: user?.rol ?? 'AGENTE',
+      historial: this.danielMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
+    }).subscribe({
+      next: res => {
+        this.danielThinking.set(false);
+        this.danielAddMsg({ from: 'daniel', text: res?.respuesta ?? res?.output ?? 'No pude obtener respuesta.' });
+      },
+      error: () => {
+        this.danielThinking.set(false);
+        this.danielAddMsg({ from: 'daniel', text: 'No pude conectar en este momento. Intenta de nuevo.' });
+      }
+    });
+  }
+
+  danielQuick(text: string) {
+    if (this.danielMsgs().length === 0) this.danielWelcome();
+    this.danielInput = text;
+    this.danielSend();
+  }
+
+  private danielAddMsg(p: Omit<DanielMsg, 'id' | 'time'>) {
+    this.danielMsgs.update(m => [...m, { id: Math.random().toString(36).slice(2), time: new Date(), ...p }]);
+    this.danielNeedsScroll = true;
+    setTimeout(() => {
+      const el = this.danielRef?.nativeElement;
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 50);
+  }
 
   ngOnInit() {
     this.load();
+    this.initFromQueryParams();
     this.refreshSub = interval(1000).subscribe(() => {
       const c = this.countdown() - 1;
       if (c <= 0) { this.load(); this.countdown.set(30); }
@@ -488,9 +761,38 @@ export class AgenteColaComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() { this.refreshSub?.unsubscribe(); }
 
+  initFromQueryParams() {
+    this.route.queryParams.subscribe((params: Record<string, string>) => {
+      if (params['f']) this.filtroEstatus.set(params['f']);
+      if (params['sla']) { this.filtroSla = params['sla']; this.applyFilters(); }
+      if (params['p']) { this.filtroPrioridad = params['p']; this.applyFilters(); }
+    });
+  }
+
+  toggleFiltroEstatus(valor: string) {
+    this.filtroEstatus.set(this.filtroEstatus() === valor ? '' : valor);
+    this.filtroSla = '';
+  }
+
+  toggleFiltroSla(valor: string) {
+    this.filtroSla = this.filtroSla === valor ? '' : valor;
+    this.filtroEstatus.set('');
+    this.applyFilters();
+  }
+
+  clearFilters() {
+    this.filtroEstatus.set('');
+    this.filtroSla = '';
+    this.filtroPrioridad = '';
+    this.applyFilters();
+  }
+
   load() {
     this.loading.set(true);
-    this.ticketSvc.list({ limit: 200 }).subscribe({
+    const user = this.auth.currentUser();
+    const areaFilter = user?.rol === 'ADMIN_AREA' && user?.area_restriccion
+      ? { area: user.area_restriccion, limit: 200 } : { limit: 200 };
+    this.ticketSvc.list(areaFilter).subscribe({
       next: ts => { this.tickets.set(ts); this.loading.set(false); },
       error: () => this.loading.set(false),
     });

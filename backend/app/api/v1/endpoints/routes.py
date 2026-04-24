@@ -732,7 +732,9 @@ def get_tickets_similares(
     ticket_id: int,
     limit: int = Query(default=5, ge=1, le=10),
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.AGENTE, RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.AGENTE, RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """
     Devuelve hasta {limit} tickets CERRADOS con la misma tipificación,
@@ -1653,11 +1655,15 @@ def get_dashboard(
     ]
 
     # Filtro base por rol
-    base = db.query(Ticket)
+    base = db.query(Ticket).join(
+        Tipificacion, Ticket.tipificacion_id == Tipificacion.id
+    )
     if current_user.rol == RolUsuario.AGENTE:
         base = base.filter(Ticket.grupo_id == current_user.grupo_id)
     elif current_user.rol == RolUsuario.TIENDA:
         base = base.filter(Ticket.tienda_id == current_user.tienda_id)
+    elif current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+        base = base.filter(Tipificacion.area_tecnica == current_user.area_restriccion)
 
     abiertos = base.filter(Ticket.estatus.in_(ESTADOS_ACTIVOS)).all()
 
@@ -1678,6 +1684,7 @@ def get_dashboard(
     ).count()
 
     confirmar = base.filter(Ticket.estatus == EstatusTicket.ESPERANDO_TIENDA).count()
+    rechazados = base.filter(Ticket.estatus == EstatusTicket.RECHAZADO).count()
 
     # Por área
     from sqlalchemy import case
@@ -1716,6 +1723,7 @@ def get_dashboard(
         total_abiertos=len(abiertos),
         total_en_proceso=en_proceso,
         total_confirmar_solucion=confirmar,
+        total_rechazados=rechazados,
         total_cerrados_hoy=cerrados_hoy,
         total_vencidos=sla_counts["ROJO"],
         total_sin_sla=sla_counts["SIN_SLA"],
@@ -2709,7 +2717,9 @@ def kpi_ejecutivo(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """
     Nivel 1 — Vista ejecutiva global.
@@ -2803,7 +2813,9 @@ def kpi_ejecutivo(
 def kpi_tendencia(
     meses: int = Query(6, ge=1, le=18),
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """
     Últimos N meses de datos para gráficas de tendencia.
@@ -2875,7 +2887,9 @@ def kpi_por_area(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """Nivel 2 — KPIs desglosados por área técnica."""
     dt_desde, dt_hasta = _periodo(desde, hasta)
@@ -2955,7 +2969,9 @@ def kpi_por_grupo(
     hasta: Optional[str] = None,
     area: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """Nivel 3 — KPIs por grupo de soporte."""
     dt_desde, dt_hasta = _periodo(desde, hasta)
@@ -3046,7 +3062,9 @@ def kpi_por_agente(
     hasta: Optional[str] = None,
     grupo_id: Optional[int] = None,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """Nivel 4 — KPIs individuales por agente, versión extendida."""
     dt_desde, dt_hasta = _periodo(desde, hasta)
@@ -3592,7 +3610,9 @@ def kpi_dany(
     desde: Optional[str] = None,
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     """
     Métricas de rendimiento de Dany como primera línea.
@@ -3653,17 +3673,25 @@ def kpi_dany(
         canal = s.canal or "portal"
         por_canal[canal] = por_canal.get(canal, 0) + 1
 
-    # Top tipificaciones detectadas
-    tip_count: dict[str, int] = {}
-    for s in sesiones:
-        if s.tipificacion_detectada:
-            tip_count[s.tipificacion_detectada] = (
-                tip_count.get(s.tipificacion_detectada, 0) + 1
-            )
-    top_tips = sorted(
-        [{"nombre": k, "count": v} for k, v in tip_count.items()],
-        key=lambda x: -x["count"],
-    )[:10]
+    # Top tipificaciones — cruzar tickets Dany con su tipificación real
+    top_tip_rows = db.execute(
+        sql_text(
+            """
+            SELECT tip.categoria || ' > ' || tip.subcategoria || ' > ' || tip.problema AS nombre,
+                   COUNT(*) AS total
+            FROM tickets t
+            JOIN cat_tipificaciones tip ON t.tipificacion_id = tip.id
+            WHERE t.origen = 'DANY'
+              AND t.fecha_apertura >= :desde
+              AND t.fecha_apertura <= :hasta
+            GROUP BY nombre
+            ORDER BY total DESC
+            LIMIT 10
+        """
+        ),
+        {"desde": dt_desde, "hasta": dt_hasta},
+    ).fetchall()
+    top_tips = [{"nombre": r.nombre, "count": r.total} for r in top_tip_rows]
 
     return KpiDany(
         periodo_desde=dt_desde,

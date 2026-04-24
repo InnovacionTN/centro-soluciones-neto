@@ -18,7 +18,8 @@ export class AuthService {
   readonly isTienda = computed(() => this.rol() === 'TIENDA');
   readonly isAgente = computed(() => this.rol() === 'AGENTE');
   readonly isAdmin = computed(() => this.rol() === 'ADMIN');
-  readonly isCoordinador = computed(() => this.rol() === 'COORDINADOR'); // ← Sprint 2
+  readonly isAdminArea = computed(() => this.rol() === 'ADMIN_AREA');
+  readonly isCoordinador = computed(() => this.rol() === 'COORDINADOR');
 
   // Exponer token como signal para componentes que lo necesiten
   readonly token = computed(() => localStorage.getItem(TOKEN_KEY) ?? '');
@@ -74,7 +75,8 @@ export class AuthService {
       TIENDA: '/tienda',
       AGENTE: '/agente',
       ADMIN: '/agente',
-      COORDINADOR: '/coordinador',   // ← Sprint 2
+      ADMIN_AREA: '/agente',   // ve dashboard de agente + cola, filtrado por su área
+      COORDINADOR: '/coordinador',
     };
     this.router.navigate([routes[rol] ?? '/']);
   }

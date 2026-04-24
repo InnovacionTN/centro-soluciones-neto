@@ -265,6 +265,7 @@ class DashboardMetrics(BaseModel):
     total_confirmar_solucion: int
     total_cerrados_hoy: int
     total_vencidos: int
+    total_rechazados: int = 0
     total_sin_sla: int = 0
     por_area: dict[str, int]
     por_prioridad: dict[str, int]

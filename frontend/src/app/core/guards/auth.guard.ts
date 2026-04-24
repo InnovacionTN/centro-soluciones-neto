@@ -17,7 +17,8 @@ export const authGuard = (allowedRoles?: string[]): CanActivateFn => () => {
       TIENDA: '/tienda',
       AGENTE: '/agente',
       ADMIN: '/agente',
-      COORDINADOR: '/coordinador',  // ← Sprint 2
+      ADMIN_AREA: '/agente',
+      COORDINADOR: '/coordinador',
     };
     const destino = fallbacks[auth.rol() ?? ''] ?? '/login';
     router.navigate([destino]);

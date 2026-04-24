@@ -56,7 +56,7 @@ interface Notificaciones {
           </a>
         }
 
-        @if (auth.isAgente() || auth.isAdmin()) {
+        @if (auth.isAgente() || auth.isAdmin() || auth.isAdminArea()) {
           <a routerLink="/agente" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
              class="nav-item" data-tooltip="Dashboard">
             <span class="nav-icon">📈</span>
@@ -90,29 +90,28 @@ interface Notificaciones {
             <span>Dany</span>
           </a>
         }
+
+        @if (auth.isAdminArea()) {
+          <div class="nav-section-title" style="margin-top: 32px">
+            MI ÁREA — {{ auth.currentUser()?.area_restriccion }}
+          </div>
+          <a routerLink="/admin/kpis" routerLinkActive="nav-item--active"
+             class="nav-item" data-tooltip="KPIs de mi área">
+            <span class="nav-icon">📊</span>
+            <span>KPIs de mi área</span>
+          </a>
+          <a routerLink="/admin/dany" routerLinkActive="nav-item--active"
+             class="nav-item" data-tooltip="Métricas Dany">
+            <span class="nav-icon">🤖</span>
+            <span>Dany</span>
+          </a>
+        }
       </div>
 
       <div class="sidebar__spacer"></div>
 
       <!-- Alertas & Usuario en la parte inferior -->
       <div class="sidebar__footer">
-        @if (notif() && (auth.isAgente() || auth.isAdmin())) {
-          <div class="sidebar-alerts">
-            @if (slaVencidos() > 0) {
-              <div class="alert-item alert-item--red">
-                <span>SLA Vencidos</span>
-                <strong>{{ slaVencidos() }}</strong>
-              </div>
-            }
-            @if (esperandoRespuesta() > 0) {
-              <div class="alert-item alert-item--amber">
-                <span>Esperando Resp.</span>
-                <strong>{{ esperandoRespuesta() }}</strong>
-              </div>
-            }
-          </div>
-        }
-
         <div class="user-card" (click)="toggleUserMenu()">
           <div class="avatar" [class]="avatarClass()">{{ initial() }}</div>
           <div class="user-info">
@@ -523,6 +522,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       TIENDA: 'avatar--tienda',
       AGENTE: 'avatar--agente',
       ADMIN: 'avatar--admin',
+      ADMIN_AREA: 'avatar--admin',
       COORDINADOR: 'avatar--agente',
     };
     return map[this.auth.rol() ?? ''] ?? '';
@@ -533,6 +533,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       TIENDA: 'Tienda',
       AGENTE: 'Agente Call Center',
       ADMIN: 'Administrador',
+      ADMIN_AREA: 'Admin Área',
       COORDINADOR: 'Coordinador de Zona',
     };
     return map[this.auth.rol() ?? ''] ?? '';

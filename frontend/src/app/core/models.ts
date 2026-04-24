@@ -1,6 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type Rol = 'ADMIN' | 'AGENTE' | 'TIENDA' | 'COORDINADOR';  // ← Sprint 1
+export type Rol = 'ADMIN' | 'AGENTE' | 'TIENDA' | 'COORDINADOR' | 'ADMIN_AREA';
 
 export type EstatusTicket =
   | 'NUEVO'
@@ -50,6 +50,7 @@ export interface CurrentUser {
   grupo_id: number | null;
   grupo_nombre: string | null;
   zona_id: number | null;           // ← Sprint 1: para coordinadores
+  area_restriccion: string | null;  // ← ADMIN_AREA
   disponible: boolean;
 }
 
@@ -225,6 +226,7 @@ export interface DashboardMetrics {
   tiempo_promedio_resolucion_horas: number | null;
   tasa_ia_aceptada: number | null;
   tasa_dany_deflexion: number | null;  // ← Sprint 3 (declarado ya)
+  total_rechazados: number;
 }
 
 // ─── Helpers UI ────────────────────────────────────────────────────────────────
