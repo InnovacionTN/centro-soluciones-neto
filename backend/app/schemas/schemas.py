@@ -102,6 +102,7 @@ class ClasificacionResponse(BaseModel):
 
 class TicketCreate(BaseModel):
     descripcion: str
+    tienda_id: Optional[int] = None            # para agentes externos (n8n, Slack); ignorado si el token ya trae tienda_id
     tipificacion_id: Optional[int] = None
     ia_clasificacion_aceptada: Optional[bool] = None
     metadata_extra: Optional[dict] = None
@@ -252,6 +253,8 @@ class TicketListItem(BaseModel):
     fecha_visita_programada: Optional[datetime] = None
     pieza_requerida: Optional[str] = None
     incidente_id: Optional[int] = None
+    grupo_id: Optional[int] = None
+    grupo_nombre: Optional[str] = None
 
     model_config = {"from_attributes": True}
 

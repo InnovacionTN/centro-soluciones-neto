@@ -380,6 +380,15 @@ async def create_ticket(
             status_code=400, detail="Usuario de tienda sin tienda asignada"
         )
 
+    # Agentes externos (n8n, Slack bot) pueden pasar tienda_id en el body
+    if not tienda_id and current_user.rol in (RolUsuario.AGENTE, RolUsuario.ADMIN):
+        if not body.tienda_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Se requiere tienda_id en el body para agentes externos",
+            )
+        tienda_id = body.tienda_id
+
     if not tienda_id:
         raise HTTPException(status_code=400, detail="Se requiere tienda_id")
 
@@ -457,8 +466,8 @@ async def ticket_intake(
     current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN, RolUsuario.AGENTE)),
 ):
     """
-    Endpoint de ingesta para agentes externos (Javier/WhatsApp).
-    Acepta el formato nativo de Javier y hace el mapeo internamente:
+    Endpoint de ingesta para agentes externos (Slack, WhatsApp, n8n).
+    Acepta formato simplificado y hace el mapeo internamente:
     - store_name → tienda_id (lookup por nombre)
     - priority  → PrioridadTicket
     - status    → si "completo" → marca RESUELTO y registra CSAT si rating presente
@@ -500,10 +509,10 @@ async def ticket_intake(
         db,
     )
 
-    # 5. Metadata con datos originales de Javier
+    # 5. Metadata con datos originales del agente externo
     metadata_extra = {}
     if body.javier_folio:
-        metadata_extra["javier_folio"] = body.javier_folio
+        metadata_extra["folio_externo"] = body.javier_folio
     if body.customer_phone:
         metadata_extra["customer_phone"] = body.customer_phone
     if body.sentiment:
@@ -524,7 +533,7 @@ async def ticket_intake(
         metadata_extra=metadata_extra or None,
     )
 
-    # Sobreescribir prioridad si Javier envió una explícita
+    # Sobreescribir prioridad si el agente externo envió una explícita
     if prioridad != ticket.prioridad:
         ticket.prioridad = prioridad
         db.commit()
@@ -543,11 +552,11 @@ async def ticket_intake(
             ticket,
             current_user.id,
             "RESUELTO",
-            comentario="Resuelto por agente externo (Javier)",
+            comentario="Resuelto por agente externo (Daniel)",
         )
         db.commit()
 
-        # 7b. Registrar CSAT si Javier envió rating
+        # 7b. Registrar CSAT si el agente externo envió rating
         if body.rating and 1 <= body.rating <= 5:
             ticket.csat_score = body.rating
             ticket.csat_fecha = datetime.utcnow()
@@ -616,10 +625,15 @@ def list_tickets(
     # Enriquecer con SLA dinámico y nombre de tienda
     for t in tickets:
         _enriquecer_sla(t)
-        # Inyectar tienda_nombre para el frontend (no es columna del modelo)
         if not hasattr(t, "_tienda_nombre_cache"):
             tienda = db.query(Tienda).filter(Tienda.id == t.tienda_id).first()
             t.tienda_nombre = tienda.nombre if tienda else None
+        # Inyectar grupo_nombre
+        if t.grupo_id and not hasattr(t, "_grupo_nombre_cache"):
+            grupo = db.query(Grupo).filter(Grupo.id == t.grupo_id).first()
+            t.grupo_nombre = grupo.nombre if grupo else None
+        elif not t.grupo_id:
+            t.grupo_nombre = None
 
     return tickets
 
@@ -1843,13 +1857,18 @@ def admin_list_tipificaciones(
     activo: Optional[bool] = None,
     area: Optional[str] = None,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+    ),
 ):
     q = db.query(Tipificacion)
     if activo is not None:
         q = q.filter(Tipificacion.activo == activo)
     if area:
         q = q.filter(Tipificacion.area_tecnica == area.upper())
+    # ADMIN_AREA solo ve tipificaciones de su área
+    if current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+        q = q.filter(Tipificacion.area_tecnica == current_user.area_restriccion)
     return q.order_by(Tipificacion.area_tecnica, Tipificacion.categoria).all()
 
 
