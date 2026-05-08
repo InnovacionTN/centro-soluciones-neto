@@ -197,6 +197,15 @@ Generar el `sesion_id` así en n8n:
 slack-{{ $json.userId }}-{{ Date.now() }}
 ```
 
+**Respuesta:**
+```json
+{
+  "sesion_id": "slack-test-001",
+  "tienda_id": 749,
+  "mensaje": "Sesión registrada"
+}
+```
+
 ---
 
 ### 2 — Clasificar el problema
@@ -215,21 +224,23 @@ Content-Type: application/json
 **Respuesta:**
 ```json
 {
-  "area_tecnica": "MANTENIMIENTO",
-  "tipificacion_id": 46,
-  "tipificacion_nombre": "Equipo climatización sin energía",
-  "categoria": "Climatización",
-  "confianza": 87,
+  "area_tecnica": "SISTEMAS",
+  "tipificacion_id": 4,
+  "tipificacion_nombre": "No imprime / atascada / sin papel",
+  "categoria": "Equipo de cómputo hardware",
+  "subcategoria": null,
+  "confianza": 60,
   "urgencia_sugerida": "ALTA",
-  "razon": "Detectadas palabras clave: 'aire acondicionado', 'no enciende', 'corte de luz'",
-  "palabras_detectadas": ["aire acondicionado", "no enciende", "corte de luz"]
+  "razon": "[Fallback reglas] impresora, imprime",
+  "palabras_detectadas": ["impresora", "imprime"]
 }
 ```
 
 Guardar en variables n8n: `tipificacion_id`, `area_tecnica`, `confianza`.
 
 > Si `confianza < 40` el ticket se crea en revisión manual sin agente asignado.
-> Si `GEMINI_API_KEY` no tiene acceso, la confianza será ~22% (fallback por palabras clave).
+> Con `GEMINI_API_KEY` activo la confianza sube a 80–95%. Sin acceso al modelo,
+> cae a fallback por palabras clave con ~60% de confianza.
 
 ---
 
@@ -269,18 +280,18 @@ Content-Type: application/json
 **Respuesta exitosa (201):**
 ```json
 {
-  "folio": "TKT-2026-01024",
-  "id": 1024,
+  "ticket_id": 34,
+  "folio": "TKT-2026-00007",
   "estatus": "ASIGNADO",
-  "prioridad": "ALTA",
-  "area_tecnica": "MANTENIMIENTO",
-  "agente_nombre": "Carlos López",
-  "sla_limite": "2026-05-06T10:00:00",
-  "grupo_nombre": "Mantenimiento: Centro"
+  "sla_limite": "2026-05-19T17:47:00",
+  "sla_status": "VERDE",
+  "grupo_nombre": "Sistemas: Soporte",
+  "agente_nombre": "Karen Aboytes Trejo",
+  "mensaje": "Ticket TKT-2026-00007 creado. Asignado a Karen Aboytes Trejo"
 }
 ```
 
-Mostrar el `folio` a la tienda en Slack como número de referencia.
+Mostrar el `folio` y el `mensaje` a la tienda en Slack como confirmación.
 
 ---
 
@@ -304,6 +315,17 @@ Content-Type: application/json
 | `resuelto_sin_ticket` | `true` si Daniel resolvió sin ticket, `false` si creó ticket |
 | `mensajes_count` | Número de mensajes intercambiados en la sesión |
 | `tipificacion_detectada` | Área técnica detectada |
+
+**Respuesta:**
+```json
+{
+  "sesion_id": "slack-test-001",
+  "deflexion": false,
+  "mensaje": "Escalación registrada — ticket creado"
+}
+```
+
+Si `resuelto_sin_ticket: true`, `deflexion` viene en `true` y el mensaje dice `"Sesión cerrada — problema resuelto sin ticket"`.
 
 Esto alimenta las métricas de deflexión de Daniel en el dashboard de CSN.
 
@@ -375,6 +397,20 @@ y la credencial `CSN Dany Token`. Andrés puede replicar exactamente la misma es
 - [ ] Ticket aparece en el portal CSN con folio correcto
 - [ ] `resuelto_sin_ticket: true` registra deflexión en KPIs de CSN
 - [ ] Folio del ticket se muestra a la tienda en Slack como confirmación
+
+---
+
+## Pruebas realizadas y validadas
+
+Flujo completo probado el **2026-05-05** contra staging y producción con resultado exitoso:
+
+| Paso | Endpoint | Resultado |
+|------|----------|-----------|
+| Classify | `POST /ai/classify` | ✅ `tipificacion_id: 4`, confianza 60% (fallback) |
+| Sesión | `POST /dany/sesion/iniciar` | ✅ `"Sesión registrada"` |
+| Ticket staging | `POST /tickets/desde-dany` | ✅ `TKT-2026-00001` asignado a Karen Aboytes |
+| Cerrar sesión | `POST /dany/sesion/cerrar` | ✅ deflexión registrada |
+| Ticket prod | `POST /tickets/desde-dany` | ✅ `TKT-2026-00007` asignado en Sistemas: Soporte |
 
 ---
 
