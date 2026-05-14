@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.core.security import get_current_user, require_rol, create_token, verify_password, hash_password
 from app.models.models import (
     Ticket, Usuario, Tipificacion, Grupo, Tienda, ReglaRuteo, Zona,
+    Region, Compania,
     EstatusTicket, RolUsuario, BitacoraEvento, AreaTecnica,
     TipoComentario, Evidencia, UrgenciaTipificacion, TipoTicket
 )
@@ -21,6 +22,7 @@ from app.schemas.schemas import (
     ReglaRuteoCreate, ReglaRuteoOut,
     GrupoCreate, GrupoUpdate,
     TiendaCreate, TiendaOut,
+    CompaniaOut,
 )
 from app.services.ia_service import classify_with_ai, suggest_solution
 from app.services.ticket_service import create_ticket_in_db, log_event, assign_agent_round_robin
@@ -792,6 +794,14 @@ def admin_update_tipificacion(
 
 # ─── Grupos ───────────────────────────────────────────────────────────────────
 
+@router.get("/admin/companias", response_model=list[CompaniaOut])
+def admin_list_companias(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(_require_admin),
+):
+    return db.query(Compania).filter(Compania.activo == True).order_by(Compania.nombre).all()
+
+
 @router.post("/admin/grupos", response_model=GrupoOut, status_code=201)
 def admin_create_grupo(
     body: GrupoCreate,
@@ -802,6 +812,7 @@ def admin_create_grupo(
         nombre=body.nombre,
         area_tecnica=body.area_tecnica.upper(),
         slack_canal=body.slack_canal,
+        compania_id=body.compania_id,
     )
     db.add(grupo)
     db.commit()
@@ -820,10 +831,11 @@ def admin_update_grupo(
     if not grupo:
         raise HTTPException(404, detail="Grupo no encontrado")
 
-    if body.nombre is not None:      grupo.nombre      = body.nombre
+    if body.nombre is not None:       grupo.nombre       = body.nombre
     if body.area_tecnica is not None: grupo.area_tecnica = body.area_tecnica.upper()
-    if body.slack_canal is not None: grupo.slack_canal  = body.slack_canal
-    if body.activo is not None:      grupo.activo       = body.activo
+    if body.slack_canal is not None:  grupo.slack_canal  = body.slack_canal
+    if body.activo is not None:       grupo.activo       = body.activo
+    if body.compania_id is not None:  grupo.compania_id  = body.compania_id
 
     db.commit()
     db.refresh(grupo)
@@ -859,15 +871,19 @@ def admin_create_regla(
     existe = db.query(ReglaRuteo).filter(
         ReglaRuteo.tipificacion_id == body.tipificacion_id,
         ReglaRuteo.zona_id == body.zona_id,
+        ReglaRuteo.region_id == body.region_id,
+        ReglaRuteo.compania_id == body.compania_id,
         ReglaRuteo.grupo_id == body.grupo_id,
     ).first()
     if existe:
-        raise HTTPException(400, detail="Ya existe una regla con esa combinación tipificación/zona/grupo")
+        raise HTTPException(400, detail="Ya existe una regla con esa combinacion tipificacion/zona/region/compania/grupo")
 
     regla = ReglaRuteo(
         tipificacion_id=body.tipificacion_id,
         grupo_id=body.grupo_id,
         zona_id=body.zona_id,
+        region_id=body.region_id,
+        compania_id=body.compania_id,
         prioridad=body.prioridad,
     )
     db.add(regla)

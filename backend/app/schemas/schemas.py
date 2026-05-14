@@ -159,10 +159,22 @@ class DashboardMetrics(BaseModel):
     tiempo_promedio_resolucion_horas: Optional[float]
     tasa_ia_aceptada: Optional[float]      # % de clasificaciones IA aceptadas sin cambio
 
+class CompaniaOut(BaseModel):
+    id: int
+    nombre: str
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+
 class GrupoOut(BaseModel):
     id: int
     nombre: str
     area_tecnica: str
+    activo: bool = True
+    compania_id: Optional[int] = None
+    compania: Optional[CompaniaOut] = None
 
     class Config:
         from_attributes = True
@@ -261,7 +273,9 @@ class TipificacionAdminOut(BaseModel):
 class ReglaRuteoCreate(BaseModel):
     tipificacion_id: int
     grupo_id: int
-    zona_id: Optional[int] = None  # None = aplica a todas las zonas
+    zona_id: Optional[int] = None
+    region_id: Optional[int] = None
+    compania_id: Optional[int] = None
     prioridad: int = 1
 
 class ReglaRuteoOut(BaseModel):
@@ -269,6 +283,8 @@ class ReglaRuteoOut(BaseModel):
     tipificacion_id: int
     grupo_id: int
     zona_id: Optional[int]
+    region_id: Optional[int] = None
+    compania_id: Optional[int] = None
     prioridad: int
     tipificacion: Optional[TipificacionAdminOut] = None
     grupo: Optional[GrupoOut] = None
@@ -283,12 +299,14 @@ class GrupoCreate(BaseModel):
     nombre: str
     area_tecnica: str
     slack_canal: Optional[str] = None
+    compania_id: Optional[int] = None
 
 class GrupoUpdate(BaseModel):
     nombre: Optional[str] = None
     area_tecnica: Optional[str] = None
     slack_canal: Optional[str] = None
     activo: Optional[bool] = None
+    compania_id: Optional[int] = None
 
 
 # ─── Admin: Tiendas ───────────────────────────────────────────────────────────
