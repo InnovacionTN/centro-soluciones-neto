@@ -39,6 +39,7 @@ from app.models.models import (
     ReglaRuteo,
     Zona,
     Region,
+    Compania,
     EstatusTicket,
     RolUsuario,
     BitacoraEvento,
@@ -116,6 +117,7 @@ from app.schemas.schemas import (
     DanySesionCierreRequest,
     DanySesionCierreOut,
     KpiDany,
+    CompaniaOut,
 )
 from app.services.ia_service import classify_with_ai, suggest_solution
 from app.services.ticket_service import (
@@ -1911,6 +1913,13 @@ def admin_update_tipificacion(
 
 # ─── Grupos ───────────────────────────────────────────────────────────────────
 
+@router.get("/admin/companias", response_model=list[CompaniaOut])
+def admin_list_companias(
+    db: Session = Depends(get_db),
+    _: Usuario = Depends(_require_admin),
+):
+    return db.query(Compania).filter(Compania.activo == True).order_by(Compania.nombre).all()
+
 
 @router.post("/admin/grupos", response_model=GrupoOut, status_code=201)
 def admin_create_grupo(
@@ -1923,6 +1932,7 @@ def admin_create_grupo(
         area_tecnica=body.area_tecnica.upper(),
         region_id=body.region_id,
         slack_canal=body.slack_canal,
+        compania_id=body.compania_id,
     )
     db.add(grupo)
     db.commit()
@@ -1951,6 +1961,8 @@ def admin_update_grupo(
         grupo.slack_canal = body.slack_canal
     if body.activo is not None:
         grupo.activo = body.activo
+    if body.compania_id is not None:
+        grupo.compania_id = body.compania_id
 
     db.commit()
     db.refresh(grupo)
@@ -2085,6 +2097,8 @@ def admin_create_regla(
         .filter(
             ReglaRuteo.tipificacion_id == body.tipificacion_id,
             ReglaRuteo.zona_id == body.zona_id,
+            ReglaRuteo.region_id == body.region_id,
+            ReglaRuteo.compania_id == body.compania_id,
             ReglaRuteo.grupo_id == body.grupo_id,
         )
         .first()
@@ -2092,13 +2106,15 @@ def admin_create_regla(
     if existe:
         raise HTTPException(
             400,
-            detail="Ya existe una regla con esa combinación tipificación/zona/grupo",
+            detail="Ya existe una regla con esa combinacion tipificacion/zona/region/compania/grupo",
         )
 
     regla = ReglaRuteo(
         tipificacion_id=body.tipificacion_id,
         grupo_id=body.grupo_id,
         zona_id=body.zona_id,
+        region_id=body.region_id,
+        compania_id=body.compania_id,
         prioridad=body.prioridad,
     )
     db.add(regla)

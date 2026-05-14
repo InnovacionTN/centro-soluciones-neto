@@ -274,6 +274,15 @@ class DashboardMetrics(BaseModel):
     tasa_ia_aceptada: Optional[float]
 
 
+class CompaniaOut(BaseModel):
+    id: int
+    nombre: str
+    activo: bool
+
+    class Config:
+        from_attributes = True
+
+
 class GrupoOut(BaseModel):
     id: int
     nombre: str
@@ -281,6 +290,8 @@ class GrupoOut(BaseModel):
     region_id: Optional[int] = None
     slack_canal: Optional[str] = None
     activo: bool = True
+    compania_id: Optional[int] = None
+    compania: Optional[CompaniaOut] = None
 
     model_config = {"from_attributes": True}
 
@@ -398,6 +409,8 @@ class ReglaRuteoCreate(BaseModel):
     tipificacion_id: int
     grupo_id: int
     zona_id: Optional[int] = None
+    region_id: Optional[int] = None
+    compania_id: Optional[int] = None
     prioridad: int = 1
 
 
@@ -406,6 +419,8 @@ class ReglaRuteoOut(BaseModel):
     tipificacion_id: int
     grupo_id: int
     zona_id: Optional[int]
+    region_id: Optional[int] = None
+    compania_id: Optional[int] = None
     prioridad: int
     tipificacion: Optional[TipificacionAdminOut] = None
     grupo: Optional[GrupoOut] = None
@@ -421,6 +436,7 @@ class GrupoCreate(BaseModel):
     area_tecnica: str
     region_id: Optional[int] = None
     slack_canal: Optional[str] = None
+    compania_id: Optional[int] = None
 
 
 class GrupoUpdate(BaseModel):
@@ -429,6 +445,7 @@ class GrupoUpdate(BaseModel):
     region_id: Optional[int] = None
     slack_canal: Optional[str] = None
     activo: Optional[bool] = None
+    compania_id: Optional[int] = None
 
 
 # ─── Admin: Regiones ──────────────────────────────────────────────────────────

@@ -71,25 +71,62 @@ def generate_folio(db: Session) -> str:
 
 
 def find_group(tipificacion_id: int, zona_id: int, db: Session) -> Optional[Grupo]:
-    regla = (
-        db.query(ReglaRuteo)
-        .filter(
-            ReglaRuteo.tipificacion_id == tipificacion_id, ReglaRuteo.zona_id == zona_id
-        )
-        .order_by(ReglaRuteo.prioridad)
-        .first()
-    )
-    if not regla:
+    """
+    Busca el grupo resolutor usando jerarquia geografica:
+    1. Zona exacta
+    2. Region de la zona
+    3. Compania de la region
+    4. General (sin restriccion geografica)
+    """
+    from app.models.models import Zona, Region
+
+    region_id = None
+    compania_id = None
+    if zona_id:
+        zona = db.query(Zona).filter(Zona.id == zona_id).first()
+        if zona:
+            region_id = zona.region_id
+            if region_id:
+                region = db.query(Region).filter(Region.id == region_id).first()
+                if region:
+                    compania_id = region.compania_id
+
+    candidatos = []
+    if zona_id:
+        candidatos.append((
+            ReglaRuteo.zona_id == zona_id,
+            ReglaRuteo.region_id.is_(None),
+            ReglaRuteo.compania_id.is_(None),
+        ))
+    if region_id:
+        candidatos.append((
+            ReglaRuteo.zona_id.is_(None),
+            ReglaRuteo.region_id == region_id,
+            ReglaRuteo.compania_id.is_(None),
+        ))
+    if compania_id:
+        candidatos.append((
+            ReglaRuteo.zona_id.is_(None),
+            ReglaRuteo.region_id.is_(None),
+            ReglaRuteo.compania_id == compania_id,
+        ))
+    candidatos.append((
+        ReglaRuteo.zona_id.is_(None),
+        ReglaRuteo.region_id.is_(None),
+        ReglaRuteo.compania_id.is_(None),
+    ))
+
+    for filtros in candidatos:
         regla = (
             db.query(ReglaRuteo)
-            .filter(
-                ReglaRuteo.tipificacion_id == tipificacion_id,
-                ReglaRuteo.zona_id.is_(None),
-            )
+            .filter(ReglaRuteo.tipificacion_id == tipificacion_id, *filtros)
             .order_by(ReglaRuteo.prioridad)
             .first()
         )
-    return regla.grupo if regla else None
+        if regla:
+            return regla.grupo
+
+    return None
 
 
 def assign_agent_round_robin(grupo: Grupo, db: Session) -> Optional[Usuario]:

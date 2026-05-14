@@ -108,12 +108,27 @@ class OrigenTicket(str, enum.Enum):
 # ─── Catálogos Geográficos ────────────────────────────────────────────────────
 
 
-class Region(Base):
-    __tablename__ = "cat_regiones"
+class Compania(Base):
+    __tablename__ = "cat_companias"
+
     id = Column(Integer, primary_key=True)
     nombre = Column(String(100), nullable=False, unique=True)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
+
+    regiones = relationship("Region", back_populates="compania")
+
+
+class Region(Base):
+    __tablename__ = "cat_regiones"
+
+    id = Column(Integer, primary_key=True)
+    nombre = Column(String(100), nullable=False, unique=True)
+    compania_id = Column(Integer, ForeignKey("cat_companias.id"), nullable=True)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    compania = relationship("Compania", back_populates="regiones")
     zonas = relationship("Zona", back_populates="region")
 
 
@@ -171,6 +186,9 @@ class Grupo(Base):
     region_id = Column(Integer, ForeignKey("cat_regiones.id"), nullable=True)
     slack_canal = Column(String(100))
     activo = Column(Boolean, default=True)
+    compania_id = Column(Integer, ForeignKey("cat_companias.id"), nullable=True)
+
+    compania = relationship("Compania", foreign_keys=[compania_id])
     usuarios = relationship("Usuario", back_populates="grupo")
     reglas_ruteo = relationship("ReglaRuteo", back_populates="grupo")
     tickets = relationship("Ticket", back_populates="grupo")
@@ -232,14 +250,17 @@ class Tipificacion(Base):
 class ReglaRuteo(Base):
     __tablename__ = "matriz_ruteo"
     id = Column(Integer, primary_key=True)
-    tipificacion_id = Column(
-        Integer, ForeignKey("cat_tipificaciones.id"), nullable=False
-    )
+    tipificacion_id = Column(Integer, ForeignKey("cat_tipificaciones.id"), nullable=False)
     zona_id = Column(Integer, ForeignKey("cat_zonas.id"), nullable=True)
+    region_id = Column(Integer, ForeignKey("cat_regiones.id"), nullable=True)
+    compania_id = Column(Integer, ForeignKey("cat_companias.id"), nullable=True)
     grupo_id = Column(Integer, ForeignKey("cat_grupos.id"), nullable=False)
     prioridad = Column(Integer, default=1)
+
     tipificacion = relationship("Tipificacion", back_populates="reglas_ruteo")
     zona = relationship("Zona", back_populates="reglas_ruteo")
+    region = relationship("Region", foreign_keys=[region_id])
+    compania = relationship("Compania", foreign_keys=[compania_id])
     grupo = relationship("Grupo", back_populates="reglas_ruteo")
 
 
