@@ -724,7 +724,6 @@ export class AgenteColaComponent implements OnInit, OnDestroy, AfterViewChecked 
       sesion_id: 'agente-' + user?.id,
       usuario_id: user?.id ?? null,
       rol_usuario: user?.rol ?? 'AGENTE',
-      historial: this.danielMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
     }).subscribe({
       next: res => {
         this.danielThinking.set(false);

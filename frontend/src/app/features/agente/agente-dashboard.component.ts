@@ -568,7 +568,6 @@ export class AgenteDashboardComponent implements OnInit, OnDestroy, AfterViewChe
       usuario_id: user?.id ?? null,
       rol_usuario: user?.rol ?? 'AGENTE',
       jwt: this.auth.getToken() ?? '',
-      historial: this.chatMsgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
     };
     if (img) payload['imagen_base64'] = img;
 

@@ -238,7 +238,6 @@ export class AdminDanielPanelComponent implements OnInit, AfterViewChecked {
       rol_usuario: 'ADMIN',
       kpis_data: this.kpisData,
       torre_data: this.torreData,
-      historial: this.msgs().slice(-6).map(m => ({ de: m.from, texto: m.text })),
     };
 
     this.http.post<any>(this.proxyUrl, payload).pipe(
