@@ -1,6 +1,6 @@
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
-export type Rol = 'ADMIN' | 'AGENTE' | 'TIENDA' | 'COORDINADOR' | 'ADMIN_AREA';
+export type Rol = 'ADMIN' | 'AGENTE' | 'TIENDA' | 'COORDINADOR' | 'ADMIN_AREA';  // ← Sprint 1
 
 export type EstatusTicket =
   | 'NUEVO'
@@ -49,8 +49,8 @@ export interface CurrentUser {
   tienda_nombre: string | null;
   grupo_id: number | null;
   grupo_nombre: string | null;
-  zona_id: number | null;           // ← Sprint 1: para coordinadores
-  area_restriccion: string | null;  // ← ADMIN_AREA
+  zona_id: number | null;
+  area_restriccion: string | null;           // ← Sprint 1: para coordinadores
   disponible: boolean;
 }
 
@@ -209,6 +209,8 @@ export interface TicketListItem {
   fecha_apertura: string;
   tipificacion: Tipificacion | null;
   fecha_cierre: string | null;
+  grupo_id: number | null;
+  grupo_nombre: string | null;
 }
 
 // ─── Dashboard ─────────────────────────────────────────────────────────────────

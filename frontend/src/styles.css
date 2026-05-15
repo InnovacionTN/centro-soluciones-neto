@@ -50,6 +50,16 @@
   --font:        'Montserrat', sans-serif;
   --transition:  200ms cubic-bezier(0.4, 0, 0.2, 1);
   --c-dark-bg:   #1E293B;
+
+  /* Sidebar — paleta fría monocromática */
+  --c-sb:         #11212D;
+  --c-sb-deep:    #06141B;
+  --c-sb-mid:     #253745;
+  --c-sb-hover:   #1d3040;
+  --c-sb-text:    #CCD0CF;
+  --c-sb-muted:   #9BA8AB;
+  --c-sb-border:  #253745;
+  --c-sb-accent:  #4A5C6A;
 }
 
 /* ─── Reset ─────────────────────────────────────────────────── */

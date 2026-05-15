@@ -18,6 +18,8 @@ interface DanyMsg {
   from: 'dany' | 'user';
   text: string;
   time: Date;
+  /** Imagen adjunta como base64 data URL */
+  imagen?: string;
   /** Acción especial que muestra botones debajo del mensaje */
   accion?: 'resuelto' | 'escalar' | null;
   resumen?: string;
@@ -148,7 +150,10 @@ const QUICK_CHIPS = [
               }
               <div class="msg-col">
                 <div class="bubble" [class.bubble--dany]="msg.from === 'dany'" [class.bubble--user]="msg.from === 'user'">
-                  {{ msg.text }}
+                  @if (msg.imagen) {
+                    <img [src]="msg.imagen" alt="Imagen adjunta" class="bubble-img" (click)="abrirImagen(msg.imagen!)">
+                  }
+                  @if (msg.text) { {{ msg.text }} }
                 </div>
                 <span class="msg-time">{{ msg.time | date:'HH:mm' }}</span>
 
@@ -228,18 +233,47 @@ const QUICK_CHIPS = [
 
         <!-- Input -->
         @if (!ticketCreado()) {
-          <div class="dany-input-area">
+          <!-- Preview imagen adjunta -->
+          @if (imagenAdjunta()) {
+            <div class="img-preview-row">
+              <div class="img-preview-wrap">
+                <img [src]="imagenAdjunta()" alt="Imagen adjunta" class="img-preview-thumb">
+                <button class="img-preview-remove" (click)="quitarImagen()" title="Quitar imagen">✕</button>
+              </div>
+              <span class="img-preview-hint">Imagen lista para enviar</span>
+            </div>
+          }
+
+          <div class="dany-input-area"
+               [class.dany-input-area--drag]="dragging()"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave($event)"
+               (drop)="onDrop($event)">
+
+            <!-- Botón adjuntar -->
+            <button class="attach-btn" (click)="fileInput.click()" title="Adjuntar imagen"
+                    [disabled]="thinking()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <input #fileInput type="file" accept="image/*"
+                   style="position:fixed;left:-9999px;top:-9999px;opacity:0;width:1px;height:1px"
+                   (change)="onFileSelected($event)">
+
             <textarea
               class="dany-input"
               [(ngModel)]="inputText"
-              placeholder="Escribe aquí tu problema..."
+              placeholder="Escribe aquí tu problema... (o pega una imagen con Ctrl+V)"
               rows="2"
               [disabled]="thinking()"
               (keydown)="onKeydown($event)"
+              (paste)="onPaste($event)"
             ></textarea>
+
             <button
               class="send-btn"
-              [disabled]="!inputText.trim() || thinking()"
+              [disabled]="(!inputText.trim() && !imagenAdjunta()) || thinking()"
               (click)="sendMessage()"
               title="Enviar"
             >
@@ -249,7 +283,7 @@ const QUICK_CHIPS = [
             </button>
           </div>
           <p class="dany-disclaimer">
-            Dany intentará resolver tu problema. Si no puede, te ayudará a crear un reporte.
+            Adjunta una imagen con 📎, arrastrándola aquí, o pegando con Ctrl+V.
           </p>
         }
         @if (ticketCreado()) {
@@ -259,6 +293,14 @@ const QUICK_CHIPS = [
           </div>
         }
 
+      </div>
+    }
+
+    <!-- Modal imagen completa -->
+    @if (imagenModal()) {
+      <div class="img-modal-backdrop" (click)="imagenModal.set(null)">
+        <img [src]="imagenModal()!" alt="Imagen" class="img-modal-img" (click)="$event.stopPropagation()">
+        <button class="img-modal-close" (click)="imagenModal.set(null)">✕</button>
       </div>
     }
   `,
@@ -511,7 +553,57 @@ const QUICK_CHIPS = [
     }
 
     /* Input */
+    /* ── Imagen adjunta ── */
+    .img-preview-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px 4px;
+    }
+    .img-preview-wrap { position: relative; display: inline-flex; }
+    .img-preview-thumb {
+      height: 60px; max-width: 120px; object-fit: cover;
+      border-radius: 8px; border: 2px solid var(--c-blue-md);
+    }
+    .img-preview-remove {
+      position: absolute; top: -6px; right: -6px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--c-red); color: #fff;
+      border: none; font-size: 10px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .img-preview-hint { font-size: 11px; color: var(--c-muted); }
+    .attach-btn {
+      background: transparent; border: none; cursor: pointer;
+      color: var(--c-muted); padding: 6px 8px; border-radius: 6px;
+      display: flex; align-items: center;
+      transition: color .15s, background .15s; flex-shrink: 0;
+    }
+    .attach-btn:hover { color: var(--c-blue); background: var(--c-blue-lt); }
+    .attach-btn:disabled { opacity: .4; cursor: default; }
+    .bubble-img {
+      display: block; max-width: 200px; max-height: 160px;
+      border-radius: 8px; object-fit: cover;
+      cursor: zoom-in; margin-bottom: 4px;
+      border: 1px solid rgba(0,0,0,.1);
+    }
+    .dany-input-area--drag { border-color: var(--c-blue) !important; background: var(--c-blue-lt) !important; }
+    .img-modal-backdrop {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,.85);
+      display: flex; align-items: center; justify-content: center;
+      cursor: zoom-out; animation: fadeIn .15s ease;
+    }
+    .img-modal-img { max-width: 90vw; max-height: 90vh; border-radius: 10px; cursor: default; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .img-modal-close {
+      position: fixed; top: 20px; right: 24px;
+      background: rgba(255,255,255,.15); border: none; color: #fff;
+      font-size: 20px; width: 36px; height: 36px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .img-modal-close:hover { background: rgba(255,255,255,.3); }
+    @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+    /* ── Input area ── */
     .dany-input-area {
+      position: relative;
       display: flex; align-items: flex-end; gap: 8px;
       padding: 10px 12px; border-top: 1px solid var(--c-blue-lt);
       background: var(--c-surface); flex-shrink: 0;
@@ -585,6 +677,9 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
   ticketCreado = signal<{ id: number; folio: string } | null>(null);
   esResueltoIA = signal(false);
   creatingTicket = signal(false);
+  imagenAdjunta = signal<string | null>(null);
+  dragging = signal(false);
+  imagenModal = signal<string | null>(null);
 
   readonly quickChips = QUICK_CHIPS;
   private readonly proxyUrl = `${environment.apiUrl}/dany/chat`;
@@ -630,9 +725,11 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
   // ── Envío de mensajes ─────────────────────────────────────────────────────
   sendMessage() {
     const text = this.inputText.trim();
-    if (!text || this.thinking()) return;
+    const img = this.imagenAdjunta();
+    if ((!text && !img) || this.thinking()) return;
     this.inputText = '';
-    this.send(text);
+    this.imagenAdjunta.set(null);
+    this.send(text, img ?? undefined);
   }
 
   sendQuick(text: string) {
@@ -646,17 +743,18 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
     }
   }
 
-  private send(text: string) {
-    this.addMsg({ from: 'user', text });
+  private send(text: string, imagen?: string) {
+    this.addMsg({ from: 'user', text, imagen });
     this.thinking.set(true);
     this.needsScroll = true;
 
-    const payload = {
-      mensaje: text,
+    const payload: Record<string, unknown> = {
+      mensaje: text || '(imagen adjunta)',
       tienda_id: this.tiendaId(),
       tienda_nombre: this.tiendaNombre(),
       sesion_id: this.sesionId,
     };
+    if (imagen) payload['imagen_base64'] = imagen;
 
     this.http.post<DanyWebhookResponse>(this.proxyUrl, payload).pipe(
       catchError(err => {
@@ -797,6 +895,71 @@ export class DanyChatComponent implements AfterViewChecked, OnInit {
       from: 'dany',
       text: '¡Hola! Soy Dany, tu asistente de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando en tu tienda.',
     });
+  }
+
+  // ── Imagen ────────────────────────────────────────────────────────────────
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  private async procesarImagen(file: File) {
+    if (!file.type.startsWith('image/')) return;
+    const MAX = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX) {
+      alert('La imagen no puede superar 5 MB');
+      return;
+    }
+    const base64 = await this.fileToBase64(file);
+    this.imagenAdjunta.set(base64);
+  }
+
+  onFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.procesarImagen(file);
+    input.value = '';
+  }
+
+  onPaste(event: ClipboardEvent) {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    for (const item of Array.from(items)) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (file) this.procesarImagen(file);
+        return;
+      }
+    }
+  }
+
+  onDragOver(event: DragEvent) {
+    event.preventDefault();
+    this.dragging.set(true);
+  }
+
+  onDragLeave(event: DragEvent) {
+    this.dragging.set(false);
+  }
+
+  onDrop(event: DragEvent) {
+    event.preventDefault();
+    this.dragging.set(false);
+    const file = event.dataTransfer?.files[0];
+    if (file) this.procesarImagen(file);
+  }
+
+  quitarImagen() {
+    this.imagenAdjunta.set(null);
+  }
+
+  abrirImagen(src: string) {
+    this.imagenModal.set(src);
   }
 
   private addMsg(partial: Omit<DanyMsg, 'id' | 'time'>) {
