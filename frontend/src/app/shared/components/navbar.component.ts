@@ -73,19 +73,9 @@ interface Notificaciones {
             </svg>
             <span class="sb-label">Cola de tickets</span>
           </a>
-          <!-- Solo AGENTE ve el chat de Dany (no la gestión) -->
-          @if (auth.isAgente()) {
-            <a routerLink="/chat-dany" routerLinkActive="sb-item--active"
-               class="sb-item" [attr.data-tooltip]="collapsed() ? 'Chat Dany' : null">
-              <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              <span class="sb-label">Chat Dany</span>
-            </a>
-          }
         }
 
-        <!-- COORDINADOR: Dashboard + KPIs + Dany gestión + Chat Dany -->
+        <!-- COORDINADOR: Dashboard -->
         @if (auth.isCoordinador()) {
           <a routerLink="/coordinador" routerLinkActive="sb-item--active" [routerLinkActiveOptions]="{exact:true}"
              class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dashboard' : null">
@@ -93,30 +83,6 @@ interface Notificaciones {
               <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
             <span class="sb-label">Dashboard</span>
-          </a>
-          <a routerLink="/admin/kpis" routerLinkActive="sb-item--active"
-             class="sb-item" [attr.data-tooltip]="collapsed() ? 'KPIs' : null">
-            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            <span class="sb-label">KPIs</span>
-          </a>
-          <a routerLink="/admin/dany" routerLinkActive="sb-item--active"
-             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dany' : null">
-            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="2"/>
-              <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
-              <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
-              <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
-            </svg>
-            <span class="sb-label">Dany</span>
-          </a>
-          <a routerLink="/chat-dany" routerLinkActive="sb-item--active"
-             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Chat Dany' : null">
-            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span class="sb-label">Chat Dany</span>
           </a>
         }
 
@@ -258,9 +224,32 @@ interface Notificaciones {
           }
         }
 
-        <!-- ── COORDINADOR: config de catálogos ── -->
+        <!-- ── COORDINADOR: Administración + Configuración ── -->
         @if (auth.isCoordinador()) {
-          <div class="sb-divider"></div>
+          @if (!collapsed()) {
+            <span class="sb-sec-label" style="margin-top:18px">Administración</span>
+          } @else {
+            <div class="sb-divider"></div>
+          }
+
+          <a routerLink="/admin/kpis" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'KPIs' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span class="sb-label">KPIs</span>
+          </a>
+
+          <a routerLink="/admin/dany" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dany' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
+              <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="sb-label">Dany</span>
+          </a>
 
           @if (!collapsed()) {
             <button class="sb-item sb-item--toggle" (click)="configOpen.set(!configOpen())"

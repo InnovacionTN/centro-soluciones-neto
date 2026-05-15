@@ -2784,6 +2784,34 @@ def _calcular_deflexion(db, dt_desde, dt_hasta) -> float:
     return round(rows.res / rows.tot * 100, 1)
 
 
+# ─── Helpers de scope para KPIs ───────────────────────────────────────────────
+
+def _scope_tickets(q, current_user: Usuario, db: Session):
+    """Aplica filtro de alcance según el rol del usuario a una query de Ticket."""
+    rol = current_user.rol
+    if rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+        q = (q.outerjoin(Tipificacion, Ticket.tipificacion_id == Tipificacion.id)
+              .filter(Tipificacion.area_tecnica == current_user.area_restriccion))
+    elif rol == RolUsuario.COORDINADOR and current_user.grupo_id:
+        grupo = db.query(Grupo).filter(Grupo.id == current_user.grupo_id).first()
+        if grupo and grupo.compania_id:
+            q = (q.join(Tienda, Ticket.tienda_id == Tienda.id)
+                  .join(Zona, Tienda.zona_id == Zona.id)
+                  .join(Region, Zona.region_id == Region.id)
+                  .filter(Region.compania_id == grupo.compania_id))
+        else:
+            q = q.filter(Ticket.id == -1)
+    return q
+
+
+def _compania_id_for_user(current_user: Usuario, db: Session) -> Optional[int]:
+    """Devuelve compania_id para COORDINADOR; None para ADMIN/ADMIN_AREA."""
+    if current_user.rol == RolUsuario.COORDINADOR and current_user.grupo_id:
+        grupo = db.query(Grupo).filter(Grupo.id == current_user.grupo_id).first()
+        return grupo.compania_id if grupo else None
+    return None
+
+
 # ─── GET /admin/kpis/ejecutivo ────────────────────────────────────────────────
 
 
@@ -2793,7 +2821,7 @@ def kpi_ejecutivo(
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     """
@@ -2803,14 +2831,11 @@ def kpi_ejecutivo(
     dt_desde, dt_hasta = _periodo(desde, hasta)
     dias = max((dt_hasta - dt_desde).days, 1)
 
-    todos = (
-        db.query(Ticket)
-        .filter(
-            Ticket.fecha_apertura >= dt_desde,
-            Ticket.fecha_apertura <= dt_hasta,
-        )
-        .all()
+    q = db.query(Ticket).filter(
+        Ticket.fecha_apertura >= dt_desde,
+        Ticket.fecha_apertura <= dt_hasta,
     )
+    todos = _scope_tickets(q, current_user, db).all()
 
     cerrados = [
         t for t in todos if t.estatus in (EstatusTicket.CERRADO, EstatusTicket.RESUELTO)
@@ -2889,7 +2914,7 @@ def kpi_tendencia(
     meses: int = Query(6, ge=1, le=18),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     """
@@ -2909,14 +2934,13 @@ def kpi_tendencia(
 
         mes_str = primer_dia.strftime("%Y-%m")
 
-        tickets = (
-            db.query(Ticket)
-            .filter(
+        tickets = _scope_tickets(
+            db.query(Ticket).filter(
                 Ticket.fecha_apertura >= primer_dia,
                 Ticket.fecha_apertura < ultimo_dia,
-            )
-            .all()
-        )
+            ),
+            current_user, db,
+        ).all()
 
         cerrados = [
             t
@@ -2963,18 +2987,18 @@ def kpi_por_area(
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     """Nivel 2 — KPIs desglosados por área técnica."""
     dt_desde, dt_hasta = _periodo(desde, hasta)
 
-    todos = (
+    todos = _scope_tickets(
         db.query(Ticket)
         .options(joinedload(Ticket.tipificacion))
-        .filter(Ticket.fecha_apertura >= dt_desde, Ticket.fecha_apertura <= dt_hasta)
-        .all()
-    )
+        .filter(Ticket.fecha_apertura >= dt_desde, Ticket.fecha_apertura <= dt_hasta),
+        current_user, db,
+    ).all()
     total_global = len(todos) or 1
 
     # Agrupar
@@ -3045,7 +3069,7 @@ def kpi_por_grupo(
     area: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     """Nivel 3 — KPIs por grupo de soporte."""
@@ -3054,6 +3078,10 @@ def kpi_por_grupo(
     grupos_q = db.query(Grupo).filter(Grupo.activo == True)
     if area:
         grupos_q = grupos_q.filter(Grupo.area_tecnica == area.upper())
+    # COORDINADOR: limitar grupos a su compañía
+    compania_id = _compania_id_for_user(current_user, db)
+    if compania_id:
+        grupos_q = grupos_q.filter(Grupo.compania_id == compania_id)
     grupos = grupos_q.all()
 
     resultado = []
@@ -3138,7 +3166,7 @@ def kpi_por_agente(
     grupo_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     """Nivel 4 — KPIs individuales por agente, versión extendida."""
@@ -3149,6 +3177,17 @@ def kpi_por_agente(
     )
     if grupo_id:
         aq = aq.filter(Usuario.grupo_id == grupo_id)
+    # COORDINADOR: ver solo agentes de su compañía
+    compania_id = _compania_id_for_user(current_user, db)
+    if compania_id:
+        aq = aq.join(Grupo, Usuario.grupo_id == Grupo.id).filter(
+            Grupo.compania_id == compania_id
+        )
+    # ADMIN_AREA: ver solo agentes de su área
+    elif current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+        aq = aq.join(Grupo, Usuario.grupo_id == Grupo.id).filter(
+            Grupo.area_tecnica == current_user.area_restriccion
+        )
     agentes = aq.all()
 
     resultado = []
@@ -3686,13 +3725,10 @@ def kpi_dany(
     hasta: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
-    """
-    Métricas de rendimiento de Dany como primera línea.
-    Solo ADMIN.
-    """
+    """Métricas de rendimiento de Dany como primera línea."""
     dt_desde = (
         datetime.fromisoformat(desde)
         if desde
@@ -3700,38 +3736,67 @@ def kpi_dany(
     )
     dt_hasta = datetime.fromisoformat(hasta) if hasta else datetime.utcnow()
 
-    # Sesiones en el período
-    sesiones = db.execute(
-        sql_text(
-            """
-        SELECT sesion_id, tienda_id, canal, mensajes_count,
-               resuelto_sin_ticket, ticket_id,
-               tipificacion_detectada, motivo_escalacion,
-               fecha_inicio, fecha_fin
-        FROM dany_sesiones
-        WHERE fecha_inicio >= :desde AND fecha_inicio <= :hasta
-    """
-        ),
-        {"desde": dt_desde, "hasta": dt_hasta},
-    ).fetchall()
+    compania_id = _compania_id_for_user(current_user, db)
+
+    # Sesiones en el período (con scope por compañía si aplica)
+    if compania_id:
+        sesiones = db.execute(
+            sql_text(
+                """
+            SELECT ds.sesion_id, ds.tienda_id, ds.canal, ds.mensajes_count,
+                   ds.resuelto_sin_ticket, ds.ticket_id,
+                   ds.tipificacion_detectada, ds.motivo_escalacion,
+                   ds.fecha_inicio, ds.fecha_fin
+            FROM dany_sesiones ds
+            JOIN tiendas t ON ds.tienda_id = t.id
+            JOIN cat_zonas z ON t.zona_id = z.id
+            JOIN cat_regiones r ON z.region_id = r.id
+            WHERE ds.fecha_inicio >= :desde AND ds.fecha_inicio <= :hasta
+              AND r.compania_id = :cid
+        """
+            ),
+            {"desde": dt_desde, "hasta": dt_hasta, "cid": compania_id},
+        ).fetchall()
+    else:
+        sesiones = db.execute(
+            sql_text(
+                """
+            SELECT sesion_id, tienda_id, canal, mensajes_count,
+                   resuelto_sin_ticket, ticket_id,
+                   tipificacion_detectada, motivo_escalacion,
+                   fecha_inicio, fecha_fin
+            FROM dany_sesiones
+            WHERE fecha_inicio >= :desde AND fecha_inicio <= :hasta
+        """
+            ),
+            {"desde": dt_desde, "hasta": dt_hasta},
+        ).fetchall()
 
     total = len(sesiones)
     resueltas = [s for s in sesiones if s.resuelto_sin_ticket]
     escaladas = [s for s in sesiones if not s.resuelto_sin_ticket]
     tasa = round(len(resueltas) / total * 100, 1) if total else 0.0
 
-    # Tickets creados por Dany en el período
+    # Tickets creados por Dany en el período (con scope)
+    compania_join = (
+        "JOIN tiendas ti ON t.tienda_id = ti.id "
+        "JOIN cat_zonas z ON ti.zona_id = z.id "
+        "JOIN cat_regiones r ON z.region_id = r.id "
+        "AND r.compania_id = :cid "
+        if compania_id else ""
+    )
+    params_t: dict = {"desde": dt_desde, "hasta": dt_hasta}
+    if compania_id:
+        params_t["cid"] = compania_id
+
     tickets_dany = db.execute(
         sql_text(
-            """
-        SELECT t.id, t.fecha_apertura, t.fecha_primera_respuesta
-        FROM tickets t
-        WHERE t.origen = 'DANY'
-          AND t.fecha_apertura >= :desde
-          AND t.fecha_apertura <= :hasta
-    """
+            f"SELECT t.id, t.fecha_apertura, t.fecha_primera_respuesta "
+            f"FROM tickets t {compania_join}"
+            f"WHERE t.origen = 'DANY' "
+            f"AND t.fecha_apertura >= :desde AND t.fecha_apertura <= :hasta"
         ),
-        {"desde": dt_desde, "hasta": dt_hasta},
+        params_t,
     ).fetchall()
 
     # Tiempo primera respuesta agente a tickets de Dany
@@ -3751,10 +3816,11 @@ def kpi_dany(
     # Top tipificaciones — cruzar tickets Dany con su tipificación real
     top_tip_rows = db.execute(
         sql_text(
-            """
+            f"""
             SELECT tip.categoria || ' > ' || tip.subcategoria || ' > ' || tip.problema AS nombre,
                    COUNT(*) AS total
             FROM tickets t
+            {compania_join}
             JOIN cat_tipificaciones tip ON t.tipificacion_id = tip.id
             WHERE t.origen = 'DANY'
               AND t.fecha_apertura >= :desde
@@ -3764,7 +3830,7 @@ def kpi_dany(
             LIMIT 10
         """
         ),
-        {"desde": dt_desde, "hasta": dt_hasta},
+        params_t,
     ).fetchall()
     top_tips = [{"nombre": r.nombre, "count": r.total} for r in top_tip_rows]
 

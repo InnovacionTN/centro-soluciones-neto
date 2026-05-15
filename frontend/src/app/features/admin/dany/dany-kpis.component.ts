@@ -1,262 +1,273 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
 import { NavbarComponent } from '../../../shared/components/navbar.component';
+import { AuthService } from '../../../core/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 interface KpiDany {
-    periodo_desde: string;
-    periodo_hasta: string;
-    sesiones_totales: number;
-    sesiones_resueltas: number;
-    sesiones_escaladas: number;
-    tasa_deflexion_pct: number;
-    tickets_creados: number;
-    tiempo_primera_respuesta_agente_horas: number | null;
-    por_canal: Record<string, number>;
-    top_tipificaciones: { nombre: string; count: number }[];
+  periodo_desde: string; periodo_hasta: string;
+  sesiones_totales: number; sesiones_resueltas: number; sesiones_escaladas: number;
+  tasa_deflexion_pct: number; tickets_creados: number;
+  tiempo_primera_respuesta_agente_horas: number | null;
+  por_canal: Record<string, number>;
+  top_tipificaciones: { nombre: string; count: number }[];
 }
 
 @Component({
-    selector: 'app-dany-kpis',
-    standalone: true,
-    imports: [CommonModule, FormsModule, NavbarComponent],
-    template: `
+  selector: 'app-dany-kpis',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule, NavbarComponent],
+  template: `
     <div class="page">
-      <app-navbar section="Dany KPIs" />
+      <app-navbar section="Dany" />
       <div class="content content--wide">
 
         <!-- Header -->
-        <div class="top-bar">
+        <div class="page-header">
           <div>
-            <h1 class="page-title">🤖 Métricas Dany — Primera línea</h1>
-            <p class="page-sub">Tasa de deflexión y rendimiento del asistente virtual</p>
+            <h1 class="page-title">
+              <span class="dany-orb-sm"></span>
+              Rendimiento Daniel
+            </h1>
+            <p class="page-sub">{{ scopeLabel() }}</p>
           </div>
-          <div class="period-controls">
-            <input type="date" class="input input--sm" [(ngModel)]="desde" (change)="load()" />
-            <span class="text-muted">→</span>
-            <input type="date" class="input input--sm" [(ngModel)]="hasta" (change)="load()" />
-            <button class="btn btn--ghost btn--sm" (click)="setPeriodo(30)">30d</button>
-            <button class="btn btn--ghost btn--sm" (click)="setPeriodo(7)">7d</button>
-          </div>
+          <select class="period-sel" [(ngModel)]="periodoSel" (ngModelChange)="load()">
+            <option value="7">Últimos 7 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="180">Últimos 6 meses</option>
+          </select>
         </div>
 
         @if (loading()) {
-          <div class="loading">Cargando métricas Dany…</div>
+          <div class="skeleton-grid">
+            @for (i of [1,2,3,4]; track i) { <div class="skeleton-card"></div> }
+          </div>
         } @else if (kpi()) {
 
-          <!-- Big numbers -->
-          <div class="bignum-grid">
-            <!-- Deflexión — la métrica estrella -->
-            <div class="bignum-card bignum-card--hero"
-                 [class.hero--green]="kpi()!.tasa_deflexion_pct >= 25"
-                 [class.hero--amber]="kpi()!.tasa_deflexion_pct >= 10 && kpi()!.tasa_deflexion_pct < 25"
-                 [class.hero--red]="kpi()!.tasa_deflexion_pct < 10">
-              <div class="bignum-val">{{ kpi()!.tasa_deflexion_pct | number:'1.1-1' }}%</div>
-              <div class="bignum-lbl">Tasa de deflexión</div>
-              <div class="bignum-sub">Meta: ≥ 25% · {{ kpi()!.sesiones_resueltas }} resueltas sin ticket</div>
-              <!-- Barra de progreso hacia la meta -->
-              <div class="meta-bar">
-                <div class="meta-fill"
-                     [style.width.%]="min100(kpi()!.tasa_deflexion_pct / 25 * 100)">
-                </div>
+          <!-- Hero: deflexión -->
+          <div class="deflexion-hero">
+            <div class="deflexion-ring">
+              <svg viewBox="0 0 120 120" class="ring-svg">
+                <circle cx="60" cy="60" r="50" class="ring-bg"/>
+                <circle cx="60" cy="60" r="50" class="ring-fill"
+                  [style.stroke-dasharray]="ringDash()"
+                  [style.stroke]="ringColor()"/>
+              </svg>
+              <div class="ring-label">
+                <span class="ring-val">{{ kpi()!.tasa_deflexion_pct | number:'1.0-0' }}%</span>
+                <span class="ring-sub">Deflexión</span>
               </div>
-              <div class="meta-label">{{ min100(kpi()!.tasa_deflexion_pct / 25 * 100) | number:'1.0-0' }}% de la meta</div>
             </div>
-
-            <div class="bignum-card">
-              <div class="bignum-val">{{ kpi()!.sesiones_totales | number }}</div>
-              <div class="bignum-lbl">Sesiones totales</div>
-              <div class="bignum-sub">{{ kpi()!.sesiones_escaladas }} escaladas a agente</div>
-            </div>
-
-            <div class="bignum-card">
-              <div class="bignum-val">{{ kpi()!.tickets_creados | number }}</div>
-              <div class="bignum-lbl">Tickets creados por Dany</div>
-              <div class="bignum-sub">origen = 🤖 DANY</div>
-            </div>
-
-            <div class="bignum-card"
-                 [class.bignum-card--green]="kpi()!.tiempo_primera_respuesta_agente_horas !== null && kpi()!.tiempo_primera_respuesta_agente_horas! <= 2">
-              <div class="bignum-val">
-                {{ kpi()!.tiempo_primera_respuesta_agente_horas !== null
-                   ? (kpi()!.tiempo_primera_respuesta_agente_horas! | number:'1.1-1') + 'h'
-                   : '—' }}
+            <div class="deflexion-cards">
+              <div class="def-card def-card--green">
+                <span class="def-val">{{ kpi()!.sesiones_resueltas }}</span>
+                <span class="def-lbl">Resueltas sin ticket</span>
               </div>
-              <div class="bignum-lbl">Primera resp. agente a tickets Dany</div>
-              <div class="bignum-sub">Desde que Dany escala hasta que el agente responde</div>
+              <div class="def-card def-card--amber">
+                <span class="def-val">{{ kpi()!.sesiones_escaladas }}</span>
+                <span class="def-lbl">Escaladas a agente</span>
+              </div>
+              <div class="def-card def-card--blue">
+                <span class="def-val">{{ kpi()!.sesiones_totales }}</span>
+                <span class="def-lbl">Total sesiones</span>
+              </div>
+              <div class="def-card">
+                <span class="def-val">{{ kpi()!.tickets_creados }}</span>
+                <span class="def-lbl">Tickets creados</span>
+              </div>
+              <div class="def-card">
+                <span class="def-val">
+                  {{ kpi()!.tiempo_primera_respuesta_agente_horas != null
+                      ? (kpi()!.tiempo_primera_respuesta_agente_horas! | number:'1.0-1') + 'h'
+                      : '—' }}
+                </span>
+                <span class="def-lbl">T. primera respuesta agente</span>
+              </div>
             </div>
           </div>
 
-          <!-- Por canal + top tipificaciones -->
           <div class="two-col">
 
             <!-- Por canal -->
-            <div class="panel">
-              <h3 class="panel-title">📡 Sesiones por canal</h3>
-              @for (item of canalItems(); track item.canal) {
-                <div class="canal-row">
-                  <span class="canal-nombre">{{ canalEmoji(item.canal) }} {{ item.canal }}</span>
-                  <div class="canal-bar-wrap">
-                    <div class="canal-bar"
-                         [style.width.%]="item.pct"
-                         [class.canal-bar--portal]="item.canal === 'portal'"
-                         [class.canal-bar--slack]="item.canal === 'slack'">
+            @if (canales().length > 0) {
+              <div class="panel">
+                <div class="panel-title">Sesiones por canal</div>
+                @for (c of canales(); track c.canal) {
+                  <div class="canal-row">
+                    <span class="canal-name">{{ c.canal }}</span>
+                    <div class="canal-bar-bg">
+                      <div class="canal-bar" [style.width.%]="canalPct(c.count)"></div>
                     </div>
+                    <span class="canal-count">{{ c.count }}</span>
                   </div>
-                  <span class="canal-count">{{ item.count }}</span>
-                </div>
-              }
-              @if (canalItems().length === 0) {
-                <p class="text-muted text-sm">Sin datos de sesiones aún</p>
-              }
-            </div>
+                }
+              </div>
+            }
 
-            <!-- Top tipificaciones detectadas por Dany -->
-            <div class="panel">
-              <h3 class="panel-title">🔍 Top problemas detectados por Dany</h3>
-              @for (t of kpi()!.top_tipificaciones; track t.nombre; let i = $index) {
-                <div class="tip-row">
-                  <span class="tip-rank">#{{ i + 1 }}</span>
-                  <span class="tip-nombre">{{ t.nombre }}</span>
-                  <span class="tip-count">{{ t.count }}</span>
-                </div>
-              }
-              @if (kpi()!.top_tipificaciones.length === 0) {
-                <p class="text-muted text-sm">Sin tipificaciones detectadas aún</p>
-              }
-            </div>
-
-          </div>
-
-          <!-- Interpretación -->
-          <div class="insight-box">
-            <strong>📊 Interpretación:</strong>
-            @if (kpi()!.sesiones_totales === 0) {
-              Dany aún no ha tenido sesiones en este período. Verifica que el workflow de n8n esté activo y registrando sesiones.
-            } @else if (kpi()!.tasa_deflexion_pct >= 25) {
-              ✅ Dany está cumpliendo la meta de deflexión. Por cada ticket creado, resuelve {{ (kpi()!.sesiones_resueltas / (kpi()!.sesiones_escaladas || 1)) | number:'1.1-1' }} casos sin escalación.
-            } @else if (kpi()!.tasa_deflexion_pct >= 10) {
-              🟡 Dany está en camino pero por debajo de la meta del 25%. Revisa las tipificaciones más frecuentes para mejorar las respuestas automáticas.
-            } @else {
-              🔴 La tasa de deflexión es muy baja. Revisa el system prompt de Dany y asegúrate de que las tools estén funcionando correctamente.
+            <!-- Top tipificaciones -->
+            @if (kpi()!.top_tipificaciones.length > 0) {
+              <div class="panel">
+                <div class="panel-title">Problemas más frecuentes (Dany)</div>
+                @for (tip of kpi()!.top_tipificaciones.slice(0, 8); track tip.nombre; let i = $index) {
+                  <div class="tip-row">
+                    <span class="tip-rank">{{ i + 1 }}</span>
+                    <div class="tip-info">
+                      <span class="tip-nombre">{{ tip.nombre }}</span>
+                      <div class="tip-bar-bg">
+                        <div class="tip-bar" [style.width.%]="tipPct(tip.count)"></div>
+                      </div>
+                    </div>
+                    <span class="tip-count">{{ tip.count }}</span>
+                  </div>
+                }
+              </div>
             }
           </div>
 
+        } @else {
+          <div class="empty">No hay datos de Daniel para el período seleccionado.</div>
         }
       </div>
     </div>
   `,
-    styles: [`
-    .top-bar { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px; }
-    .page-title { font-size:22px; font-weight:600; }
-    .page-sub   { font-size:13px; color:var(--c-muted); }
-    .period-controls { display:flex; align-items:center; gap:8px; }
-    .input--sm { padding:5px 10px; font-size:13px; border-radius:6px; border:1px solid var(--c-border); }
+  styles: [`
+    .page { display:flex; flex-direction:column; min-height:100vh; }
+    .content--wide { max-width:1200px; margin:0 auto; width:100%; padding:24px 24px 48px; }
+    .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
+    .page-title { font-size:22px; font-weight:700; color:var(--c-text); display:flex; align-items:center; gap:10px; }
+    .page-sub { font-size:13px; color:var(--c-muted); margin-top:2px; }
+    .period-sel { padding:7px 12px; border-radius:8px; border:1px solid var(--c-border); background:var(--c-surface); color:var(--c-text); font-size:13px; cursor:pointer; }
 
-    .bignum-grid {
-      display:grid; grid-template-columns:2fr 1fr 1fr 1fr;
-      gap:12px; margin-bottom:24px;
+    /* Dany orb */
+    .dany-orb-sm {
+      width:22px; height:22px; border-radius:50%; flex-shrink:0;
+      background: radial-gradient(circle at 35% 35%, #818cf8, #6366f1 55%, #4f46e5);
+      box-shadow: 0 0 10px rgba(99,102,241,.5);
     }
-    @media(max-width:900px) { .bignum-grid { grid-template-columns:1fr 1fr; } }
 
-    .bignum-card {
+    .skeleton-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:14px; }
+    .skeleton-card { height:96px; border-radius:12px; background:var(--c-border); animation:pulse 1.4s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+
+    /* Deflexión hero */
+    .deflexion-hero {
+      display:flex; align-items:center; gap:32px; flex-wrap:wrap;
       background:var(--c-surface); border:1px solid var(--c-border);
-      border-radius:var(--radius-lg); padding:16px 18px;
-      border-top:4px solid var(--c-blue);
+      border-radius:16px; padding:28px 32px; margin-bottom:28px;
     }
-    .bignum-card--green { border-top-color:#00A878; }
+    .deflexion-ring { position:relative; width:120px; height:120px; flex-shrink:0; }
+    .ring-svg { width:120px; height:120px; transform:rotate(-90deg); }
+    .ring-bg { fill:none; stroke:var(--c-border); stroke-width:10; }
+    .ring-fill { fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dasharray .6s ease; stroke-dashoffset:0; }
+    .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+    .ring-val { font-size:22px; font-weight:800; color:var(--c-text); line-height:1; }
+    .ring-sub { font-size:10px; color:var(--c-muted); text-transform:uppercase; letter-spacing:.06em; }
 
-    /* Card hero — deflexión */
-    .bignum-card--hero { padding:18px 20px; }
-    .hero--green { border-top-color:#00A878; }
-    .hero--amber { border-top-color:#F59E0B; }
-    .hero--red   { border-top-color:#EF4444; }
-
-    .bignum-val { font-size:36px; font-weight:800; line-height:1; margin-bottom:4px; }
-    .bignum-lbl { font-size:13px; font-weight:600; margin-bottom:2px; }
-    .bignum-sub { font-size:11px; color:var(--c-muted); margin-bottom:10px; }
-
-    .meta-bar { height:6px; background:var(--c-border); border-radius:3px; overflow:hidden; }
-    .meta-fill { height:100%; background:#00A878; border-radius:3px; transition:width .5s; }
-    .meta-label { font-size:10px; color:var(--c-muted); margin-top:4px; }
-
-    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
-    @media(max-width:700px) { .two-col { grid-template-columns:1fr; } }
-
-    .panel {
-      background:var(--c-surface); border:1px solid var(--c-border);
-      border-radius:var(--radius-lg); padding:16px 18px;
+    .deflexion-cards { display:flex; flex-wrap:wrap; gap:12px; flex:1; }
+    .def-card {
+      background:var(--c-bg); border:1px solid var(--c-border);
+      border-radius:10px; padding:14px 18px; min-width:110px;
+      display:flex; flex-direction:column; gap:4px;
     }
-    .panel-title { font-size:14px; font-weight:600; margin-bottom:14px; }
+    .def-val { font-size:22px; font-weight:700; color:var(--c-text); }
+    .def-lbl { font-size:11px; color:var(--c-muted); }
+    .def-card--green .def-val { color:#16a34a; }
+    .def-card--amber .def-val { color:var(--c-amber); }
+    .def-card--blue  .def-val { color:var(--c-blue); }
 
+    /* Two columns */
+    .two-col { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+    @media (max-width:800px) { .two-col { grid-template-columns:1fr; } }
+
+    .panel { background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px; padding:20px; }
+    .panel-title { font-size:13px; font-weight:700; color:var(--c-text); margin-bottom:16px; }
+
+    /* Canal bars */
     .canal-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-    .canal-nombre { font-size:13px; width:90px; flex-shrink:0; }
-    .canal-bar-wrap { flex:1; height:8px; background:var(--c-border); border-radius:4px; overflow:hidden; }
-    .canal-bar { height:100%; border-radius:4px; background:var(--c-blue); }
-    .canal-bar--portal { background:#1B3462; }
-    .canal-bar--slack  { background:#4A154B; }
-    .canal-count { font-size:13px; font-weight:600; width:30px; text-align:right; }
+    .canal-name { font-size:12px; color:var(--c-text); width:80px; flex-shrink:0; text-transform:capitalize; }
+    .canal-bar-bg { flex:1; height:8px; background:var(--c-border); border-radius:4px; overflow:hidden; }
+    .canal-bar { height:8px; background:var(--c-blue); border-radius:4px; transition:width .4s; }
+    .canal-count { font-size:12px; font-weight:600; color:var(--c-muted); width:32px; text-align:right; }
 
-    .tip-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--c-border); }
-    .tip-row:last-child { border-bottom:none; }
-    .tip-rank  { font-size:11px; color:var(--c-muted); width:24px; flex-shrink:0; }
-    .tip-nombre { flex:1; font-size:12px; }
-    .tip-count  { font-size:13px; font-weight:700; }
+    /* Tipificaciones */
+    .tip-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+    .tip-rank { font-size:12px; font-weight:700; color:var(--c-muted); width:18px; text-align:center; flex-shrink:0; }
+    .tip-info { flex:1; min-width:0; }
+    .tip-nombre { font-size:12px; color:var(--c-text); display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:4px; }
+    .tip-bar-bg { height:5px; background:var(--c-border); border-radius:3px; overflow:hidden; }
+    .tip-bar { height:5px; background:var(--c-purple); border-radius:3px; transition:width .4s; }
+    .tip-count { font-size:12px; font-weight:600; color:var(--c-muted); width:28px; text-align:right; flex-shrink:0; }
 
-    .insight-box {
-      background:var(--c-blue-lt); border:1px solid var(--c-blue-md);
-      border-radius:var(--radius-md); padding:14px 16px; font-size:13px;
-    }
-
-    .loading { text-align:center; padding:48px; color:var(--c-muted); }
-    .text-muted { color:var(--c-muted); }
-    .text-sm { font-size:12px; }
+    .empty { text-align:center; color:var(--c-muted); padding:60px 20px; font-size:14px; }
   `],
 })
 export class DanyKpisComponent implements OnInit {
+  private http = inject(HttpClient);
+  auth = inject(AuthService);
+  private api = environment.apiUrl;
 
-    kpi = signal<KpiDany | null>(null);
-    loading = signal(true);
-    desde = this.haceNDias(30);
-    hasta = this.hoy();
+  loading    = signal(true);
+  periodoSel = '30';
+  kpi        = signal<KpiDany | null>(null);
 
-    canalItems = () => {
-        const d = this.kpi()?.por_canal || {};
-        const total = Object.values(d).reduce((a, b) => a + b, 0) || 1;
-        return Object.entries(d).map(([canal, count]) => ({
-            canal, count, pct: Math.round(count / total * 100),
-        })).sort((a, b) => b.count - a.count);
-    };
+  scopeLabel = computed(() => {
+    const rol  = this.auth.rol();
+    const user = this.auth.currentUser();
+    if (rol === 'ADMIN')       return 'Vista global — todos los canales y compañías';
+    if (rol === 'ADMIN_AREA')  return `Mi Área: ${user?.area_restriccion ?? ''}`;
+    if (rol === 'COORDINADOR') return 'Mi Compañía';
+    return '';
+  });
 
-    constructor(private http: HttpClient) { }
+  canales = computed(() => {
+    const k = this.kpi();
+    if (!k) return [];
+    return Object.entries(k.por_canal)
+      .map(([canal, count]) => ({ canal, count }))
+      .sort((a, b) => b.count - a.count);
+  });
 
-    ngOnInit() { this.load(); }
+  ngOnInit() { this.load(); }
 
-    load() {
-        this.loading.set(true);
-        const p = new HttpParams().set('desde', this.desde).set('hasta', this.hasta);
-        this.http.get<KpiDany>('/api/v1/admin/kpis/dany', { params: p }).subscribe({
-            next: d => { this.kpi.set(d); this.loading.set(false); },
-            error: () => this.loading.set(false),
-        });
-    }
+  load() {
+    this.loading.set(true);
+    const desde = this.daysAgo(+this.periodoSel);
+    const hasta  = new Date().toISOString().slice(0, 10);
+    this.http.get<KpiDany>(`${this.api}/admin/kpis/dany?desde=${desde}&hasta=${hasta}`).subscribe({
+      next: d => { this.kpi.set(d); this.loading.set(false); },
+      error: () => { this.kpi.set(null); this.loading.set(false); },
+    });
+  }
 
-    setPeriodo(dias: number) {
-        this.hasta = this.hoy();
-        this.desde = this.haceNDias(dias);
-        this.load();
-    }
+  private daysAgo(d: number): string {
+    const dt = new Date(); dt.setDate(dt.getDate() - d); return dt.toISOString().slice(0, 10);
+  }
 
-    min100(v: number) { return Math.min(v, 100); }
+  ringDash(): string {
+    const pct = this.kpi()?.tasa_deflexion_pct ?? 0;
+    const circ = 2 * Math.PI * 50;
+    return `${(pct / 100) * circ} ${circ}`;
+  }
 
-    canalEmoji(canal: string): string {
-        return { portal: '🌐', slack: '💬', whatsapp: '📱' }[canal] ?? '📡';
-    }
+  ringColor(): string {
+    const pct = this.kpi()?.tasa_deflexion_pct ?? 0;
+    if (pct >= 60) return '#16a34a';
+    if (pct >= 40) return 'var(--c-amber)';
+    return 'var(--c-red)';
+  }
 
-    private hoy() { return new Date().toISOString().split('T')[0]; }
-    private haceNDias(n: number) {
-        const d = new Date(); d.setDate(d.getDate() - n);
-        return d.toISOString().split('T')[0];
-    }
+  canalPct(v: number): number {
+    const max = Math.max(...this.canales().map(c => c.count), 1);
+    return Math.round(v / max * 100);
+  }
+
+  tipPct(v: number): number {
+    const tips = this.kpi()?.top_tipificaciones ?? [];
+    const max  = Math.max(...tips.map(t => t.count), 1);
+    return Math.round(v / max * 100);
+  }
 }

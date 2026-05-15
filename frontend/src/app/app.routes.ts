@@ -32,14 +32,6 @@ export const routes: Routes = [
       import('./features/coordinador/coordinador-dashboard.component')
         .then(m => m.CoordinadorDashboardComponent),
   },
-  // Chat de Dany — agentes y coordinadores (tienda lo tiene en /tienda)
-  {
-    path: 'chat-dany',
-    canActivate: [authGuard(['AGENTE', 'COORDINADOR', 'ADMIN', 'ADMIN_AREA'])],
-    loadComponent: () =>
-      import('./features/tienda/dany-chat.component')
-        .then(m => m.DanyChatComponent),
-  },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
 ];
