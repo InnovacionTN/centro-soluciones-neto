@@ -346,8 +346,8 @@ interface Notificaciones {
               </span>
             </button>
 
-            <!-- Cambiar contraseña -->
-            <button class="um-item" (click)="openPwdModal()">
+            <!-- Cambiar contraseña (deshabilitado hasta integración Slack) -->
+            <button class="um-item um-item--disabled" disabled title="Próximamente disponible">
               <span class="um-item-icon">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -355,7 +355,7 @@ interface Notificaciones {
                 </svg>
               </span>
               <span class="um-item-label">Cambiar contraseña</span>
-              <span class="um-item-badge">Slack</span>
+              <span class="um-item-badge um-item-badge--soon">Próximamente</span>
             </button>
 
             <div class="um-divider"></div>
@@ -568,6 +568,8 @@ interface Notificaciones {
     .um-item:hover { background: var(--c-bg); }
     .um-item--danger { color: var(--c-red); }
     .um-item--danger:hover { background: var(--c-red-lt); }
+    .um-item--disabled { opacity: .45; cursor: not-allowed; pointer-events: none; }
+    .um-item--disabled:hover { background: transparent; }
 
     .um-item-icon {
       width: 28px; height: 28px; border-radius: 7px;
@@ -579,7 +581,10 @@ interface Notificaciones {
 
     .um-item-badge {
       font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px;
-      background: #4A154B; color: white; /* Slack purple */
+      background: #4A154B; color: white;
+    }
+    .um-item-badge--soon {
+      background: var(--c-border); color: var(--c-muted);
     }
 
     /* Toggle switch */
