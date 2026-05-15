@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de Usuario — Centro de Soluciones Neto v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #0E3B83;
+    --blue-lt: #E6EDF8;
+    --blue-md: #1B5FC5;
+    --orange: #FF5100;
+    --orange-lt: #FFF0E8;
+    --green: #16A34A;
+    --green-lt: #DCFCE7;
+    --amber: #D97706;
+    --amber-lt: #FEF3C7;
+    --red: #DC2626;
+    --red-lt: #FEE2E2;
+    --gray-10: #F8FAFC;
+    --gray-20: #F1F5F9;
+    --gray-40: #CBD5E1;
+    --gray-60: #64748B;
+    --gray-80: #334155;
+    --gray-90: #1E293B;
+    --text: #1E293B;
+    --muted: #64748B;
+    --border: #E2E8F0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: #fff;
+    line-height: 1.7;
+  }
+
+  /* ── Print / PDF ── */
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+    @bottom-center {
+      content: "Centro de Soluciones Neto · Guía de Usuario v1.0 · " counter(page) " / " counter(pages);
+      font-size: 9px;
+      color: #94A3B8;
+      font-family: 'Montserrat', sans-serif;
+    }
+  }
+  @media print {
+    .page-break { page-break-before: always; }
+    .no-break { page-break-inside: avoid; }
+    body { font-size: 11px; }
+    footer { display: none; }
+  }
+
+  /* ── Portada ── */
+  .cover {
+    background: linear-gradient(145deg, var(--blue) 0%, #0a2d6a 60%, #061d45 100%);
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 80px 72px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::before {
+    content: '';
+    position: absolute;
+    right: -80px; top: -80px;
+    width: 480px; height: 480px;
+    border-radius: 50%;
+    background: rgba(255,81,0,.12);
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    right: 60px; bottom: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.04);
+  }
+  .cover-logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 64px;
+  }
+  .cover-logo-icon {
+    width: 52px; height: 52px;
+    background: var(--orange);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 800; color: #fff;
+    letter-spacing: -1px;
+  }
+  .cover-logo-text { font-size: 14px; font-weight: 600; color: rgba(255,255,255,.85); line-height: 1.3; }
+  .cover-logo-sub { font-size: 11px; color: rgba(255,255,255,.5); }
+  .cover-badge {
+    display: inline-block;
+    padding: 4px 14px;
+    background: rgba(255,81,0,.25);
+    border: 1px solid rgba(255,81,0,.5);
+    border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    color: #FFB494;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+  .cover h1 {
+    font-size: 36px; font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+    max-width: 560px;
+    margin-bottom: 20px;
+  }
+  .cover h1 span { color: var(--orange); }
+  .cover-sub {
+    font-size: 15px; color: rgba(255,255,255,.65);
+    max-width: 480px; margin-bottom: 56px;
+  }
+  .cover-meta { display: flex; gap: 32px; }
+  .cover-meta-item { display: flex; flex-direction: column; gap: 2px; }
+  .cover-meta-label { font-size: 10px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .08em; }
+  .cover-meta-val { font-size: 13px; font-weight: 600; color: rgba(255,255,255,.9); }
+
+  /* ── Contenido general ── */
+  .container { max-width: 740px; margin: 0 auto; padding: 48px 40px 64px; }
+
+  /* ── TOC ── */
+  .toc { background: var(--gray-10); border: 1px solid var(--border); border-radius: 14px; padding: 32px 36px; margin-bottom: 0; }
+  .toc h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-bottom: 20px; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .toc-list li { display: flex; align-items: baseline; gap: 10px; }
+  .toc-list a { color: var(--blue); font-weight: 500; font-size: 13px; text-decoration: none; }
+  .toc-list a:hover { text-decoration: underline; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted var(--gray-40); }
+  .toc-num { font-size: 12px; color: var(--muted); font-weight: 500; }
+  .toc-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .toc-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+
+  /* ── Section headings ── */
+  .section { margin-bottom: 48px; }
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 24px; padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-num {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: var(--blue); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .section h2 { font-size: 20px; font-weight: 700; color: var(--gray-90); }
+  .section h3 { font-size: 14px; font-weight: 700; color: var(--gray-80); margin: 20px 0 10px; }
+
+  /* ── Callout / Info boxes ── */
+  .callout {
+    border-radius: 10px; padding: 16px 20px;
+    display: flex; gap: 14px; align-items: flex-start;
+    margin: 16px 0;
+  }
+  .callout-icon { font-size: 20px; flex-shrink: 0; line-height: 1; margin-top: 1px; }
+  .callout p { font-size: 13px; line-height: 1.6; }
+  .callout--blue { background: var(--blue-lt); border-left: 3px solid var(--blue); }
+  .callout--orange { background: var(--orange-lt); border-left: 3px solid var(--orange); }
+  .callout--green { background: var(--green-lt); border-left: 3px solid var(--green); }
+  .callout--amber { background: var(--amber-lt); border-left: 3px solid var(--amber); }
+
+  /* ── Steps ── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step { display: flex; gap: 16px; position: relative; padding-bottom: 20px; }
+  .step:last-child { padding-bottom: 0; }
+  .step-left { display: flex; flex-direction: column; align-items: center; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--blue); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .step-line {
+    width: 2px; flex: 1; background: var(--border);
+    margin-top: 6px; min-height: 16px;
+  }
+  .step:last-child .step-line { display: none; }
+  .step-body { padding-top: 5px; }
+  .step-title { font-size: 13px; font-weight: 700; color: var(--gray-90); margin-bottom: 3px; }
+  .step-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  /* ── Role cards ── */
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .role-card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px;
+    background: var(--gray-10);
+  }
+  .role-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .role-icon { font-size: 20px; }
+  .role-name { font-size: 13px; font-weight: 700; color: var(--gray-90); }
+  .role-badge {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+    margin-left: auto;
+  }
+  .rb-tienda   { background: var(--blue-lt);   color: var(--blue); }
+  .rb-agente   { background: var(--green-lt);  color: var(--green); }
+  .rb-coord    { background: var(--amber-lt);  color: var(--amber); }
+  .rb-admin    { background: var(--red-lt);    color: var(--red); }
+  .role-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+  .role-list li { font-size: 12px; color: var(--gray-60); display: flex; align-items: flex-start; gap: 7px; }
+  .role-list li::before { content: '•'; color: var(--orange); font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Dany section ── */
+  .dany-cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 16px 0; }
+  .dany-card {
+    border-radius: 12px; padding: 20px 18px;
+    border: 1px solid var(--border);
+    background: #fff;
+    position: relative; overflow: hidden;
+  }
+  .dany-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+  }
+  .dany-card--blue::before  { background: var(--blue); }
+  .dany-card--green::before { background: var(--green); }
+  .dany-card--orange::before { background: var(--orange); }
+  .dany-card-icon { font-size: 24px; margin-bottom: 10px; }
+  .dany-card-title { font-size: 13px; font-weight: 700; color: var(--gray-90); margin-bottom: 8px; }
+  .dany-card-audience { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .dany-card ul { list-style: none; display: flex; flex-direction: column; gap: 5px; padding: 0; }
+  .dany-card li { font-size: 11px; color: var(--gray-60); display: flex; gap: 6px; }
+  .dany-card li::before { content: '→'; color: var(--muted); flex-shrink: 0; }
+
+  /* ── Screen mock ── */
+  .screen-mock {
+    background: var(--gray-10); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px;
+    margin: 14px 0;
+  }
+  .screen-mock-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .screen-mock-items { display: flex; flex-direction: column; gap: 6px; }
+  .sm-row { display: flex; align-items: center; gap: 10px; }
+  .sm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sm-label { font-size: 12px; color: var(--gray-80); font-weight: 500; }
+  .sm-badge { padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; margin-left: auto; }
+
+  /* ── KPIs grid ── */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+  .kpi-card { background: var(--gray-10); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .kpi-val { font-size: 20px; font-weight: 800; color: var(--blue); line-height: 1; }
+  .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* ── FAQ ── */
+  .faq { display: flex; flex-direction: column; gap: 0; }
+  .faq-item { padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .faq-item:last-child { border-bottom: none; }
+  .faq-q { font-size: 13px; font-weight: 700; color: var(--gray-90); margin-bottom: 6px; display: flex; gap: 10px; }
+  .faq-q::before { content: 'P:'; color: var(--blue); font-weight: 800; }
+  .faq-a { font-size: 12px; color: var(--gray-60); line-height: 1.6; padding-left: 26px; }
+
+  /* ── Glosario ── */
+  .glossary { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+  .glossary-item { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .glossary-term { font-size: 12px; font-weight: 700; color: var(--blue); margin-bottom: 2px; }
+  .glossary-def { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 12px; }
+  th { background: var(--blue); color: #fff; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: var(--gray-10); }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Footer ── */
+  footer {
+    background: var(--gray-90); color: rgba(255,255,255,.5);
+    padding: 28px 40px; font-size: 11px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  footer a { color: rgba(255,255,255,.7); text-decoration: none; }
+
+  /* ── SLA pills ── */
+  .sla-green { background: var(--green-lt); color: var(--green); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .sla-amber { background: var(--amber-lt); color: var(--amber); padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+  .sla-red   { background: var(--red-lt);   color: var(--red);   padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: var(--border); margin: 40px 0; }
+  .divider-thick { height: 3px; background: linear-gradient(to right, var(--blue), var(--orange)); border-radius: 2px; margin: 8px 0 32px; }
+
+  p { margin-bottom: 10px; }
+  p:last-child { margin-bottom: 0; }
+  strong { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     PORTADA
+══════════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">
+    <div class="cover-logo-icon">CSN</div>
+    <div>
+      <div class="cover-logo-text">Centro de Soluciones Neto</div>
+      <div class="cover-logo-sub">Tiendas Neto · Sistema de Soporte</div>
+    </div>
+  </div>
+  <div class="cover-badge">Documento Oficial</div>
+  <h1>Guía de <span>Usuario</span><br>del Portal CSN</h1>
+  <p class="cover-sub">Todo lo que necesitas saber para usar el portal, reportar problemas y aprovechar a Dany, tu asistente de inteligencia artificial.</p>
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Versión</span>
+      <span class="cover-meta-val">v1.0</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Fecha</span>
+      <span class="cover-meta-val">Mayo 2026</span>
+    </div>
+    <div class="cover-meta-item">
+      <span class="cover-meta-label">Portal</span>
+      <span class="cover-meta-val">csn.soyneto.com</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     CONTENIDO
+══════════════════════════════════════════════════════ -->
+<div class="container">
+
+  <!-- ── Tabla de Contenido ── -->
+  <div class="toc no-break">
+    <h2>Contenido</h2>
+    <ul class="toc-list">
+      <div class="toc-section">
+        <li><a href="#s1">1. ¿Qué es el Centro de Soluciones Neto?</a><span class="toc-dots"></span><span class="toc-num">2</span></li>
+        <li><a href="#s2">2. Cómo Acceder al Portal</a><span class="toc-dots"></span><span class="toc-num">2</span></li>
+        <li><a href="#s3">3. Roles en el Sistema</a><span class="toc-dots"></span><span class="toc-num">3</span></li>
+      </div>
+      <div class="toc-section">
+        <li><a href="#s4">4. Para Tiendas — Reportar un Problema</a><span class="toc-dots"></span><span class="toc-num">4</span></li>
+        <li><a href="#s5">5. Dany — Tu Asistente de IA</a><span class="toc-dots"></span><span class="toc-num">5</span></li>
+        <li><a href="#s6">6. Dany en Slack</a><span class="toc-dots"></span><span class="toc-num">6</span></li>
+      </div>
+      <div class="toc-section">
+        <li><a href="#s7">7. Para Agentes — Gestión de Tickets</a><span class="toc-dots"></span><span class="toc-num">7</span></li>
+        <li><a href="#s8">8. KPIs y Configuración (Coordinadores y Admins)</a><span class="toc-dots"></span><span class="toc-num">8</span></li>
+      </div>
+      <div class="toc-section">
+        <li><a href="#s9">9. Preguntas Frecuentes</a><span class="toc-dots"></span><span class="toc-num">9</span></li>
+        <li><a href="#s10">10. Glosario</a><span class="toc-dots"></span><span class="toc-num">10</span></li>
+        <li><a href="#s11">11. Contacto y Soporte</a><span class="toc-dots"></span><span class="toc-num">10</span></li>
+      </div>
+    </ul>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ── 1. Qué es CSN ── -->
+  <div class="section" id="s1">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2>¿Qué es el Centro de Soluciones Neto?</h2>
+    </div>
+    <p>El <strong>Centro de Soluciones Neto (CSN)</strong> es el sistema oficial para reportar y resolver problemas en las tiendas. Reemplaza los canales dispersos (WhatsApp, llamadas, correos) con un solo lugar donde:</p>
+    <ul style="list-style:none;display:flex;flex-direction:column;gap:8px;padding:0;margin:14px 0;">
+      <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--orange);font-size:16px;margin-top:1px">●</span><span>Las tiendas abren reportes y dan seguimiento en tiempo real</span></li>
+      <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--orange);font-size:16px;margin-top:1px">●</span><span>Los agentes de soporte atienden, priorizan y cierran tickets organizadamente</span></li>
+      <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--orange);font-size:16px;margin-top:1px">●</span><span>Los coordinadores y administradores ven métricas de desempeño en tiempo real</span></li>
+      <li style="display:flex;gap:10px;align-items:flex-start"><span style="color:var(--orange);font-size:16px;margin-top:1px">●</span><span><strong>Dany</strong>, el asistente de IA, resuelve problemas comunes automáticamente — sin necesitar un agente</span></li>
+    </ul>
+    <div class="callout callout--blue">
+      <span class="callout-icon">💡</span>
+      <p>Cuando Dany resuelve un problema sin necesitar un agente, lo llamamos <strong>deflexión</strong>. Esto significa atención más rápida para la tienda y menor carga operativa para el equipo de soporte.</p>
+    </div>
+  </div>
+
+  <!-- ── 2. Acceso ── -->
+  <div class="section" id="s2">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2>Cómo Acceder al Portal</h2>
+    </div>
+
+    <div style="display:flex;gap:20px;align-items:flex-start;margin-bottom:20px">
+      <div style="flex:1">
+        <h3 style="margin-top:0">URL del Portal</h3>
+        <div style="background:var(--blue);color:#fff;padding:12px 20px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:.02em;margin-bottom:16px">
+          🌐 &nbsp;https://csn.soyneto.com/login
+        </div>
+        <div class="steps">
+          <div class="step">
+            <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+            <div class="step-body"><div class="step-title">Abre el portal</div><div class="step-desc">Desde cualquier navegador (Chrome recomendado) ve a <strong>csn.soyneto.com/login</strong></div></div>
+          </div>
+          <div class="step">
+            <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+            <div class="step-body"><div class="step-title">Ingresa tu correo</div><div class="step-desc">Usa tu correo corporativo asignado</div></div>
+          </div>
+          <div class="step">
+            <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+            <div class="step-body"><div class="step-title">Ingresa tu contraseña</div><div class="step-desc">La contraseña fue asignada por tu Coordinador o Administrador</div></div>
+          </div>
+          <div class="step">
+            <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+            <div class="step-body"><div class="step-title">¡Listo!</div><div class="step-desc">El portal te llevará automáticamente a tu pantalla según tu rol</div></div>
+          </div>
+        </div>
+      </div>
+      <div style="width:200px;flex-shrink:0">
+        <div style="background:var(--gray-10);border:2px dashed var(--border);border-radius:12px;padding:20px;text-align:center;aspect-ratio:3/4;display:flex;flex-direction:column;justify-content:center;gap:8px">
+          <div style="font-size:32px">🔐</div>
+          <div style="font-size:11px;color:var(--muted);font-weight:600">PANTALLA DE LOGIN</div>
+          <div style="font-size:10px;color:var(--gray-40)">Email + Contraseña</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout--amber">
+      <span class="callout-icon">🔑</span>
+      <p><strong>¿Olvidaste tu contraseña?</strong> Contacta a tu Coordinador o Administrador de Área para restablecerla. <em>Próximamente podrás hacerlo tú mismo desde el portal — recibirás un aviso en Slack cuando esté disponible.</em></p>
+    </div>
+  </div>
+
+  <!-- ── 3. Roles ── -->
+  <div class="section page-break" id="s3">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2>Roles en el Sistema</h2>
+    </div>
+    <p>Cada persona accede con un rol específico. El portal adapta automáticamente lo que ves y puedes hacer según tu rol.</p>
+    <div class="role-grid" style="margin-top:16px">
+      <div class="role-card no-break">
+        <div class="role-card-header">
+          <span class="role-icon">🏪</span>
+          <span class="role-name">Tienda</span>
+          <span class="role-badge rb-tienda">TIENDA</span>
+        </div>
+        <ul class="role-list">
+          <li>Ver el estado de mis tickets activos</li>
+          <li>Abrir nuevos reportes de problemas</li>
+          <li>Chatear con Dany para resolver problemas al momento</li>
+          <li>Adjuntar fotos del problema</li>
+        </ul>
+      </div>
+      <div class="role-card no-break">
+        <div class="role-card-header">
+          <span class="role-icon">👷</span>
+          <span class="role-name">Agente CC</span>
+          <span class="role-badge rb-agente">AGENTE</span>
+        </div>
+        <ul class="role-list">
+          <li>Dashboard con cola de tickets</li>
+          <li>Atender, comentar y cerrar tickets</li>
+          <li>Ver historial y bitácora por ticket</li>
+          <li>Dany copiloto para gestión de cola</li>
+          <li>Alertas de SLA vencidos</li>
+        </ul>
+      </div>
+      <div class="role-card no-break">
+        <div class="role-card-header">
+          <span class="role-icon">🗂️</span>
+          <span class="role-name">Coordinador</span>
+          <span class="role-badge rb-coord">COORDINADOR</span>
+        </div>
+        <ul class="role-list">
+          <li>Todo lo que ve el Agente CC</li>
+          <li>KPIs de su compañía</li>
+          <li>Dashboard Dany (deflexión, sesiones)</li>
+          <li>Configurar Grupos, Tipificaciones y Ruteo</li>
+          <li>Vista de tickets de sus tiendas</li>
+        </ul>
+      </div>
+      <div class="role-card no-break">
+        <div class="role-card-header">
+          <span class="role-icon">🔍</span>
+          <span class="role-name">Admin de Área</span>
+          <span class="role-badge rb-admin">ADMIN ÁREA</span>
+        </div>
+        <ul class="role-list">
+          <li>KPIs de su área técnica</li>
+          <li>Dashboard Dany filtrado por área</li>
+          <li>Configuración extendida + Usuarios</li>
+          <li>Visibilidad de todos los agentes del área</li>
+        </ul>
+      </div>
+    </div>
+    <div class="role-card no-break" style="margin-top:12px;border-color:var(--blue);background:var(--blue-lt)">
+      <div class="role-card-header">
+        <span class="role-icon">🔑</span>
+        <span class="role-name">Administrador</span>
+        <span class="role-badge" style="background:var(--blue);color:#fff">ADMIN</span>
+      </div>
+      <ul class="role-list">
+        <li>Acceso global a todas las compañías y áreas</li>
+        <li>KPIs ejecutivos completos y tendencia histórica</li>
+        <li>Configuración total: Grupos, Tipificaciones, Ruteo, Usuarios, Regiones y Zonas</li>
+        <li>Vista de todos los agentes y su desempeño</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── 4. Para Tiendas ── -->
+  <div class="section page-break" id="s4">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2>Para Tiendas — Reportar un Problema</h2>
+    </div>
+    <p>Como usuario de tienda tienes dos formas de reportar un problema: <strong>hablar con Dany</strong> (recomendado) o <strong>abrir un ticket directamente</strong>.</p>
+
+    <h3>Opción A — Hablar con Dany (Recomendada)</h3>
+    <p>Dany puede resolver muchos problemas sin necesidad de abrir un ticket. Si no puede resolverlo, lo abre automáticamente.</p>
+    <div class="steps" style="margin:14px 0">
+      <div class="step">
+        <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Entra al portal y abre el chat de Dany</div><div class="step-desc">Disponible en la pantalla principal. También puedes escribirle en el canal de Slack de tu tienda.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Describe el problema con detalle</div><div class="step-desc">Equipo afectado, síntoma, desde cuándo. Puedes adjuntar una foto del equipo o del error.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Sigue los pasos que te indique Dany</div><div class="step-desc">Dany te guía fase por fase. Solo responde SÍ o NO según lo que veas en el equipo.</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">¿Se resolvió? → Listo. ¿No? → Dany crea el ticket</div><div class="step-desc">Si el problema persiste, Dany te avisa y abre el reporte automáticamente. Recibirás el número de folio.</div></div>
+      </div>
+    </div>
+
+    <h3>Opción B — Abrir Ticket Directamente</h3>
+    <div class="steps" style="margin:14px 0">
+      <div class="step">
+        <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Ve a "Mis Tickets" y da clic en "+ Nuevo Ticket"</div><div class="step-desc"></div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Selecciona el área y llena la descripción</div><div class="step-desc">Sistemas, Mantenimiento, Abasto, Finanzas, Operaciones</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Envía y guarda tu número de folio</div><div class="step-desc">Ejemplo: TKT-00158. Con ese folio puedes consultar el estatus en cualquier momento.</div></div>
+      </div>
+    </div>
+
+    <div class="callout callout--green">
+      <span class="callout-icon">✅</span>
+      <p>Siempre revisa el estatus de tu ticket en <strong>Mis Tickets</strong>. Verás si está <em>Abierto</em>, <em>En atención</em> o <em>Resuelto</em>.</p>
+    </div>
+  </div>
+
+  <!-- ── 5. Dany ── -->
+  <div class="section page-break" id="s5">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2>Dany — Tu Asistente de IA</h2>
+    </div>
+    <p>Dany es el asistente de inteligencia artificial integrado en el CSN. Se comporta diferente según el rol del usuario — siempre con el objetivo de resolver lo más rápido posible.</p>
+
+    <div class="dany-cards no-break">
+      <div class="dany-card dany-card--blue">
+        <div class="dany-card-icon">🏪</div>
+        <div class="dany-card-audience">Para Tiendas</div>
+        <div class="dany-card-title">Soporte paso a paso</div>
+        <ul>
+          <li>Guía técnica para impresoras, monitores, clima, refrigeradores, internet…</li>
+          <li>Crea tickets solo si no puede resolver</li>
+          <li>Acepta fotos del problema</li>
+          <li>Disponible 24/7 en portal y Slack</li>
+        </ul>
+      </div>
+      <div class="dany-card dany-card--green">
+        <div class="dany-card-icon">👷</div>
+        <div class="dany-card-audience">Para Agentes</div>
+        <div class="dany-card-title">Copiloto de cola</div>
+        <ul>
+          <li>¿Cuál ticket atiendo primero?</li>
+          <li>Resumen completo de cualquier ticket</li>
+          <li>Prioriza por SLA y urgencia</li>
+          <li>Accesible desde el dashboard</li>
+        </ul>
+      </div>
+      <div class="dany-card dany-card--orange">
+        <div class="dany-card-icon">📊</div>
+        <div class="dany-card-audience">Para Admins y Coordinadores</div>
+        <div class="dany-card-title">Analista operativo</div>
+        <ul>
+          <li>Estado operativo en tiempo real</li>
+          <li>Alertas de SLA vencidos con folio</li>
+          <li>KPIs y tendencias en lenguaje natural</li>
+          <li>Recomendaciones de acción</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>¿Qué tipos de problemas resuelve Dany para las tiendas?</h3>
+    <table>
+      <tr><th>Área</th><th>Ejemplos de problemas que Dany puede guiar</th></tr>
+      <tr><td><strong>🖥️ Sistemas</strong></td><td>Internet caído, WiFi, POS, SION, impresora, lector de huella, monitor, cómputo</td></tr>
+      <tr><td><strong>🔧 Mantenimiento</strong></td><td>Refrigerador, congelador, aire acondicionado, problemas eléctricos</td></tr>
+      <tr><td><strong>📦 Abasto</strong></td><td>Inventario, proveedores, faltantes de producto</td></tr>
+      <tr><td><strong>💰 Finanzas</strong></td><td>Nómina, caja, pagos, facturas</td></tr>
+      <tr><td><strong>⚙️ Operaciones</strong></td><td>Procesos, apertura/cierre, personal</td></tr>
+    </table>
+
+    <div class="callout callout--orange">
+      <span class="callout-icon">📸</span>
+      <p><strong>Tip:</strong> Puedes enviarle una foto del equipo o del error directamente en el chat de Dany. Eso acelera mucho el diagnóstico.</p>
+    </div>
+  </div>
+
+  <!-- ── 6. Dany en Slack ── -->
+  <div class="section" id="s6">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2>Dany en Slack</h2>
+    </div>
+    <p>Además del portal web, Dany está disponible directamente en Slack. No necesitas abrir el portal para obtener ayuda.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0">
+      <div style="background:var(--gray-10);border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">💬 Para Tiendas en Slack</div>
+        <ul class="role-list">
+          <li>La misma experiencia que en el portal</li>
+          <li>Escribe tu problema en lenguaje natural</li>
+          <li>Dany guía el troubleshooting por mensajes</li>
+          <li>Si se crea un ticket, recibes el folio en el mismo chat</li>
+        </ul>
+      </div>
+      <div style="background:var(--gray-10);border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">🤖 Para Agentes y Admins en Slack</div>
+        <ul class="role-list">
+          <li>Consulta tu cola sin abrir el portal</li>
+          <li>"¿Cuántos tickets vencidos hay?"</li>
+          <li>"Resúmeme el TKT-00034"</li>
+          <li>Estado del sistema en tiempo real</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout callout--blue">
+      <span class="callout-icon">📱</span>
+      <p>Dany en Slack usa exactamente los mismos datos que el portal. Cualquier ticket creado por Dany en Slack aparece de inmediato en el portal y en la cola del agente correspondiente.</p>
+    </div>
+  </div>
+
+  <!-- ── 7. Para Agentes ── -->
+  <div class="section page-break" id="s7">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2>Para Agentes — Gestión de Tickets</h2>
+    </div>
+
+    <h3>Tu Dashboard</h3>
+    <p>Al entrar al portal, verás tu dashboard personal con un resumen de tus tickets y acceso rápido a la cola.</p>
+    <div class="screen-mock no-break">
+      <div class="screen-mock-label">Vista del Dashboard — Agente</div>
+      <div class="screen-mock-items">
+        <div class="sm-row">
+          <div class="sm-dot" style="background:var(--red)"></div>
+          <span class="sm-label">Tickets con SLA vencido</span>
+          <span class="sm-badge" style="background:var(--red-lt);color:var(--red)">Urgente</span>
+        </div>
+        <div class="sm-row">
+          <div class="sm-dot" style="background:var(--amber)"></div>
+          <span class="sm-label">Tickets próximos a vencer</span>
+          <span class="sm-badge" style="background:var(--amber-lt);color:var(--amber)">Atención</span>
+        </div>
+        <div class="sm-row">
+          <div class="sm-dot" style="background:var(--green)"></div>
+          <span class="sm-label">Tickets en tiempo</span>
+          <span class="sm-badge" style="background:var(--green-lt);color:var(--green)">Normal</span>
+        </div>
+      </div>
+    </div>
+
+    <h3>Cola de Tickets</h3>
+    <p>La cola muestra todos los tickets pendientes ordenados por prioridad. El sistema usa semáforos SLA para indicar urgencia:</p>
+    <div style="display:flex;gap:10px;margin:12px 0">
+      <span class="sla-green">🟢 SLA en tiempo</span>
+      <span class="sla-amber">🟡 SLA próximo a vencer</span>
+      <span class="sla-red">🔴 SLA vencido</span>
+    </div>
+
+    <h3>Flujo de atención de un ticket</h3>
+    <div class="steps" style="margin:14px 0">
+      <div class="step">
+        <div class="step-left"><div class="step-num">1</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Toma el ticket de la cola</div><div class="step-desc">Asígnatelo o responde si ya está a tu nombre</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">2</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Revisa el historial de Dany</div><div class="step-desc">Si Dany ya hizo troubleshooting, verás el resumen de lo que se intentó</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">3</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Agrega comentarios y actúa</div><div class="step-desc">Registra cada acción en la bitácora del ticket</div></div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">4</div><div class="step-line"></div></div>
+        <div class="step-body"><div class="step-title">Cierra el ticket cuando se resuelva</div><div class="step-desc">Selecciona el tipo de solución y confirma el cierre</div></div>
+      </div>
+    </div>
+
+    <h3>Dany Copiloto para Agentes</h3>
+    <p>El chat de Dany en tu dashboard funciona como un asistente de gestión. Ejemplos de lo que puedes preguntarle:</p>
+    <div style="background:var(--gray-10);border-radius:10px;padding:16px 18px;margin:12px 0">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:10px"><span style="background:var(--blue-lt);color:var(--blue);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;flex-shrink:0">Tú</span><span style="font-size:12px">"¿Cuál ticket atiendo primero?"</span></div>
+        <div style="display:flex;gap:10px"><span style="background:var(--green-lt);color:var(--green);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;flex-shrink:0">Dany</span><span style="font-size:12px">🔴 TKT-00158 — llevan 12h vencido, prioridad crítica, Tienda Lerma. Es el más urgente.</span></div>
+        <div style="display:flex;gap:10px"><span style="background:var(--blue-lt);color:var(--blue);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;flex-shrink:0">Tú</span><span style="font-size:12px">"Resúmeme el TKT-00034"</span></div>
+        <div style="display:flex;gap:10px"><span style="background:var(--green-lt);color:var(--green);padding:3px 10px;border-radius:8px;font-size:12px;font-weight:600;flex-shrink:0">Dany</span><span style="font-size:12px">Monitor sin imagen, Tienda Xochimilco. Dany hizo troubleshooting de 3 fases. Fallo en FASE B. Escalado ayer a las 14:30. Sin asignar desde entonces.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 8. KPIs y Config ── -->
+  <div class="section page-break" id="s8">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2>KPIs y Configuración</h2>
+    </div>
+    <p>Coordinadores, Admins de Área y Administradores tienen acceso a la sección <strong>Administración</strong> desde el menú lateral.</p>
+
+    <h3>KPIs Ejecutivos</h3>
+    <p>Métricas del período seleccionado (últimos 7, 30, 90 o 180 días):</p>
+    <div class="kpi-grid no-break">
+      <div class="kpi-card"><div class="kpi-label">Total Tickets</div><div class="kpi-val" style="color:var(--blue)">214</div><div class="kpi-sub">4.2 por día promedio</div></div>
+      <div class="kpi-card"><div class="kpi-label">SLA Cumplido</div><div class="kpi-val" style="color:var(--green)">91%</div><div class="kpi-sub"><span class="sla-green">Verde</span> ≥ 90%</div></div>
+      <div class="kpi-card"><div class="kpi-label">Resolución P50</div><div class="kpi-val" style="color:var(--blue)">4.2h</div><div class="kpi-sub">P90: 18.5h</div></div>
+      <div class="kpi-card"><div class="kpi-label">CSAT</div><div class="kpi-val" style="color:var(--green)">88%</div><div class="kpi-sub">72% tasa respuesta</div></div>
+      <div class="kpi-card"><div class="kpi-label">Deflexión Dany</div><div class="kpi-val" style="color:var(--orange)">63%</div><div class="kpi-sub">Resueltos sin agente</div></div>
+      <div class="kpi-card"><div class="kpi-label">Reapertura</div><div class="kpi-val" style="color:var(--red)">3.1%</div><div class="kpi-sub">Tickets reabiertos</div></div>
+    </div>
+
+    <h3>Dashboard Dany — Rendimiento del Agente IA</h3>
+    <p>Desde <strong>Administración → Dany</strong> puedes ver el desempeño específico del asistente:</p>
+    <ul class="role-list" style="margin:10px 0 0 4px">
+      <li>% de deflexión (sesiones resueltas sin ticket)</li>
+      <li>Sesiones escaladas a agente</li>
+      <li>Tiempo de primera respuesta del agente tras escalación</li>
+      <li>Problemas más frecuentes reportados</li>
+      <li>Sesiones por canal (portal, Slack)</li>
+    </ul>
+
+    <h3>Configuración del Sistema</h3>
+    <table class="no-break">
+      <tr><th>Sección</th><th>¿Para qué sirve?</th><th>¿Quién puede?</th></tr>
+      <tr><td><strong>Grupos</strong></td><td>Define los equipos de agentes, a qué compañía pertenecen y su capacidad</td><td>Coordinador, Admin Área, Admin</td></tr>
+      <tr><td><strong>Tipificaciones</strong></td><td>Categorías de problemas con su área técnica y tiempo de SLA</td><td>Coordinador, Admin Área, Admin</td></tr>
+      <tr><td><strong>Ruteo</strong></td><td>Reglas para asignar automáticamente tickets al grupo correcto</td><td>Coordinador, Admin Área, Admin</td></tr>
+      <tr><td><strong>Usuarios</strong></td><td>Alta, edición y baja de usuarios del sistema</td><td>Admin Área, Admin</td></tr>
+      <tr><td><strong>Regiones y Zonas</strong></td><td>Estructura geográfica de las tiendas</td><td>Solo Admin</td></tr>
+    </table>
+  </div>
+
+  <!-- ── 9. FAQ ── -->
+  <div class="section page-break" id="s9">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2>Preguntas Frecuentes</h2>
+    </div>
+    <div class="faq">
+      <div class="faq-item">
+        <div class="faq-q">No recuerdo mi contraseña</div>
+        <div class="faq-a">Contacta a tu Coordinador o Administrador de Área para que la restablezca. <strong>Próximamente</strong> el portal tendrá la opción de cambio de contraseña por Slack — recibirás aviso cuando esté disponible.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Cómo sé si mi ticket está resuelto?</div>
+        <div class="faq-a">Entra al portal y ve a la sección <strong>Mis Tickets</strong>. Verás el estatus: Abierto, En atención, o Resuelto. También puedes preguntarle a Dany por tu folio directamente.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Puedo adjuntar fotos del problema?</div>
+        <div class="faq-a">Sí. Tanto en el chat de Dany (portal y Slack) como al abrir un ticket puedes adjuntar imágenes del equipo o del error. Esto acelera el diagnóstico.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Dany no me responde o tarda mucho</div>
+        <div class="faq-a">Espera hasta 30 segundos — Dany puede tardar unos momentos en procesar. Si no responde después de ese tiempo, intenta refrescar el chat o usa el portal directamente para abrir el ticket.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Tengo que usar Dany primero, o puedo abrir el ticket directo?</div>
+        <div class="faq-a">Puedes abrir el ticket directamente si es urgente o si ya sabes que el problema requiere intervención física. Sin embargo, usar Dany primero te permite resolver muchos problemas al momento, sin esperar a un agente.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Cómo solicito acceso al portal para alguien nuevo?</div>
+        <div class="faq-a">El Administrador de Área o Administrador del sistema da de alta nuevos usuarios desde <strong>Administración → Usuarios</strong>.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿El portal funciona en celular?</div>
+        <div class="faq-a">Sí, el portal es responsivo y funciona en navegadores móviles. Para una experiencia más cómoda en el día a día, Dany en Slack puede ser más práctico desde el teléfono.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">¿Hay un acceso de demostración o prueba?</div>
+        <div class="faq-a">Solicita las credenciales de acceso demo a tu Coordinador o Administrador de Área. No compartas credenciales de tiendas reales para pruebas.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 10. Glosario ── -->
+  <div class="section" id="s10">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>Glosario</h2>
+    </div>
+    <div class="glossary">
+      <div class="glossary-item"><div class="glossary-term">Ticket / Reporte</div><div class="glossary-def">Registro formal de un problema en el sistema. Tiene un folio único (ej: TKT-00034).</div></div>
+      <div class="glossary-item"><div class="glossary-term">Folio</div><div class="glossary-def">Número único que identifica un ticket. Úsalo para dar seguimiento o consultar el estatus.</div></div>
+      <div class="glossary-item"><div class="glossary-term">SLA</div><div class="glossary-def">Acuerdo de nivel de servicio — tiempo máximo comprometido para resolver un problema.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Deflexión</div><div class="glossary-def">Problema resuelto por Dany sin necesitar un agente humano. Indica eficiencia del sistema.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Tipificación</div><div class="glossary-def">Categoría del problema según el área técnica responsable (Sistemas, Mantenimiento, etc.).</div></div>
+      <div class="glossary-item"><div class="glossary-term">Cola</div><div class="glossary-def">Lista de tickets pendientes de atención, ordenados por prioridad y SLA.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Escalación</div><div class="glossary-def">Cuando Dany transfiere un problema a un agente humano por no poder resolverlo.</div></div>
+      <div class="glossary-item"><div class="glossary-term">CSAT</div><div class="glossary-def">Customer Satisfaction — porcentaje de usuarios que calificaron su atención positivamente.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Ruteo</div><div class="glossary-def">Reglas automáticas que asignan un ticket al grupo de agentes correcto según el tipo de problema.</div></div>
+      <div class="glossary-item"><div class="glossary-term">P50 / P90</div><div class="glossary-def">Tiempo de resolución en el percentil 50 (mediana) y 90. P50 = la mitad de los tickets se resuelven en ese tiempo.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Bitácora</div><div class="glossary-def">Historial completo de acciones y comentarios en un ticket.</div></div>
+      <div class="glossary-item"><div class="glossary-term">Grupo</div><div class="glossary-def">Equipo de agentes asignado a atender tickets de una compañía o área específica.</div></div>
+    </div>
+  </div>
+
+  <!-- ── 11. Contacto ── -->
+  <div class="section" id="s11">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Contacto y Soporte</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div style="background:var(--blue-lt);border:1px solid var(--blue-md);border-radius:12px;padding:20px 22px">
+        <div style="font-size:22px;margin-bottom:8px">🌐</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Portal CSN</div>
+        <div style="font-size:12px;color:var(--muted)">https://csn.soyneto.com/login</div>
+      </div>
+      <div style="background:var(--gray-10);border:1px solid var(--border);border-radius:12px;padding:20px 22px">
+        <div style="font-size:22px;margin-bottom:8px">💬</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Soporte en Slack</div>
+        <div style="font-size:12px;color:var(--muted)">Canal #csn-soporte</div>
+      </div>
+      <div style="background:var(--gray-10);border:1px solid var(--border);border-radius:12px;padding:20px 22px">
+        <div style="font-size:22px;margin-bottom:8px">👤</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Problemas de acceso</div>
+        <div style="font-size:12px;color:var(--muted)">Contacta a tu Coordinador o Admin de Área</div>
+      </div>
+      <div style="background:var(--orange-lt);border:1px solid #FFB494;border-radius:12px;padding:20px 22px">
+        <div style="font-size:22px;margin-bottom:8px">🤖</div>
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Dany siempre disponible</div>
+        <div style="font-size:12px;color:var(--muted)">Portal y canal Slack de tu tienda · 24/7</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<footer>
+  <div>
+    <strong style="color:rgba(255,255,255,.8)">Centro de Soluciones Neto</strong> &nbsp;·&nbsp; Guía de Usuario v1.0 &nbsp;·&nbsp; Mayo 2026
+  </div>
+  <div>
+    <a href="https://csn.soyneto.com/login">csn.soyneto.com</a>
+  </div>
+</footer>
+
+</body>
+</html>
