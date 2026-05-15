@@ -372,9 +372,8 @@ const QUICK_CHIPS = [
     .chat-panel {
       flex: 1; min-width: 0;
       display: flex; flex-direction: column;
-      background: #f0f4f9;
-      /* Fondo tipo papel con sutil patrón */
-      background-image: radial-gradient(circle, #d0ddf0 1px, transparent 1px);
+      background: var(--c-bg);
+      background-image: radial-gradient(circle, var(--c-border) 1px, transparent 1px);
       background-size: 24px 24px;
     }
 
@@ -559,7 +558,7 @@ const QUICK_CHIPS = [
       font-size: 11px; font-weight: 600;
     }
     .count-chip--blue { background: var(--c-blue-lt); color: var(--c-blue); }
-    .count-chip--red  { background: #fef2f2; color: #DC2626; }
+    .count-chip--red  { background: var(--c-red-lt); color: var(--c-red); }
 
     .tickets-filters {
       display: flex; gap: 4px; flex-wrap: wrap;
@@ -877,9 +876,9 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
       .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
       .replace(/_([^_\n]+)_/g, '<em>$1</em>')
       .replace(/~([^~\n]+)~/g, '<del>$1</del>')
-      .replace(/`([^`]+)`/g, '<code style="background:#f0f0f0;padding:1px 4px;border-radius:3px">$1</code>')
+      .replace(/`([^`]+)`/g, '<code style="background:rgba(128,128,128,.15);padding:1px 4px;border-radius:3px;font-family:monospace">$1</code>')
       .replace(/^[•·]\s*/gm, '&bull;&nbsp;')
-      .replace(/^>\s*(.+)/gm, '<span style="border-left:3px solid #ccc;padding-left:8px;color:#888;display:block">$1</span>');
+      .replace(/^>\s*(.+)/gm, '<span style="border-left:3px solid rgba(128,128,128,.4);padding-left:8px;opacity:.7;display:block">$1</span>');
   }
 
   isVideo(url: string): boolean { return /\.mp4|\.mov|\.webm/i.test(url); }
