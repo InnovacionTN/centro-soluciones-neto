@@ -1827,13 +1827,14 @@ def admin_update_usuario(
     if not usuario:
         raise HTTPException(404, detail="Usuario no encontrado")
 
+    fs = body.model_fields_set
     if body.nombre is not None:
         usuario.nombre = body.nombre
     if body.email is not None:
         usuario.email = body.email
     if body.rol is not None:
         usuario.rol = body.rol
-    if body.grupo_id is not None:
+    if 'grupo_id' in fs:          # allow explicit null to unassign
         usuario.grupo_id = body.grupo_id
     if body.tienda_id is not None:
         usuario.tienda_id = body.tienda_id
