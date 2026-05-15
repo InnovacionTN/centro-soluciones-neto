@@ -1006,7 +1006,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\nconst ctx = $('Switch_Rol').first().json;\nconst tickets = $input.all().map(i => i.json).filter(t => t && t.id);\n\nconst cola = tickets.slice(0, 20).map(t => ({\n  id: t.id, folio: t.folio, estatus: t.estatus,\n  sla: t.sla_status, vencido: t.sla_vencido,\n  prioridad: t.prioridad,\n  desc: (t.descripcion || '').slice(0, 80),\n  area: t.cat_nivel1 || null\n}));\n\nreturn [{ json: {\n  ...ctx,\n  tickets_data: JSON.stringify(cola),\n  ticket_detalle: ''\n}}];\n"
+        "jsCode": "\nconst ctx = $('Edit_Fields_CSN').first().json;\nconst tickets = $input.all().map(i => i.json).filter(t => t && t.id);\n\nconst cola = tickets.slice(0, 20).map(t => ({\n  id: t.id, folio: t.folio, estatus: t.estatus,\n  sla: t.sla_status, vencido: t.sla_vencido,\n  prioridad: t.prioridad,\n  desc: (t.descripcion || '').slice(0, 80),\n  area: t.cat_nivel1 || null\n}));\n\nreturn [{ json: {\n  ...ctx,\n  tickets_data: JSON.stringify(cola),\n  ticket_detalle: ''\n}}];\n"
       },
       "id": "e5e09f47-896c-43bd-9736-fe1995894b4a",
       "name": "Map_Agente_Context",
@@ -1082,7 +1082,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const items = $input.all();\nconst raw = items[0]?.json ?? {};\n\nreturn [{ json: {\n  prompt: raw.prompt ?? '',\n  sesion_id: raw.sesion_id ?? '',\n  tienda_id: raw.tienda_id ?? null,\n  tienda_nombre: raw.tienda_nombre ?? '',\n  imagen_url: raw.imagen_url ?? '',\n  source: raw.source ?? 'webhook',\n  rol_usuario: raw.rol_usuario ?? 'ADMIN',\n  usuario_id: raw.usuario_id ?? null,\n  kpis_data: JSON.stringify(raw.kpis || {}),\n  torre_data: JSON.stringify(raw.torre || [])\n}}];"
+        "jsCode": "const ctx = $('Edit_Fields_CSN').first().json;\nconst raw = $input.first().json;\n\nreturn [{ json: {\n  prompt:       ctx.prompt ?? '',\n  sesion_id:    ctx.sesion_id ?? '',\n  tienda_id:    ctx.tienda_id ?? null,\n  tienda_nombre: ctx.tienda_nombre ?? '',\n  imagen_url:   ctx.imagen_url ?? '',\n  source:       ctx.source ?? 'webhook',\n  rol_usuario:  ctx.rol_usuario ?? 'ADMIN',\n  usuario_id:   ctx.usuario_id ?? null,\n  kpis_data:    JSON.stringify(raw.kpis || {}),\n  torre_data:   JSON.stringify(raw.torre || [])\n}}];"
       },
       "id": "076978e4-65d1-43e1-a165-9c814111cc1c",
       "name": "Map_Admin_Context",
