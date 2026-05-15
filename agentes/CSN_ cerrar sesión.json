@@ -37,7 +37,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"sesion_id\": \"={{ $json.sesion_id }}\",\n  \"resuelto_sin_ticket\": {{ $json.resuelto_sin_ticket }},\n  \"mensajes_count\": {{ $json.mensajes_count }},\n  \"tipificacion_detectada\": \"={{ $json.area_detectada }}\"\n}",
+        "jsonBody": "={\n  \"sesion_id\": \"{{ $json.sesion_id }}\",\n  \"resuelto_sin_ticket\": {{ $json.resuelto_sin_ticket }},\n  \"mensajes_count\": {{ $json.mensajes_count }},\n  \"tipificacion_detectada\": \"{{ $json.area_detectada }}\"\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -75,7 +75,7 @@
     "executionOrder": "v1",
     "availableInMCP": false
   },
-  "versionId": "1f80c236-f1b2-4920-a463-024ee4eb067f",
+  "versionId": "1a6f96c1-9d01-4f2a-8836-0100acece4c8",
   "meta": {
     "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
   },

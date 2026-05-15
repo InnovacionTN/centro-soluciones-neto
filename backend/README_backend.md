@@ -233,11 +233,18 @@ python -m scripts.migrar_fase_e     # Fase E — tabla ticket_evidencias
 gcloud builds submit --tag gcr.io/[PROYECTO]/centro-soluciones-api
 
 # Deploy en Cloud Run
-gcloud run deploy centro-soluciones-api \
-  --image gcr.io/[PROYECTO]/centro-soluciones-api \
-  --platform managed \
+gcloud run deploy csn-api-prod \
+  --image gcr.io/gen-lang-client-0189172552/csn-api-prod:latest \
   --region us-central1 \
-  --set-env-vars DATABASE_URL=...,SECRET_KEY=...,GEMINI_API_KEY=...
+  --platform managed \
+  --allow-unauthenticated \
+  --set-env-vars ENVIRONMENT=production \
+  --set-secrets "DATABASE_URL=csn-database-url-prod:latest,SECRET_KEY=csn-secret-key-prod:latest,GEMINI_API_KEY=gemini-api-key:latest" \
+  --memory 1Gi \
+  --cpu 2 \
+  --min-instances 1 \
+  --max-instances 10 \
+  --project gen-lang-client-0189172552
 ```
 
 Solo cambiar `DATABASE_URL` a Cloud SQL y `STORAGE_BACKEND=gcs`. El código no cambia.

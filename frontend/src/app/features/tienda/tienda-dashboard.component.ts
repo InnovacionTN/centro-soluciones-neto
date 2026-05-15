@@ -17,6 +17,7 @@ import { environment } from '../../../environments/environment';
 // ── Tipos de mensaje ──────────────────────────────────────────────────────────
 
 interface DanyMsg {
+  imagen?: string;
   id: string;
   from: 'dany' | 'user';
   text: string;
@@ -122,7 +123,10 @@ const QUICK_CHIPS = [
               @if (msg.from === 'user') {
                 <div class="msg-row msg-row--user">
                   <div class="msg-body msg-body--user">
-                    <div class="bubble bubble--user">{{ msg.text }}</div>
+                    <div class="bubble bubble--user">
+                @if (msg.imagen) { <img [src]="msg.imagen" style="max-width:180px;border-radius:8px;display:block;margin-bottom:4px"> }
+                @if (msg.text) { {{ msg.text }} }
+              </div>
                     <span class="msg-time msg-time--right">{{ msg.time | date:'HH:mm' }}</span>
                   </div>
                 </div>
@@ -171,18 +175,45 @@ const QUICK_CHIPS = [
           }
 
           <!-- Input -->
-          <div class="input-area">
+          <!-- Preview imagen adjunta -->
+          @if (imagenAdjunta()) {
+            <div class="img-preview-row">
+              <div style="position:relative;display:inline-flex">
+                <img [src]="imagenAdjunta()!" alt="Imagen" style="height:56px;border-radius:8px;border:2px solid var(--c-blue-md)">
+                <button (click)="imagenAdjunta.set(null)"
+                        style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+              </div>
+              <span style="font-size:11px;color:var(--c-muted);align-self:center">Imagen lista para enviar</span>
+            </div>
+          }
+
+          <div class="input-area"
+               (dragover)="$event.preventDefault(); chatDrag.set(true)"
+               (dragleave)="chatDrag.set(false)"
+               (drop)="onImgDrop($event)"
+               [style.border-color]="chatDrag() ? 'var(--c-blue)' : ''">
+            <!-- Botón adjuntar -->
+            <button class="attach-img-btn" (click)="imgFileInput.click()"
+                    title="Adjuntar imagen (o Ctrl+V / arrastra)" [disabled]="thinking() || !!ticketCreado()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </button>
+            <input #imgFileInput type="file" accept="image/*"
+                   style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px"
+                   (change)="onImgFile($event)">
             <textarea
               class="chat-input"
               [(ngModel)]="inputText"
-              placeholder="Describe tu problema aquí… (Enter para enviar)"
+              placeholder="Describe tu problema… (Ctrl+V para pegar imagen)"
               rows="1"
               [disabled]="thinking() || !!ticketCreado()"
               (keydown)="onKeydown($event)"
               (input)="autoResize($event)"
+              (paste)="onImgPaste($event)"
             ></textarea>
             <button class="send-btn"
-                    [disabled]="!inputText.trim() || thinking() || !!ticketCreado()"
+                    [disabled]="(!inputText.trim() && !imagenAdjunta()) || thinking() || !!ticketCreado()"
                     (click)="sendMessage()">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                    stroke="currentColor" stroke-width="2.5"
@@ -195,7 +226,7 @@ const QUICK_CHIPS = [
 
           <!-- Footer disclaimer -->
           <p class="chat-disclaimer">
-            Daniel · Si no puede resolver tu problema, creará un reporte con un agente especializado
+            Daniel · Adjunta imágenes con 📎, arrastrando o Ctrl+V
           </p>
         </div>
 
@@ -499,6 +530,10 @@ const QUICK_CHIPS = [
     .send-btn:not(:disabled):hover { filter: brightness(.88); transform: scale(1.05); }
     .send-btn:disabled { opacity: .4; cursor: not-allowed; }
 
+    .attach-img-btn { background:transparent; border:none; cursor:pointer; color:var(--c-muted); padding:6px 8px; border-radius:6px; display:flex; align-items:center; flex-shrink:0; transition:color .15s; }
+    .attach-img-btn:hover { color:var(--c-blue); }
+    .attach-img-btn:disabled { opacity:.4; cursor:default; }
+    .img-preview-row { display:flex; align-items:center; gap:10px; padding:6px 12px 0; }
     .chat-disclaimer {
       text-align: center; font-size: 10px; color: var(--c-muted);
       padding: 4px 16px 8px; margin: 0;
@@ -660,11 +695,17 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
   }
 
   // ── Chat ──────────────────────────────────────────────────────────────────
+  imagenAdjunta = signal<string | null>(null);
+  chatDrag = signal(false);
+
   sendMessage() {
     const text = this.inputText.trim();
-    if (!text || this.thinking()) return;
+    const img = this.imagenAdjunta();
+    if ((!text && !img) || this.thinking()) return;
     this.inputText = '';
-    this.send(text);
+    this.imagenAdjunta.set(null);
+    this.chatDrag.set(false);
+    this.send(text, img ?? undefined);
   }
 
   sendQuick(text: string) { this.send(text); }
@@ -673,19 +714,35 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.sendMessage(); }
   }
 
+  private async toBase64(file: File): Promise<string> {
+    return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result as string); r.onerror = rej; r.readAsDataURL(file); });
+  }
+  private async loadImg(file: File) {
+    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) return;
+    this.imagenAdjunta.set(await this.toBase64(file));
+  }
+  onImgFile(e: Event) { const f = (e.target as HTMLInputElement).files?.[0]; if (f) this.loadImg(f); (e.target as HTMLInputElement).value = ''; }
+  onImgPaste(e: ClipboardEvent) {
+    for (const item of Array.from(e.clipboardData?.items ?? [])) {
+      if (item.type.startsWith('image/')) { e.preventDefault(); const f = item.getAsFile(); if (f) this.loadImg(f); return; }
+    }
+  }
+  onImgDrop(e: DragEvent) { e.preventDefault(); this.chatDrag.set(false); const f = e.dataTransfer?.files[0]; if (f) this.loadImg(f); }
+
   autoResize(e: Event) {
     const el = e.target as HTMLTextAreaElement;
     el.style.height = 'auto';
     el.style.height = Math.min(el.scrollHeight, 120) + 'px';
   }
 
-  private send(text: string) {
-    this.addMsg({ from: 'user', text });
+  private send(text: string, imagen?: string) {
+    this.addMsg({ from: 'user', text, imagen });
     this.needsScroll = true;
     setTimeout(() => { this.thinking.set(true); this.needsScroll = true; }, 1000);
 
     const payload = {
-      mensaje: text,
+      mensaje: text || '(imagen adjunta)',
+      imagen: imagen,
       tienda_id: this.auth.currentUser()?.tienda_id,
       tienda_nombre: this.tiendaNombre(),
       sesion_id: this.sesionId,

@@ -61,12 +61,27 @@ interface DanielMsg { id: string; from: 'daniel' | 'user'; text: string; time: D
         <button class="dchip" [disabled]="loading()" (click)="quick('¿Hay tickets sin agente asignado?')">🔍 Sin agente</button>
       </div>
 
-      <div class="daniel-input-row">
+      @if (chatImagen()) {
+        <div style="padding:4px 8px 0;display:inline-flex;position:relative">
+          <img [src]="chatImagen()!" style="height:44px;border-radius:6px;border:2px solid var(--c-blue-md)">
+          <button (click)="chatImagen.set(null)" style="position:absolute;top:-4px;right:-4px;width:15px;height:15px;border-radius:50%;background:var(--c-red);color:#fff;border:none;font-size:8px;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+        </div>
+      }
+      <div class="daniel-input-row"
+           (dragover)="$event.preventDefault()"
+           (drop)="onDanielDrop($event)">
+        <button class="daniel-attach" (click)="danielFileInput.click()" title="Adjuntar imagen" [disabled]="thinking()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+        </button>
+        <input #danielFileInput type="file" accept="image/*" style="display:none" (change)="onDanielFile($event)">
         <input class="daniel-input" [(ngModel)]="chatInput"
-               placeholder="Pregunta a Daniel…"
+               placeholder="Pregunta a Daniel… (Ctrl+V para pegar imagen)"
                [disabled]="thinking() || loading()"
-               (keydown.enter)="send()" />
-        <button class="daniel-send" [disabled]="!chatInput.trim() || thinking() || loading()" (click)="send()">
+               (keydown.enter)="send()"
+               (paste)="onDanielPaste($event)" />
+        <button class="daniel-send" [disabled]="(!chatInput.trim() && !chatImagen()) || thinking() || loading()" (click)="send()">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
           </svg>
@@ -138,6 +153,8 @@ interface DanielMsg { id: string; from: 'daniel' | 'user'; text: string; time: D
       display:flex; align-items:center; gap:8px; padding:10px 12px;
       border-top:1px solid var(--c-border); flex-shrink:0;
     }
+    .daniel-attach { background:transparent; border:none; cursor:pointer; color:var(--c-muted); padding:4px 6px; border-radius:4px; display:flex; align-items:center; flex-shrink:0; }
+    .daniel-attach:hover { color:var(--c-blue); }
     .daniel-input {
       flex:1; border-radius:20px; border:1.5px solid var(--c-border);
       padding:8px 14px; font-size:12.5px; font-family:inherit; background:var(--c-bg);
@@ -160,6 +177,7 @@ export class AdminDanielPanelComponent implements OnInit, AfterViewChecked {
 
   msgs = signal<DanielMsg[]>([]);
   chatInput = '';
+  chatImagen = signal<string | null>(null);
   thinking = signal(false);
   loading = signal(true);
 
@@ -206,8 +224,10 @@ export class AdminDanielPanelComponent implements OnInit, AfterViewChecked {
 
   send() {
     const text = this.chatInput.trim();
-    if (!text || this.thinking()) return;
+    const img = this.chatImagen();
+    if ((!text && !img) || this.thinking()) return;
     this.chatInput = '';
+    this.chatImagen.set(null);
     this.addMsg({ from: 'user', text });
     this.thinking.set(true);
 
@@ -230,6 +250,12 @@ export class AdminDanielPanelComponent implements OnInit, AfterViewChecked {
   }
 
   quick(text: string) { this.chatInput = text; this.send(); }
+
+  private async toBase64(f: File): Promise<string> { return new Promise((r, j) => { const rd = new FileReader(); rd.onload = () => r(rd.result as string); rd.onerror = j; rd.readAsDataURL(f); }); }
+  private async loadImg(f: File) { if (!f.type.startsWith('image/') || f.size > 5 * 1024 * 1024) return; this.chatImagen.set(await this.toBase64(f)); }
+  onDanielFile(e: Event) { const f = (e.target as HTMLInputElement).files?.[0]; if (f) this.loadImg(f); (e.target as HTMLInputElement).value = ''; }
+  onDanielPaste(e: ClipboardEvent) { for (const i of Array.from(e.clipboardData?.items ?? [])) if (i.type.startsWith('image/')) { e.preventDefault(); const f = i.getAsFile(); if (f) this.loadImg(f); return; } }
+  onDanielDrop(e: DragEvent) { e.preventDefault(); const f = e.dataTransfer?.files[0]; if (f) this.loadImg(f); }
 
   reset() {
     this.msgs.set([]);
@@ -298,6 +324,8 @@ export class AdminDanielPanelComponent implements OnInit, AfterViewChecked {
       flex:1; display:flex; flex-direction:row;
       min-height:0; overflow:hidden;
     }
+
+
 
     .admin-main {
       flex:1; overflow-y:auto; min-height:0;

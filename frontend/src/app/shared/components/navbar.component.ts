@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, signal } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -21,108 +21,237 @@ interface Notificaciones {
   imports: [CommonModule, RouterModule],
   template: `
     <aside class="sidebar" [class.sidebar--collapsed]="collapsed()">
-      <!-- Marca / Logo -->
-      <div class="sidebar__brand">
-        <div class="brand-left">
-          <div class="brand-logo-csn">
-            <img src="assets/logo-csn.png" alt="CSN" style="height: 36px; width: auto; object-fit: contain;">
-          </div>
-          <div class="brand-text">
-            <span class="brand-title">Centro Soluciones</span>
-            <span class="brand-subtitle">Neto</span>
-            @if (section) {
-              <span class="brand-section">{{ section }}</span>
-            }
-          </div>
+
+      <!-- Marca -->
+      <div class="sb-brand">
+        <div class="sb-brand-left">
+          <img src="assets/logo-csn.png" alt="CSN" class="sb-logo">
+          @if (!collapsed()) {
+            <div class="sb-brand-text">
+              <span class="sb-brand-name">Centro Soluciones</span>
+              @if (section) {
+                <span class="sb-brand-sec">{{ section }}</span>
+              }
+            </div>
+          }
         </div>
-        <button class="sidebar-toggle" (click)="collapsed.set(!collapsed())" [title]="collapsed() ? 'Expandir menú' : 'Colapsar menú'">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6"/>
-            <line x1="3" y1="12" x2="21" y2="12"/>
-            <line x1="3" y1="18" x2="21" y2="18"/>
+        <button class="sb-toggle" (click)="collapsed.set(!collapsed())" [title]="collapsed() ? 'Expandir menú' : 'Colapsar menú'">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
           </svg>
         </button>
       </div>
 
       <!-- Navegación -->
-      <div class="sidebar__nav">
-        <div class="nav-section-title">MENÚ PRINCIPAL</div>
+      <nav class="sb-nav">
+        @if (!collapsed()) { <span class="sb-sec-label">Menú</span> }
 
         @if (auth.isTienda()) {
-          <a routerLink="/tienda" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
-             class="nav-item" data-tooltip="Mis Tickets">
-            <span class="nav-icon">📊</span>
-            <span>Mis Tickets</span>
+          <a routerLink="/tienda" routerLinkActive="sb-item--active" [routerLinkActiveOptions]="{exact:true}"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Mis Tickets' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+            <span class="sb-label">Mis Tickets</span>
           </a>
         }
 
         @if (auth.isAgente() || auth.isAdmin() || auth.isAdminArea()) {
-          <a routerLink="/agente" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
-             class="nav-item" data-tooltip="Dashboard">
-            <span class="nav-icon">📈</span>
-            <span>Dashboard</span>
+          <a routerLink="/agente" routerLinkActive="sb-item--active" [routerLinkActiveOptions]="{exact:true}"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dashboard' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span class="sb-label">Dashboard</span>
+          </a>
+        }
+
+        @if (auth.isAgente() || auth.isAdmin() || auth.isAdminArea()) {
+          <a routerLink="/agente/cola" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Cola' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            <span class="sb-label">Cola de tickets</span>
           </a>
         }
 
         @if (auth.rol() === 'COORDINADOR') {
-          <a routerLink="/coordinador" routerLinkActive="nav-item--active" [routerLinkActiveOptions]="{exact: true}"
-             class="nav-item" data-tooltip="Vista Coordinador">
-            <span class="nav-icon">🔧</span>
-            <span>Mi Zona</span>
+          <a routerLink="/coordinador" routerLinkActive="sb-item--active" [routerLinkActiveOptions]="{exact:true}"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Mi Zona' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+              <line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+            <span class="sb-label">Mi Zona</span>
           </a>
         }
 
+        <!-- ── ADMIN ── -->
         @if (auth.isAdmin()) {
-          <div class="nav-section-title" style="margin-top: 32px">ADMINISTRACIÓN</div>
-          <a routerLink="/admin" routerLinkActive="nav-item--active"
-             class="nav-item" data-tooltip="Configuración">
-            <span class="nav-icon">⚙️</span>
-            <span>Configuración</span>
+          @if (!collapsed()) {
+            <span class="sb-sec-label" style="margin-top:18px">Administración</span>
+          } @else {
+            <div class="sb-divider"></div>
+          }
+
+          <!-- KPIs y Dany: links directos -->
+          <a routerLink="/admin/kpis" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'KPIs ejecutivos' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span class="sb-label">KPIs ejecutivos</span>
           </a>
-          <a routerLink="/admin/kpis" routerLinkActive="nav-item--active"
-             class="nav-item" data-tooltip="KPIs ejecutivos">
-            <span class="nav-icon">📊</span>
-            <span>KPIs ejecutivos</span>
+
+          <a routerLink="/admin/dany" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dany' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
+              <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="sb-label">Dany</span>
           </a>
-          <a routerLink="/admin/dany" routerLinkActive="nav-item--active"
-             class="nav-item" data-tooltip="Métricas Dany">
-            <span class="nav-icon">🤖</span>
-            <span>Dany</span>
-          </a>
+
+          <!-- Configuración: toggle que despliega submenú -->
+          @if (!collapsed()) {
+            <button class="sb-item sb-item--toggle" (click)="configOpen.set(!configOpen())"
+                    [class.sb-item--active]="configOpen()">
+              <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+              </svg>
+              <span class="sb-label">Configuración</span>
+              <svg class="sb-chevron" [class.sb-chevron--open]="configOpen()"
+                   width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            @if (configOpen()) {
+              <div class="sb-submenu">
+                <a routerLink="/admin/torre" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Torre de control
+                </a>
+                <a routerLink="/admin/incidentes" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Incidentes masivos
+                </a>
+                <a routerLink="/admin/tipificaciones" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Tipificaciones
+                </a>
+                <a routerLink="/admin/grupos" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Grupos
+                </a>
+                <a routerLink="/admin/ruteo" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Ruteo
+                </a>
+                <a routerLink="/admin/usuarios" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Usuarios
+                </a>
+                <a routerLink="/admin/regiones" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Regiones
+                </a>
+                <a routerLink="/admin/zonas" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Zonas
+                </a>
+              </div>
+            }
+          } @else {
+            <!-- Colapsado: icono de configuración directo a torre -->
+            <a routerLink="/admin/torre" routerLinkActive="sb-item--active"
+               class="sb-item" data-tooltip="Configuración">
+              <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+              </svg>
+            </a>
+          }
         }
 
+        <!-- ── ADMIN_AREA ── -->
         @if (auth.isAdminArea()) {
-          <div class="nav-section-title" style="margin-top: 32px">
-            MI ÁREA — {{ auth.currentUser()?.area_restriccion }}
-          </div>
-          <a routerLink="/admin/kpis" routerLinkActive="nav-item--active"
-             class="nav-item" data-tooltip="KPIs de mi área">
-            <span class="nav-icon">📊</span>
-            <span>KPIs de mi área</span>
+          @if (!collapsed()) {
+            <span class="sb-sec-label" style="margin-top:18px">Mi Área — {{ auth.currentUser()?.area_restriccion }}</span>
+          } @else {
+            <div class="sb-divider"></div>
+          }
+
+          <a routerLink="/admin/kpis" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'KPIs de mi área' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span class="sb-label">KPIs de mi área</span>
           </a>
-          <a routerLink="/admin/dany" routerLinkActive="nav-item--active"
-             class="nav-item" data-tooltip="Métricas Dany">
-            <span class="nav-icon">🤖</span>
-            <span>Dany</span>
+
+          <a routerLink="/admin/dany" routerLinkActive="sb-item--active"
+             class="sb-item" [attr.data-tooltip]="collapsed() ? 'Dany' : null">
+            <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="2"/>
+              <circle cx="12" cy="5" r="2"/><path d="M12 7v4"/>
+              <circle cx="8" cy="16" r="1" fill="currentColor" stroke="none"/>
+              <circle cx="16" cy="16" r="1" fill="currentColor" stroke="none"/>
+            </svg>
+            <span class="sb-label">Dany</span>
           </a>
+
+          <!-- Configuración para ADMIN_AREA: solo Grupos y Tipificaciones -->
+          @if (!collapsed()) {
+            <button class="sb-item sb-item--toggle" (click)="configOpen.set(!configOpen())"
+                    [class.sb-item--active]="configOpen()">
+              <svg class="sb-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v3M12 20v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M1 12h3M20 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+              </svg>
+              <span class="sb-label">Configuración</span>
+              <svg class="sb-chevron" [class.sb-chevron--open]="configOpen()"
+                   width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <polyline points="6 9 12 15 18 9"/>
+              </svg>
+            </button>
+
+            @if (configOpen()) {
+              <div class="sb-submenu">
+                <a routerLink="/admin/tipificaciones" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Tipificaciones
+                </a>
+                <a routerLink="/admin/grupos" routerLinkActive="sb-sub--active" class="sb-sub">
+                  <span class="sb-sub-dot"></span>Grupos
+                </a>
+              </div>
+            }
+          }
         }
-      </div>
+      </nav>
 
-      <div class="sidebar__spacer"></div>
+      <div class="sb-spacer"></div>
 
-      <!-- Alertas & Usuario en la parte inferior -->
-      <div class="sidebar__footer">
-        <div class="user-card" (click)="toggleUserMenu()">
-          <div class="avatar" [class]="avatarClass()">{{ initial() }}</div>
-          <div class="user-info">
-            <div class="user-name">{{ auth.currentUser()?.nombre }}</div>
-            <div class="user-role">{{ roleLabel() }}</div>
-          </div>
-          <!-- Menu flotante -->
+      <!-- Usuario -->
+      <div class="sb-footer">
+        <div class="sb-user" (click)="toggleUserMenu()">
+          <div class="sb-avatar" [class]="avatarClass()">{{ initial() }}</div>
+          @if (!collapsed()) {
+            <div class="sb-user-info">
+              <span class="sb-user-name">{{ auth.currentUser()?.nombre }}</span>
+              <span class="sb-user-role">{{ roleLabel() }}</span>
+            </div>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto;opacity:.35;flex-shrink:0">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          }
           @if (userMenuOpen()) {
-            <div class="user-menu-dropdown">
-              <button class="btn-logout" (click)="auth.logout()">
-                <span class="nav-icon">🚪</span> Cerrar sesión
+            <div class="sb-user-menu">
+              <button class="sb-logout" (click)="auth.logout()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                  <polyline points="16 17 21 12 16 7"/>
+                  <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Cerrar sesión
               </button>
             </div>
           }
@@ -131,8 +260,9 @@ interface Notificaciones {
     </aside>
   `,
   styles: [`
+    /* ── Sidebar base ── */
     .sidebar {
-      width: 220px;
+      width: 200px;
       height: 100vh;
       background: var(--c-surface);
       border-right: 1px solid var(--c-border);
@@ -142,329 +272,194 @@ interface Notificaciones {
       top: 0;
       flex-shrink: 0;
       z-index: 100;
-      box-shadow: 2px 0 10px rgba(0,0,0,0.02);
-      transition: width 0.25s ease;
+      transition: width 0.22s ease;
       overflow-y: auto;
       overflow-x: visible;
+      box-shadow: 1px 0 8px rgba(0,0,0,.04);
     }
-    .sidebar--collapsed { width: 64px; }
+    .sidebar--collapsed { width: 54px; }
 
-    .sidebar__brand {
-      padding: 16px 12px 16px 20px;
+    /* ── Brand bar ── */
+    .sb-brand {
       display: flex;
-      flex-direction: row;
       align-items: center;
-      justify-content: space-between;
       gap: 8px;
+      padding: 10px 10px 10px 14px;
       border-bottom: 1px solid var(--c-border);
+      min-height: 46px;
       flex-shrink: 0;
-      min-height: 56px;
     }
-    .brand-left {
+    .sb-brand-left {
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      gap: 9px;
+      flex: 1;
       overflow: hidden;
       min-width: 0;
-      flex: 1;
     }
-    .sidebar-toggle {
-      flex-shrink: 0;
-      width: 32px; height: 32px;
-      border: none; background: transparent;
-      border-radius: var(--radius-md);
-      color: var(--c-muted);
-      display: flex; align-items: center; justify-content: center;
-      cursor: pointer;
-      transition: background .15s, color .15s;
+    .sb-logo { height: 24px; width: auto; object-fit: contain; flex-shrink: 0; }
+    .sb-brand-text { display: flex; flex-direction: column; line-height: 1.25; overflow: hidden; min-width: 0; }
+    .sb-brand-name { font-size: 12px; font-weight: 700; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-brand-sec { font-size: 10px; color: var(--c-blue); text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+    .sb-toggle {
+      flex-shrink: 0; width: 26px; height: 26px; border: none; background: transparent;
+      border-radius: 6px; color: var(--c-muted); display: flex; align-items: center;
+      justify-content: center; cursor: pointer; transition: background .15s, color .15s;
     }
-    .sidebar-toggle:hover { background: var(--c-blue-lt); color: var(--c-blue); }
+    .sb-toggle:hover { background: var(--c-blue-lt); color: var(--c-blue); }
+    .sidebar--collapsed .sb-brand { padding: 10px 0; justify-content: center; }
+    .sidebar--collapsed .sb-brand-left { flex: 0; min-width: 0; }
 
-    .sidebar--collapsed .sidebar__brand {
-      justify-content: center;
-      padding: 10px 0;
-      border-bottom: 1px solid var(--c-border);
+    /* ── Navigation ── */
+    .sb-nav { padding: 10px 7px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .sb-sec-label {
+      font-size: 10px; font-weight: 700; color: var(--c-muted);
+      text-transform: uppercase; letter-spacing: .08em;
+      padding: 0 8px; margin: 6px 0 3px; display: block;
     }
-    .sidebar--collapsed .brand-left { 
-      opacity: 0; 
-      width: 0; 
-      overflow: hidden; 
-      margin: 0; 
-      padding: 0; 
-    }
-    .sidebar--collapsed .sidebar__nav { padding: 16px 8px; align-items: center; }
-    .sidebar--collapsed .sidebar__footer { padding: 16px 8px; align-items: center; }
-    .brand-logo-csn {
-      display: flex;
-      align-items: center;
-      position: relative;
-    }
-    .csn-text {
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--c-blue);
-      letter-spacing: -1px;
-      line-height: 1;
-    }
-    .csn-arrow {
-      width: 24px;
-      height: 24px;
-      color: var(--c-amber);
-      margin-left: -6px;
-      margin-top: -12px;
-    }
-    .brand-text { display: flex; flex-direction: column; line-height: 1.2; }
-    .brand-title { font-size: 15px; font-weight: 700; color: var(--c-text); }
-    .brand-subtitle { font-size: 14px; font-weight: 500; color: var(--c-muted); }
-    .brand-section { font-size: 12px; color: var(--c-blue); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .sb-divider { height: 1px; background: var(--c-border); margin: 8px 5px; }
 
-    .sidebar__nav {
-      padding: 24px 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .nav-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--c-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-left: 10px;
-      margin-bottom: 6px;
-    }
-    .nav-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      border-radius: var(--radius-md);
-      color: var(--c-muted);
-      font-size: 15px;
-      font-weight: 500;
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .nav-item:hover {
-      background: var(--c-bg);
-      color: var(--c-text);
-      transform: translateX(2px);
-    }
-    .nav-item--active {
-      background: var(--c-blue-lt);
-      color: var(--c-blue);
-      font-weight: 600;
-    }
-    .nav-item--active:hover { transform: none; }
-    .nav-icon { font-size: 18px; display: flex; align-items: center; justify-content: center; width: 22px; }
-    
-    .nav-badge {
-      background: var(--c-blue);
-      color: white;
-      font-size: 12px;
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 12px;
-      min-width: 24px;
-      text-align: center;
-    }
-
-    .sidebar__spacer { flex: 1; min-height: 24px; }
-
-    .sidebar__footer {
-      padding: 20px 16px;
-      border-top: 1px solid var(--c-border);
-      background: var(--c-surface);
-    }
-
-    .sidebar-alerts {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-bottom: 20px;
-    }
-    .alert-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      border-radius: var(--radius-md);
-      font-size: 13px;
-    }
-    .alert-item span { font-weight: 500; }
-    .alert-item strong { font-size: 14px; }
-    .alert-item--red { background: var(--c-red-lt); color: var(--c-red); border: 1px solid var(--c-red-md); }
-    .alert-item--amber { background: var(--c-amber-lt); color: var(--c-amber); border: 1px solid var(--c-amber-md); }
-
-    .user-card {
-      position: relative;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 14px;
-      background: var(--c-bg);
-      border-radius: var(--radius-md);
-      margin-bottom: 12px;
-      transition: background 0.2s;
-    }
-    .user-card:hover { background: var(--c-border); }
-    .user-info { display: flex; flex-direction: column; overflow: hidden; }
-    .user-name { font-size: 14px; font-weight: 600; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .user-role { font-size: 12px; color: var(--c-muted); }
-
-    /* Dropdown de usuario */
-    .user-menu-dropdown {
-      position: absolute;
-      bottom: calc(100% + 8px);
-      left: 16px;
-      right: 16px;
-      background: var(--c-surface);
-      border: 1px solid var(--c-border);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
-      padding: 6px;
-      z-index: 300;
-      animation: slideUp .2s ease;
-    }
-    .sidebar--collapsed .user-menu-dropdown {
-      left: calc(100% + 8px);
-      bottom: 0px;
-      right: auto;
-      min-width: 180px;
-    }
-
-    .btn-logout {
+    .sb-item {
+      display: flex; align-items: center; gap: 9px; padding: 8px 10px;
+      border-radius: 7px; color: var(--c-muted); font-size: 13px; font-weight: 500;
+      text-decoration: none; transition: background .15s, color .15s;
+      white-space: nowrap; overflow: hidden; position: relative;
       width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 10px;
-      background: transparent;
-      border: 1px solid var(--c-border);
-      border-radius: var(--radius-md);
-      color: var(--c-muted);
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
     }
-    .btn-logout:hover {
-      background: var(--c-red-lt);
-      color: var(--c-red);
-      border-color: var(--c-red-md);
+    .sb-item:hover { background: var(--c-bg); color: var(--c-text); }
+    .sb-item--active {
+      background: var(--c-blue-lt); color: var(--c-blue); font-weight: 600;
     }
-    .btn-logout .nav-icon { font-size: 16px; }
+    .sb-item--active::before {
+      content: ''; position: absolute; left: 0; top: 7px; bottom: 7px;
+      width: 3px; background: var(--c-blue); border-radius: 0 3px 3px 0;
+    }
 
-    /* Estilos del avatar */
-    .avatar {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      font-size: 16px; font-weight: 600;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
+    /* Toggle button (Configuración) */
+    .sb-item--toggle {
+      background: transparent; border: none; cursor: pointer; font-family: inherit;
+      text-align: left;
     }
-    .avatar--tienda { background: var(--c-teal-lt); color: var(--c-teal); border: 1px solid var(--c-teal-md); }
-    .avatar--agente { background: var(--c-purple-lt); color: var(--c-purple); border: 1px solid var(--c-purple-md); }
-    .avatar--admin  { background: var(--c-amber-lt); color: var(--c-amber); border: 1px solid var(--c-amber-md); }
+    .sb-item--toggle.sb-item--active { background: var(--c-blue-lt); color: var(--c-blue); }
 
-    /* ── Collapsed state ── */
-    .sidebar--collapsed .nav-section-title,
-    .sidebar--collapsed .nav-item span:not(.nav-icon),
-    .sidebar--collapsed .nav-badge,
-    .sidebar--collapsed .sidebar-alerts,
-    .sidebar--collapsed .user-info,
-    .sidebar--collapsed .btn-logout span:not(.nav-icon) {
-      opacity: 0;
-      width: 0;
-      height: 0;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
+    /* Chevron animado */
+    .sb-chevron {
+      margin-left: auto; flex-shrink: 0; opacity: .5;
+      transition: transform .2s ease;
     }
-    .sidebar--collapsed .nav-item { justify-content: center; padding: 12px; }
-    .sidebar--collapsed .btn-logout { border: none; padding: 12px; }
-    .sidebar--collapsed .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
-    .sidebar--collapsed .user-card { padding: 12px 0; background: transparent; margin-bottom: 24px; justify-content: center; }
+    .sb-chevron--open { transform: rotate(180deg); opacity: .8; }
 
-    /* ── Tooltip popover (visible when sidebar is collapsed) ── */
-    .nav-item[data-tooltip],
-    .btn-logout[data-tooltip] {
-      position: relative;
+    /* Submenú desplegable */
+    .sb-submenu {
+      display: flex; flex-direction: column; gap: 1px;
+      padding: 2px 0 4px 24px;
+      animation: subOpen .15s ease;
     }
-    .sidebar--collapsed .nav-item[data-tooltip]:hover::after,
-    .sidebar--collapsed .btn-logout[data-tooltip]:hover::after {
+    @keyframes subOpen {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .sb-sub {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border-radius: 6px;
+      font-size: 12px; color: var(--c-muted); text-decoration: none;
+      transition: background .12s, color .12s; white-space: nowrap;
+    }
+    .sb-sub:hover { background: var(--c-bg); color: var(--c-text); }
+    .sb-sub--active { color: var(--c-blue); font-weight: 600; }
+    .sb-sub-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: var(--c-border); flex-shrink: 0;
+    }
+    .sb-sub--active .sb-sub-dot { background: var(--c-blue); }
+
+    .sb-icon { width: 16px; height: 16px; flex-shrink: 0; }
+    .sb-label { overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+    /* ── Collapsed nav ── */
+    .sidebar--collapsed .sb-nav { padding: 10px 5px; align-items: center; }
+    .sidebar--collapsed .sb-sec-label { display: none; }
+    .sidebar--collapsed .sb-item { justify-content: center; padding: 9px; width: 42px; }
+    .sidebar--collapsed .sb-label,
+    .sidebar--collapsed .sb-chevron { display: none; }
+    .sidebar--collapsed .sb-submenu { display: none; }
+
+    /* ── Tooltips (collapsed) ── */
+    .sidebar--collapsed .sb-item[data-tooltip]:hover::after {
       content: attr(data-tooltip);
-      position: absolute;
-      left: calc(100% + 12px);
-      top: 50%;
-      transform: translateY(-50%);
-      background: var(--c-text);
-      color: var(--c-surface);
-      font-size: 12px;
-      font-weight: 500;
-      padding: 6px 10px;
-      border-radius: 6px;
-      white-space: nowrap;
-      z-index: 200;
-      pointer-events: none;
-      box-shadow: 0 2px 8px rgba(0,0,0,.15);
+      position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+      background: var(--c-text); color: var(--c-surface);
+      font-size: 12px; font-weight: 500; padding: 5px 10px;
+      border-radius: 6px; white-space: nowrap; z-index: 200;
+      pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,.15);
     }
-    .sidebar--collapsed .nav-item[data-tooltip]:hover::before,
-    .sidebar--collapsed .btn-logout[data-tooltip]:hover::before {
-      content: '';
-      position: absolute;
-      left: calc(100% + 6px);
-      top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-      border-right-color: var(--c-text);
-      z-index: 200;
-      pointer-events: none;
+    .sidebar--collapsed .sb-item[data-tooltip]:hover::before {
+      content: ''; position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%);
+      border: 5px solid transparent; border-right-color: var(--c-text); z-index: 200; pointer-events: none;
     }
 
+    .sb-spacer { flex: 0; min-height: 12px; }
+
+    /* ── Footer / User ── */
+    .sb-footer { padding: 8px 7px 12px; border-top: 1px solid var(--c-border); flex-shrink: 0; }
+    .sb-user {
+      position: relative; display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; border-radius: 7px; cursor: pointer; transition: background .15s;
+    }
+    .sb-user:hover { background: var(--c-bg); }
+    .sidebar--collapsed .sb-user { padding: 8px 0; justify-content: center; }
+
+    .sb-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      font-size: 12px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .avatar--tienda { background: var(--c-teal-lt);   color: var(--c-teal);   border: 1px solid var(--c-teal-md); }
+    .avatar--agente { background: var(--c-purple-lt); color: var(--c-purple); border: 1px solid var(--c-purple-md); }
+    .avatar--admin  { background: var(--c-amber-lt);  color: var(--c-amber);  border: 1px solid var(--c-amber-md); }
+
+    .sb-user-info { display: flex; flex-direction: column; overflow: hidden; flex: 1; min-width: 0; }
+    .sb-user-name { font-size: 12px; font-weight: 600; color: var(--c-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sb-user-role { font-size: 11px; color: var(--c-muted); white-space: nowrap; }
+
+    .sb-user-menu {
+      position: absolute; bottom: calc(100% + 6px); left: 7px; right: 7px;
+      background: var(--c-surface); border: 1px solid var(--c-border);
+      border-radius: 8px; padding: 4px; z-index: 300;
+      box-shadow: var(--shadow-lg); animation: slideUp .18s ease;
+    }
+    .sidebar--collapsed .sb-user-menu { left: calc(100% + 8px); bottom: 0; right: auto; min-width: 160px; }
+    .sb-logout {
+      width: 100%; display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px; background: transparent; border: none;
+      border-radius: 6px; color: var(--c-muted); font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all .15s; font-family: inherit;
+    }
+    .sb-logout:hover { background: var(--c-red-lt); color: var(--c-red); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
     @media (max-width: 900px) {
-      .sidebar { width: 64px; }
-      .brand-left, .nav-section-title, .nav-item span:not(.nav-icon), .nav-badge,
-      .sidebar-alerts, .user-info, .btn-logout span:not(.nav-icon) {
-        opacity: 0; width: 0; height: 0; overflow: hidden; margin: 0; padding: 0;
+      .sidebar { width: 54px; }
+      .sb-brand-text, .sb-sec-label, .sb-label, .sb-user-info, .sb-submenu { display: none; }
+      .sb-brand { padding: 10px 0; justify-content: center; }
+      .sb-nav { padding: 10px 5px; align-items: center; }
+      .sb-item { justify-content: center; padding: 9px; width: 42px; }
+      .sb-footer { padding: 8px 5px 12px; }
+      .sb-user { padding: 8px 0; justify-content: center; }
+      .sb-item[data-tooltip]:hover::after {
+        content: attr(data-tooltip); position: absolute; left: calc(100% + 10px); top: 50%; transform: translateY(-50%);
+        background: var(--c-text); color: var(--c-surface); font-size: 12px;
+        padding: 5px 10px; border-radius: 6px; white-space: nowrap; z-index: 200;
+        pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,.15);
       }
-      .sidebar__brand { justify-content: center; padding: 20px 8px; border-bottom: none; }
-      .sidebar-toggle { display: flex; }
-      .nav-item { justify-content: center; padding: 12px; }
-      .btn-logout { border: none; padding: 12px; }
-      .btn-logout:hover { background: var(--c-bg); color: var(--c-text); }
-      .user-card { padding: 12px 0; background: transparent; margin-bottom: 24px; justify-content: center; }
-      .nav-item[data-tooltip]:hover::after,
-      .btn-logout[data-tooltip]:hover::after {
-        content: attr(data-tooltip);
-        position: absolute;
-        left: calc(100% + 12px);
-        top: 50%;
-        transform: translateY(-50%);
-        background: var(--c-text);
-        color: var(--c-surface);
-        font-size: 12px;
-        font-weight: 500;
-        padding: 6px 10px;
-        border-radius: 6px;
-        white-space: nowrap;
-        z-index: 200;
-        pointer-events: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,.15);
-      }
-      .nav-item[data-tooltip]:hover::before,
-      .btn-logout[data-tooltip]:hover::before {
-        content: '';
-        position: absolute;
-        left: calc(100% + 6px);
-        top: 50%;
-        transform: translateY(-50%);
-        border: 5px solid transparent;
-        border-right-color: var(--c-text);
-        z-index: 200;
-        pointer-events: none;
+      .sb-item[data-tooltip]:hover::before {
+        content: ''; position: absolute; left: calc(100% + 4px); top: 50%; transform: translateY(-50%);
+        border: 5px solid transparent; border-right-color: var(--c-text); z-index: 200; pointer-events: none;
       }
     }
   `],
@@ -473,6 +468,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   @Input() section = '';
   collapsed = signal(false);
   userMenuOpen = signal(false);
+  configOpen = signal(false);
 
   notif = signal<Notificaciones | null>(null);
   private pollInterval?: ReturnType<typeof setInterval>;
@@ -482,7 +478,6 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.fetchNotif();
-    // Polling cada 30 segundos
     this.pollInterval = setInterval(() => this.fetchNotif(), 30_000);
   }
 
@@ -521,9 +516,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       TIENDA: 'avatar--tienda',
       AGENTE: 'avatar--agente',
+      COORDINADOR: 'avatar--agente',
       ADMIN: 'avatar--admin',
       ADMIN_AREA: 'avatar--admin',
-      COORDINADOR: 'avatar--agente',
     };
     return map[this.auth.rol() ?? ''] ?? '';
   }
@@ -532,9 +527,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     const map: Record<string, string> = {
       TIENDA: 'Tienda',
       AGENTE: 'Agente Call Center',
+      COORDINADOR: 'Coordinador de Zona',
       ADMIN: 'Administrador',
       ADMIN_AREA: 'Admin Área',
-      COORDINADOR: 'Coordinador de Zona',
     };
     return map[this.auth.rol() ?? ''] ?? '';
   }

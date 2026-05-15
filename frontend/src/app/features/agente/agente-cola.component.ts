@@ -632,6 +632,9 @@ export class AgenteColaComponent implements OnInit, OnDestroy, AfterViewChecked 
     // NUEVO Sprint 1: filtro semáforo SLA
     if (this.filtroSla) ts = ts.filter(t => t.sla_status === this.filtroSla);
 
+    if (this.filtroGrupo) {
+      ts = ts.filter(t => (t as any).grupo_nombre === this.filtroGrupo);
+    }
     if (this.busqueda.trim()) {
       const q = this.busqueda.trim().toLowerCase();
       ts = ts.filter(t =>
@@ -761,11 +764,14 @@ export class AgenteColaComponent implements OnInit, OnDestroy, AfterViewChecked 
 
   ngOnDestroy() { this.refreshSub?.unsubscribe(); }
 
+  filtroGrupo = '';
+
   initFromQueryParams() {
     this.route.queryParams.subscribe((params: Record<string, string>) => {
       if (params['f']) this.filtroEstatus.set(params['f']);
       if (params['sla']) { this.filtroSla = params['sla']; this.applyFilters(); }
       if (params['p']) { this.filtroPrioridad = params['p']; this.applyFilters(); }
+      if (params['grupo']) { this.filtroGrupo = params['grupo']; }
     });
   }
 
