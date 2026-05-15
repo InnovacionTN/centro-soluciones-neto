@@ -73,13 +73,13 @@ export const ADMIN_ROUTES: Routes = [
   // ── Fuera del shell (pantalla completa) ──
   {
     path: 'kpis',
-    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA'])],
+    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA', 'COORDINADOR'])],
     loadComponent: () =>
       import('./kpis/admin-kpis.component').then(m => m.AdminKpisComponent),
   },
   {
     path: 'dany',
-    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA', 'AGENTE', 'COORDINADOR'])],
+    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA', 'COORDINADOR'])],
     loadComponent: () =>
       import('./dany/dany-kpis.component').then(m => m.DanyKpisComponent),
   },

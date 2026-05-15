@@ -25,13 +25,20 @@ export const routes: Routes = [
     loadChildren: () =>
       import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
   },
-  // ── Sprint 2: Coordinador de zona (Mantenimiento) ──────────────────────────
   {
     path: 'coordinador',
     canActivate: [authGuard(['COORDINADOR', 'ADMIN'])],
     loadComponent: () =>
       import('./features/coordinador/coordinador-dashboard.component')
         .then(m => m.CoordinadorDashboardComponent),
+  },
+  // Chat de Dany — agentes y coordinadores (tienda lo tiene en /tienda)
+  {
+    path: 'chat-dany',
+    canActivate: [authGuard(['AGENTE', 'COORDINADOR', 'ADMIN', 'ADMIN_AREA'])],
+    loadComponent: () =>
+      import('./features/tienda/dany-chat.component')
+        .then(m => m.DanyChatComponent),
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },
