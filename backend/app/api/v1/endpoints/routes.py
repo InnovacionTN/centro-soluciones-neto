@@ -3909,6 +3909,123 @@ def escalar_sla_dany(db: Session = Depends(get_db)):
 # ── Proxy Dany / n8n ──────────────────────────────────────────────────────────
 
 
+@router.post("/dany/agente/cola")
+def dany_agente_cola(
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    """Cola de tickets activos del agente para el copiloto Dany. Llamado desde n8n."""
+    usuario_id = payload.get("usuario_id")
+    limit = int(payload.get("limit", 25))
+
+    ACTIVOS = [
+        EstatusTicket.NUEVO, EstatusTicket.ASIGNADO, EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA, EstatusTicket.ESPERANDO_AGENTE,
+        EstatusTicket.RECHAZADO,
+    ]
+
+    q = db.query(Ticket).filter(Ticket.estatus.in_(ACTIVOS))
+    if usuario_id:
+        q = q.filter(Ticket.agente_id == usuario_id)
+    tickets = q.order_by(Ticket.fecha_apertura.asc()).limit(limit).all()
+
+    ahora = datetime.utcnow()
+    result = []
+    for t in tickets:
+        sla_status = get_sla_status(t)
+        result.append({
+            "id": t.id,
+            "folio": t.folio,
+            "estatus": t.estatus.value if t.estatus else None,
+            "prioridad": t.prioridad.value if t.prioridad else None,
+            "descripcion": (t.descripcion or "")[:120],
+            "cat_nivel1": t.cat_nivel1 or None,
+            "sla_status": sla_status,
+            "sla_vencido": sla_status == "ROJO",
+            "tienda_id": t.tienda_id,
+            "tienda_nombre": t.tienda.nombre if t.tienda else None,
+            "fecha_apertura": t.fecha_apertura.isoformat() if t.fecha_apertura else None,
+        })
+    return result
+
+
+@router.post("/dany/admin/contexto")
+def dany_admin_contexto(
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    """KPIs y torre de alertas para el Daniel admin/coordinador. Llamado desde n8n."""
+    usuario_id = payload.get("usuario_id")
+    ahora = datetime.utcnow()
+
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first() if usuario_id else None
+
+    ACTIVOS = [
+        EstatusTicket.NUEVO, EstatusTicket.ASIGNADO, EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA, EstatusTicket.ESPERANDO_AGENTE,
+        EstatusTicket.RECHAZADO,
+    ]
+    CERRADOS = [EstatusTicket.RESUELTO, EstatusTicket.CERRADO]
+
+    q_activos = db.query(Ticket).filter(Ticket.estatus.in_(ACTIVOS))
+    q_cerrados_hoy = db.query(Ticket).filter(
+        Ticket.estatus.in_(CERRADOS),
+        Ticket.fecha_cierre >= ahora.replace(hour=0, minute=0, second=0),
+    )
+
+    # Scope por rol
+    if usuario and usuario.rol == RolUsuario.ADMIN_AREA and usuario.area_restriccion:
+        q_activos = (q_activos
+            .outerjoin(Tipificacion, Ticket.tipificacion_id == Tipificacion.id)
+            .filter(Tipificacion.area_tecnica == usuario.area_restriccion))
+        q_cerrados_hoy = (q_cerrados_hoy
+            .outerjoin(Tipificacion, Ticket.tipificacion_id == Tipificacion.id)
+            .filter(Tipificacion.area_tecnica == usuario.area_restriccion))
+    elif usuario and usuario.rol == RolUsuario.COORDINADOR and usuario.grupo_id:
+        grupo = db.query(Grupo).filter(Grupo.id == usuario.grupo_id).first()
+        if grupo and grupo.compania_id:
+            q_activos = (q_activos
+                .join(Tienda, Ticket.tienda_id == Tienda.id)
+                .join(Zona, Tienda.zona_id == Zona.id)
+                .join(Region, Zona.region_id == Region.id)
+                .filter(Region.compania_id == grupo.compania_id))
+            q_cerrados_hoy = (q_cerrados_hoy
+                .join(Tienda, Ticket.tienda_id == Tienda.id)
+                .join(Zona, Tienda.zona_id == Zona.id)
+                .join(Region, Zona.region_id == Region.id)
+                .filter(Region.compania_id == grupo.compania_id))
+
+    activos = q_activos.all()
+    cerrados_hoy = q_cerrados_hoy.count()
+
+    vencidos = [t for t in activos if get_sla_status(t) == "ROJO"]
+    sin_agente = [t for t in activos if t.agente_id is None]
+
+    kpis = {
+        "total_activos": len(activos),
+        "cerrados_hoy": cerrados_hoy,
+        "vencidos": len(vencidos),
+        "sin_agente": len(sin_agente),
+        "criticos": sum(1 for t in activos if t.prioridad and t.prioridad.value == "CRITICA"),
+    }
+
+    torre = []
+    for t in (vencidos + [t for t in sin_agente if t not in vencidos])[:15]:
+        horas = round((ahora - t.fecha_apertura).total_seconds() / 3600, 1) if t.fecha_apertura else None
+        torre.append({
+            "id": t.id,
+            "folio": t.folio,
+            "tipo_alerta": "SLA_VENCIDO" if get_sla_status(t) == "ROJO" else "SIN_AGENTE",
+            "prioridad": t.prioridad.value if t.prioridad else None,
+            "tienda": t.tienda.nombre if t.tienda else None,
+            "area": t.cat_nivel1 or None,
+            "horas_abierto": horas,
+            "agente": t.agente.nombre if t.agente else None,
+        })
+
+    return {"kpis": kpis, "torre": torre}
+
+
 @router.get("/dany/debug")
 def dany_debug():
     s = get_settings()

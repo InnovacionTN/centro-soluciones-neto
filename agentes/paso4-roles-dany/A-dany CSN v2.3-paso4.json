@@ -980,7 +980,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/dany/agente/cola",
+        "url": "https://csn-api-prod-312707215871.us-central1.run.app/api/v1/dany/agente/cola",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -1057,7 +1057,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/dany/admin/contexto",
+        "url": "https://csn-api-prod-312707215871.us-central1.run.app/api/v1/dany/admin/contexto",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
