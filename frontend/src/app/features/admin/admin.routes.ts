@@ -79,7 +79,7 @@ export const ADMIN_ROUTES: Routes = [
   },
   {
     path: 'dany',
-    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA'])],
+    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA', 'AGENTE', 'COORDINADOR'])],
     loadComponent: () =>
       import('./dany/dany-kpis.component').then(m => m.DanyKpisComponent),
   },
