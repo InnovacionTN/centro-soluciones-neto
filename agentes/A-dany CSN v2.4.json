@@ -345,7 +345,7 @@
             {
               "id": "csn-a001",
               "name": "prompt",
-              "value": "={{ ($json.body.historial && $json.body.historial.length > 1 ? '--- Historial ---\\n' + $json.body.historial.slice(0,-1).map(m=>(m.de==='dany'?'🤖 Dany':'👤 Usuario')+': '+m.texto).join('\\n')+'\\n--- Mensaje actual ---\\n' : '') + ($json.body.message || $json.body.mensaje || '') }}",
+              "value": "={{ $json.body.message || $json.body.mensaje || '' }}",
               "type": "string"
             },
             {
