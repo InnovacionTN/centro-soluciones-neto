@@ -63,6 +63,8 @@ export interface ZonaAdmin {
 export interface GrupoAdmin {
   id: number; nombre: string; area_tecnica: string;
   region_id: number | null; slack_canal: string | null; activo: boolean;
+  compania_id: number | null;
+  compania?: { id: number; nombre: string; activo: boolean } | null;
 }
 
 @Injectable({ providedIn: 'root' })
