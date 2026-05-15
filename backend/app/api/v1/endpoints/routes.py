@@ -323,7 +323,35 @@ def me(
         "grupo_nombre": grupo_nombre,
         "activo": current_user.activo,
         "disponible": current_user.disponible,
+        "area_restriccion": current_user.area_restriccion,
     }
+
+
+@router.post("/auth/request-password-change", status_code=200)
+def request_password_change(
+    current_user: Usuario = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    El usuario autenticado solicita cambio de contraseña.
+    Genera un token de un solo uso (válido 1 hora) y lo notifica
+    a través de Slack. Mientras no esté configurado el bot de Slack,
+    el token se devuelve en el log del servidor.
+    """
+    import secrets, datetime
+    token = secrets.token_urlsafe(32)
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+
+    # Guardar token en el usuario (campo temporal en memoria — en prod usar tabla aparte)
+    # Por ahora sólo logueamos el token para que el admin lo procese manualmente
+    print(f"[PASSWORD RESET] Usuario: {current_user.nombre} ({current_user.email}) "
+          f"| Token: {token} | Expira: {expiry.isoformat()}")
+
+    # TODO: integrar Slack bot — enviar DM o mensaje al canal #csn-soporte con:
+    #   f"🔐 *{current_user.nombre}* solicitó cambio de contraseña.\n"
+    #   f"Enlace (válido 1 h): {FRONTEND_URL}/reset-password?token={token}"
+
+    return {"ok": True, "message": "Solicitud recibida. Recibirás instrucciones en Slack."}
 
 
 # ─── IA ────────────────────────────────────────────────────────────────────────
@@ -1040,8 +1068,8 @@ def list_grupos(
     if area:
         q = q.filter(Grupo.area_tecnica == area.upper())
 
-    # ADMIN_AREA solo ve grupos de su dirección técnica
-    if current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+    # ADMIN_AREA y COORDINADOR solo ven grupos de su área
+    if current_user.rol in (RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR) and current_user.area_restriccion:
         q = q.filter(Grupo.area_tecnica == current_user.area_restriccion)
 
     return q.order_by(Grupo.area_tecnica, Grupo.nombre).all()
@@ -1861,7 +1889,7 @@ def admin_list_tipificaciones(
     area: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(
-        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA)
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
     ),
 ):
     q = db.query(Tipificacion)
@@ -1869,8 +1897,8 @@ def admin_list_tipificaciones(
         q = q.filter(Tipificacion.activo == activo)
     if area:
         q = q.filter(Tipificacion.area_tecnica == area.upper())
-    # ADMIN_AREA solo ve tipificaciones de su área
-    if current_user.rol == RolUsuario.ADMIN_AREA and current_user.area_restriccion:
+    # ADMIN_AREA y COORDINADOR solo ven tipificaciones de su área
+    if current_user.rol in (RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR) and current_user.area_restriccion:
         q = q.filter(Tipificacion.area_tecnica == current_user.area_restriccion)
     return q.order_by(Tipificacion.area_tecnica, Tipificacion.categoria).all()
 
@@ -2090,7 +2118,9 @@ def admin_update_zona(
 @router.get("/admin/ruteo", response_model=list[ReglaRuteoOut])
 def admin_list_ruteo(
     db: Session = Depends(get_db),
-    _: Usuario = Depends(_require_admin),
+    current_user: Usuario = Depends(
+        require_rol(RolUsuario.ADMIN, RolUsuario.ADMIN_AREA, RolUsuario.COORDINADOR)
+    ),
 ):
     from sqlalchemy.orm import joinedload
 

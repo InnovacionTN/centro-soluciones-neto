@@ -62,6 +62,45 @@
   --c-sb-accent:  #4A5C6A;
 }
 
+/* ─── Dark Mode ─────────────────────────────────────────────── */
+.dark-theme {
+  --c-bg:        #0D1B2A;
+  --c-surface:   #132032;
+  --c-border:    #1E3348;
+  --c-border-md: #2E4A66;
+  --c-text:      #D8E8F5;
+  --c-muted:     #6A90B8;
+  --c-subtle:    #172840;
+
+  --c-blue:      #4A9EFF;
+  --c-blue-lt:   #0D2845;
+  --c-blue-md:   #1A4070;
+
+  --c-amber:     #FF7A3D;
+  --c-amber-lt:  #2A1A10;
+  --c-amber-md:  #8A4020;
+
+  --c-purple:    #2DD4BF;
+  --c-purple-lt: #0A2A26;
+  --c-purple-md: #0E4038;
+
+  --c-green:     #34D399;
+  --c-green-lt:  #0A2A1A;
+  --c-green-md:  #0E4028;
+
+  --c-red:       #F87171;
+  --c-red-lt:    #2A0E0E;
+  --c-red-md:    #601818;
+
+  --c-teal:      #60A5FA;
+  --c-teal-lt:   #0A1E3A;
+  --c-teal-md:   #1A3A6A;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-md: 0 4px 8px rgba(0,0,0,.4);
+  --shadow-lg: 0 12px 24px rgba(0,0,0,.5);
+}
+
 /* ─── Reset ─────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 16px; -webkit-font-smoothing: antialiased; }
