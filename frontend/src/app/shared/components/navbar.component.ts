@@ -355,7 +355,7 @@ interface Notificaciones {
                 </svg>
               </span>
               <span class="um-item-label">Cambiar contraseña</span>
-              <span class="um-item-badge um-item-badge--soon">Próximamente</span>
+              <span class="um-item-badge">Slack</span>
             </button>
 
             <div class="um-divider"></div>
@@ -582,9 +582,6 @@ interface Notificaciones {
     .um-item-badge {
       font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px;
       background: #4A154B; color: white;
-    }
-    .um-item-badge--soon {
-      background: var(--c-border); color: var(--c-muted);
     }
 
     /* Toggle switch */
