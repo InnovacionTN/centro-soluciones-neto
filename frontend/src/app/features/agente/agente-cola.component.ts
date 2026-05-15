@@ -411,9 +411,9 @@ const PRIORIDAD_ORDER: Record<string, number> = {
     .ticket-row:last-child { border-bottom: none; }
     .ticket-row:hover      { background: var(--c-bg); }
     .ticket-row--critica   { border-left: 3px solid var(--c-red); }
-    .ticket-row--rojo      { background: #fff5f5; }
-    .ticket-row--rojo:hover{ background: #fde8e8; }
-    .ticket-row--amarillo  { background: #fffbea; }
+    .ticket-row--rojo      { background: var(--c-red-lt); }
+    .ticket-row--rojo:hover{ background: var(--c-red-lt); filter: brightness(.96); }
+    .ticket-row--amarillo  { background: var(--c-amber-lt); }
 
     .skeleton-row { display: flex; align-items: center; gap: 20px; padding: 16px; border-bottom: 1px solid var(--c-border); }
 
@@ -448,9 +448,9 @@ const PRIORIDAD_ORDER: Record<string, number> = {
       font-weight: 500;
       white-space: nowrap;
     }
-    .sla-badge--verde    { background: #e6faf3; color: #00A878; border: 1px solid #00A878; }
-    .sla-badge--amarillo { background: #fff8e0; color: #D97706; border: 1px solid #F59E0B; }
-    .sla-badge--rojo     { background: #fef2f2; color: #DC2626; border: 1px solid #EF4444; font-weight: 700; }
+    .sla-badge--verde    { background: var(--c-green-lt);  color: var(--c-green);  border: 1px solid var(--c-green-md); }
+    .sla-badge--amarillo { background: var(--c-amber-lt);  color: var(--c-amber);  border: 1px solid var(--c-amber-md); }
+    .sla-badge--rojo     { background: var(--c-red-lt);    color: var(--c-red);    border: 1px solid var(--c-red-md); font-weight: 700; }
     .sla-badge--sin_sla  { background: var(--c-bg); color: var(--c-muted); border: 1px solid var(--c-border); }
 
     .folio { font-family: monospace; font-weight: 700; color: var(--c-blue); }

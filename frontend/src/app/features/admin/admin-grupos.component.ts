@@ -18,7 +18,7 @@ interface CompaniaSimple { id: number; nombre: string; activo: boolean; }
         <div class="header-left">
           <div class="title-row">
             <h2 class="page-title">Grupos</h2>
-            <button class="tip-btn"
+            <button class="tip-btn tip-btn--down"
               data-tooltip="Los Grupos organizan a los agentes por área técnica y compañía. El sistema asigna tickets automáticamente al grupo más específico según zona, región y compañía de la tienda solicitante.">?</button>
             <span class="total-chip">{{ grupos().length }} grupos · {{ totalMiembros() }} miembros</span>
           </div>
@@ -383,15 +383,29 @@ interface CompaniaSimple { id: number; nombre: string; activo: boolean; }
     .tip-btn::after {
       content: attr(data-tooltip);
       position: absolute;
-      bottom: calc(100% + 8px);
-      left: 50%; transform: translateX(-50%);
       background: #1a2c42; color: #dde8f4;
       padding: 9px 13px; border-radius: 9px;
       font-size: 12px; font-weight: 400; line-height: 1.55;
-      white-space: pre-wrap; width: 260px; text-align: left;
+      white-space: pre-wrap; text-align: left;
       box-shadow: 0 6px 24px rgba(0,0,0,.3);
       opacity: 0; pointer-events: none;
-      transition: opacity .15s; z-index: 500;
+      transition: opacity .15s; z-index: 9999;
+      /* default: above, centered */
+      bottom: calc(100% + 8px);
+      left: 50%; transform: translateX(-50%);
+      width: 260px;
+    }
+    /* In-card tooltips: appear to the RIGHT to avoid viewport-top clipping */
+    .tip-btn--xs::after {
+      bottom: auto; left: calc(100% + 8px);
+      top: 50%; transform: translateY(-50%);
+      width: 220px;
+    }
+    /* Page-title tooltip: appear BELOW to avoid viewport-top clipping */
+    .tip-btn--down::after {
+      bottom: auto; top: calc(100% + 8px);
+      left: 0; transform: none;
+      width: 280px;
     }
     .tip-btn:hover::after { opacity: 1; }
 
@@ -538,7 +552,7 @@ interface CompaniaSimple { id: number; nombre: string; activo: boolean; }
 
     /* ── Section ── */
     .body-section { display: flex; flex-direction: column; gap: 10px; }
-    .section-hdr { display: flex; align-items: center; gap: 6px; }
+    .section-hdr { display: flex; align-items: center; gap: 6px; position: relative; overflow: visible; }
     .section-title {
       font-size: 11px; font-weight: 700; color: var(--c-muted);
       text-transform: uppercase; letter-spacing: .07em;
@@ -649,7 +663,7 @@ interface CompaniaSimple { id: number; nombre: string; activo: boolean; }
     .subgrupos-list { display: flex; flex-direction: column; gap: 8px; }
     .subgrupo-card {
       background: var(--c-surface); border: 1px solid var(--c-border);
-      border-radius: 10px; overflow: hidden;
+      border-radius: 10px;
       transition: border-color .15s, box-shadow .15s;
     }
     .subgrupo-card:hover { border-color: var(--c-blue-md); box-shadow: 0 2px 10px rgba(14,59,131,.07); }
@@ -659,6 +673,7 @@ interface CompaniaSimple { id: number; nombre: string; activo: boolean; }
       padding: 10px 14px;
       border-bottom: 1px solid var(--c-border);
       background: var(--c-bg);
+      border-radius: 10px 10px 0 0;
     }
     .compania-tag {
       font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
