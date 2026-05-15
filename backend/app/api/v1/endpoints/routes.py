@@ -1347,34 +1347,40 @@ def esperar_pieza(
 @router.get("/coordinador/tickets", response_model=list[TicketCoordinadorItem])
 def lista_tickets_coordinador(
     estatus: Optional[str] = None,
-    limit: int = Query(100, le=300),
+    area: Optional[str] = None,
+    limit: int = Query(200, le=500),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user),
 ):
     """
-    Vista del Coordinador de zona: tickets de Mantenimiento de su zona.
-    Solo lectura — el coordinador no puede editar tickets.
+    Vista del Coordinador: todos los tickets de su compañía, todas las áreas.
+    El scope de compañía se obtiene del grupo del coordinador (grupo.compania_id).
     """
     if current_user.rol.value not in ("COORDINADOR", "ADMIN"):
-        raise HTTPException(
-            403, detail="Solo coordinadores y admin pueden ver esta vista"
-        )
+        raise HTTPException(403, detail="Acceso denegado")
 
     q = (
         db.query(Ticket)
         .options(joinedload(Ticket.tipificacion).joinedload(Tipificacion.sla_policy))
         .join(Grupo, Ticket.grupo_id == Grupo.id, isouter=True)
-        .filter(Grupo.area_tecnica == AreaTecnica.MANTENIMIENTO)
+        .join(Tienda, Ticket.tienda_id == Tienda.id)
+        .join(Zona, Tienda.zona_id == Zona.id)
+        .join(Region, Zona.region_id == Region.id)
     )
 
-    # Filtrar por zona del coordinador
-    if current_user.rol.value == "COORDINADOR" and current_user.zona_id:
-        q = q.join(Tienda, Ticket.tienda_id == Tienda.id).filter(
-            Tienda.zona_id == current_user.zona_id
-        )
+    # Scope: filtrar por compañía del grupo del coordinador
+    if current_user.rol.value == "COORDINADOR" and current_user.grupo_id:
+        coord_grupo = db.query(Grupo).filter(Grupo.id == current_user.grupo_id).first()
+        if coord_grupo and coord_grupo.compania_id:
+            q = q.filter(Region.compania_id == coord_grupo.compania_id)
 
     if estatus:
         q = q.filter(Ticket.estatus == estatus.upper())
+    if area:
+        q = q.filter(Grupo.area_tecnica == area.upper())
+
+    # Excluir cerrados/cancelados por defecto para mantener la lista manejable
+    q = q.filter(Ticket.estatus.notin_([EstatusTicket.CERRADO, EstatusTicket.CANCELADO]))
 
     tickets = q.order_by(Ticket.fecha_apertura.desc()).limit(limit).all()
 
@@ -1382,11 +1388,13 @@ def lista_tickets_coordinador(
     for t in tickets:
         _enriquecer_sla(t)
         tienda = db.query(Tienda).filter(Tienda.id == t.tienda_id).first()
+        zona = db.query(Zona).filter(Zona.id == tienda.zona_id).first() if tienda else None
+        region = db.query(Region).filter(Region.id == zona.region_id).first() if zona else None
         agente = (
             db.query(Usuario).filter(Usuario.id == t.agente_id).first()
-            if t.agente_id
-            else None
+            if t.agente_id else None
         )
+        grupo = db.query(Grupo).filter(Grupo.id == t.grupo_id).first() if t.grupo_id else None
         result.append(
             TicketCoordinadorItem(
                 id=t.id,
@@ -1396,12 +1404,13 @@ def lista_tickets_coordinador(
                 descripcion=t.descripcion,
                 cat_nivel1=t.cat_nivel1,
                 cat_nivel2=t.cat_nivel2,
+                area_tecnica=grupo.area_tecnica.value if grupo else None,
                 tienda_id=t.tienda_id,
                 tienda_nombre=tienda.nombre if tienda else None,
+                zona_nombre=zona.nombre if zona else None,
+                region_nombre=region.nombre if region else None,
                 agente_nombre=agente.nombre if agente else None,
                 fecha_apertura=t.fecha_apertura,
-                fecha_visita_programada=t.fecha_visita_programada,
-                pieza_requerida=t.pieza_requerida,
                 sla_status=t.sla_status,
                 sla_porcentaje=t.sla_porcentaje,
             )

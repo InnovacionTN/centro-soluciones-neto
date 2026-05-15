@@ -1,0 +1,167 @@
+{
+  "name": "Obtener_promociones_motor",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "producto"
+            },
+            {
+              "name": "id_tienda"
+            },
+            {
+              "name": "fecha_inicio"
+            },
+            {
+              "name": "decha_termino"
+            },
+            {
+              "name": "precio"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "aa278640-2d02-4e5a-8d20-93b8ba57afe8",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://dany.netopower123.com/api/promotions/validate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "dany-promo-2026-s3cur3-k3y"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"producto\": \"{{ $json.producto }}\",\n  \"precio\": \"{{ $json.precio }}\",\n  \"fecha_inicio\": \"{{ $json.fecha_inicio }}\",\n  \"fecha_termino\": \"{{ $json.decha_termino }}\",\n  \"store_id\": {{ $json.id_tienda }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e3c522aa-61d8-4a5d-9183-43137ba1e26f",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7be72cb4-d41c-448c-b7e7-9895f3c32fc9",
+              "name": "Promocion activa",
+              "value": "={{ $json.found_in_motor }}",
+              "type": "boolean"
+            },
+            {
+              "id": "280c657b-1862-431a-84a9-47c9684313c7",
+              "name": "Valida_para_tienda",
+              "value": "={{ $json.valid_for_store }}",
+              "type": "boolean"
+            },
+            {
+              "id": "4e6bc1ee-e262-4322-9a9e-0d860a8e775e",
+              "name": "tienda",
+              "value": "={{ $json.matched_promos[0].store_name }}",
+              "type": "string"
+            },
+            {
+              "id": "15c28739-e503-4721-9588-80bd07a06849",
+              "name": "folio_promo",
+              "value": "={{ $json.matched_promos[0].promo_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5310c659-593d-4d42-9702-2366b0068703",
+              "name": "tiempo de promo",
+              "value": "={{ $json.matched_promos[0].vigencia }}",
+              "type": "string"
+            },
+            {
+              "id": "06b7f8dd-90ee-4caa-b1d9-31823fef7a8d",
+              "name": "nombre_promo",
+              "value": "={{ $json.matched_promos[0].descoferta }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "541d4c9d-f4a2-42f7-a817-4919a1ad8c6e",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "producto": "Bebida isotónica Powerade 500 ml (moras / naranja / ponche de frutas)",
+          "id_tienda": "771",
+          "fecha_inicio": "01/03/2026",
+          "decha_termino": "22/03/2026",
+          "precio": "2x $40"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "2170cee8-3aa0-4768-b533-b9f843e72b7d",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "rsfFPT5NvydNwTRC",
+  "tags": []
+}

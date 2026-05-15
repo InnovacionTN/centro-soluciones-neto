@@ -685,12 +685,13 @@ class TicketCoordinadorItem(BaseModel):
     descripcion: str
     cat_nivel1: Optional[str] = None
     cat_nivel2: Optional[str] = None
+    area_tecnica: Optional[str] = None
     tienda_id: int
     tienda_nombre: Optional[str] = None
+    zona_nombre: Optional[str] = None
+    region_nombre: Optional[str] = None
     agente_nombre: Optional[str] = None
     fecha_apertura: datetime
-    fecha_visita_programada: Optional[datetime] = None
-    pieza_requerida: Optional[str] = None
     sla_status: str = "SIN_SLA"
     sla_porcentaje: Optional[float] = None
 

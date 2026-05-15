@@ -1,0 +1,144 @@
+{
+  "name": "Mandar multimedia",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Id_slack"
+            },
+            {
+              "name": "Url"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1c779978-e7a6-4c69-bdb9-00046d3715af",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.Url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "dany-promo-2026-s3cur3-k3y"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2b1197e7-743d-48e3-ba67-1aa936f2a470",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "options": {
+          "channelId": "={{ $('When Executed by Another Workflow').item.json.Id_slack }}"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        448,
+        0
+      ],
+      "id": "b0b88ec1-be30-4aa3-a0f9-f48fdc3c3bed",
+      "name": "Upload a file",
+      "webhookId": "8e463b65-1fd3-4360-ae0b-dca4f3a345c5",
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "685a239b-7c0d-47cf-af1e-16d88db3d45c",
+              "name": "Multimedia enviada",
+              "value": "Exito",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        0
+      ],
+      "id": "26423d9f-81cc-48ba-a62e-6ced07fe0937",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "4865503f-a046-406d-a088-c6445de2cd70",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "REY1IN2BDRxsvqlk",
+  "tags": []
+}

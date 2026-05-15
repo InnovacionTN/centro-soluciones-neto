@@ -1,0 +1,509 @@
+{
+  "name": "Mandar folio",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "tienda"
+            },
+            {
+              "name": "descripcion"
+            },
+            {
+              "name": "resuelto"
+            },
+            {
+              "name": "pasos_intentados"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -992,
+        16
+      ],
+      "id": "9b2ea4eb-1d26-49fd-8c36-a722b4e48862",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1000000-0000-4000-8000-000000000001",
+              "name": "baseUrl",
+              "value": "https://csn-api-staging-312707215871.us-central1.run.app",
+              "type": "string"
+            },
+            {
+              "id": "b1000000-0000-4000-8000-000000000002",
+              "name": "tienda",
+              "value": "={{ parseInt($json.tienda) }}",
+              "type": "number"
+            },
+            {
+              "id": "b1000000-0000-4000-8000-000000000003",
+              "name": "descripcion",
+              "value": "={{ $json.descripcion }}",
+              "type": "string"
+            },
+            {
+              "id": "b1000000-0000-4000-8000-000000000004",
+              "name": "resuelto",
+              "value": "={{ $json.resuelto === true || $json.resuelto === 'true' }}",
+              "type": "boolean"
+            },
+            {
+              "id": "b1000000-0000-4000-8000-000000000005",
+              "name": "pasos_intentados",
+              "value": "={{ $json.pasos_intentados || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b1000000-0000-4000-8000-000000000006",
+              "name": "sesion_id",
+              "value": "=slack-tienda{{ $json.tienda }}-{{ Date.now() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -752,
+        16
+      ],
+      "id": "15015d15-7759-40ed-984d-309cbeda4c3d",
+      "name": "Config"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.baseUrl }}/api/v1/dany/sesion/iniciar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tienda_id\": 749,\n  \"sesion_id\": \"{{ $('Config').item.json.sesion_id }}\",\n  \"tienda_nombre\": \"Tienda 749\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -512,
+        16
+      ],
+      "id": "62d9d053-65f3-4026-bf86-d92e8d1fadc8",
+      "name": "Iniciar sesion",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.baseUrl }}/api/v1/ai/classify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"descripcion\": {{ JSON.stringify($('Config').item.json.descripcion) }},\n  \"tienda_id\": {{ $('Config').item.json.tienda }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -272,
+        16
+      ],
+      "id": "63848705-9614-4ae5-bafc-585316358853",
+      "name": "Classify",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ $('Config').item.json.resuelto }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -32,
+        16
+      ],
+      "id": "86659c47-609f-4111-ab1a-108b4a28e36e",
+      "name": "Resuelto?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.baseUrl }}/api/v1/dany/sesion/cerrar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sesion_id\": \"{{ $('Config').item.json.sesion_id }}\",\n  \"resuelto_sin_ticket\": true,\n  \"mensajes_count\": 1,\n  \"tipificacion_detectada\": \"{{ $('Classify').item.json.area_tecnica }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        -144
+      ],
+      "id": "23fb4a45-6568-4913-a586-d0457d2670d8",
+      "name": "Cerrar resuelto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1000000-0000-4000-8000-000000000001",
+              "name": "tipo",
+              "value": "resuelto",
+              "type": "string"
+            },
+            {
+              "id": "d1000000-0000-4000-8000-000000000002",
+              "name": "deflexion",
+              "value": "={{ $json.deflexion }}",
+              "type": "boolean"
+            },
+            {
+              "id": "d1000000-0000-4000-8000-000000000003",
+              "name": "mensaje",
+              "value": "=Caso registrado como resuelto sin ticket",
+              "type": "string"
+            },
+            {
+              "id": "d1000000-0000-4000-8000-000000000004",
+              "name": "sesion_id",
+              "value": "={{ $('Config').item.json.sesion_id }}",
+              "type": "string"
+            },
+            {
+              "id": "d1000000-0000-4000-8000-000000000005",
+              "name": "tienda",
+              "value": "={{ $('Config').item.json.tienda }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -144
+      ],
+      "id": "03449029-8610-44b8-a3a0-f53aa1a99f73",
+      "name": "Output resuelto"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.baseUrl }}/api/v1/tickets/desde-dany",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tienda_id\": {{ $('Config').item.json.tienda }},\n  \"sesion_id\": \"{{ $('Config').item.json.sesion_id }}\",\n  \"descripcion\": {{ JSON.stringify($('Config').item.json.descripcion) }},\n  \"ia_area\": \"{{ $('Classify').item.json.area_tecnica }}\",\n  \"tipificacion_id\": {{ parseInt($('Classify').item.json.tipificacion_id) }},\n  \"ia_tipificacion_id\": {{ parseInt($('Classify').item.json.tipificacion_id) }},\n  \"ia_confianza\": {{ parseInt($('Classify').item.json.confianza) }},\n  \"pasos_intentados\": {{ JSON.stringify($('Config').item.json.pasos_intentados) }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        208,
+        176
+      ],
+      "id": "5a8bb10f-7ffe-433d-b648-5e37b11ad9d4",
+      "name": "Crear ticket",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.baseUrl }}/api/v1/dany/sesion/cerrar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sesion_id\": \"{{ $('Config').item.json.sesion_id }}\",\n  \"resuelto_sin_ticket\": false,\n  \"mensajes_count\": 1,\n  \"tipificacion_detectada\": \"{{ $('Classify').item.json.area_tecnica }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        176
+      ],
+      "id": "a73bd977-b5d1-4d2d-b86e-31d6de837ba4",
+      "name": "Cerrar escalado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1000000-0000-4000-8000-000000000001",
+              "name": "tipo",
+              "value": "escalado",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000002",
+              "name": "folio",
+              "value": "={{ $('Crear ticket').item.json.folio }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000003",
+              "name": "ticket_id",
+              "value": "={{ $('Crear ticket').item.json.ticket_id }}",
+              "type": "number"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000004",
+              "name": "estatus",
+              "value": "={{ $('Crear ticket').item.json.estatus }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000005",
+              "name": "agente",
+              "value": "={{ $('Crear ticket').item.json.agente_nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000006",
+              "name": "grupo",
+              "value": "={{ $('Crear ticket').item.json.grupo_nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000007",
+              "name": "sla_limite",
+              "value": "={{ $('Crear ticket').item.json.sla_limite }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000008",
+              "name": "sla_status",
+              "value": "={{ $('Crear ticket').item.json.sla_status }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000009",
+              "name": "mensaje",
+              "value": "={{ $('Crear ticket').item.json.mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000010",
+              "name": "ia_area",
+              "value": "={{ $('Classify').item.json.area_tecnica }}",
+              "type": "string"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000011",
+              "name": "ia_confianza",
+              "value": "={{ $('Classify').item.json.confianza }}",
+              "type": "number"
+            },
+            {
+              "id": "e1000000-0000-4000-8000-000000000012",
+              "name": "tienda",
+              "value": "={{ $('Config').item.json.tienda }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        688,
+        176
+      ],
+      "id": "960276a9-5891-459f-af05-01bf57f3a691",
+      "name": "Output escalado"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "tienda": "105 - Rafael Avila Camacho",
+          "descripcion": "PROTECCION CIVIL/ EXTINTOR/ MANOMETRO/ DESPRESURIZADA → Auditoría. Extintor con falla en manómetro y despresurizado.",
+          "resuelto": "false",
+          "pasos_intentados": "Se ubicó el extintor afectado, se confirmó falla en manómetro y que está despresurizado."
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Iniciar sesion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar sesion": {
+      "main": [
+        [
+          {
+            "node": "Classify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify": {
+      "main": [
+        [
+          {
+            "node": "Resuelto?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resuelto?": {
+      "main": [
+        [
+          {
+            "node": "Cerrar resuelto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Crear ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar resuelto": {
+      "main": [
+        [
+          {
+            "node": "Output resuelto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear ticket": {
+      "main": [
+        [
+          {
+            "node": "Cerrar escalado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cerrar escalado": {
+      "main": [
+        [
+          {
+            "node": "Output escalado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "90b7ab96-4658-4042-94cc-55e04076d4ba",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "4LffIwh87gYT3j2C",
+  "tags": []
+}
