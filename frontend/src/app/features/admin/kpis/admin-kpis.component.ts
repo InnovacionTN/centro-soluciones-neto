@@ -47,7 +47,8 @@ const AREA_COLOR: Record<string, string> = {
   template: `
     <div class="page">
       <app-navbar section="KPIs" />
-      <div class="content content--wide">
+      <div class="kpis-main">
+      <div class="content--wide">
 
         <!-- Header -->
         <div class="page-header">
@@ -197,11 +198,13 @@ const AREA_COLOR: Record<string, string> = {
           <div class="empty">No hay datos para el período seleccionado.</div>
         }
       </div>
+      </div>
     </div>
   `,
   styles: [`
-    .page { display:flex; flex-direction:column; min-height:100vh; }
-    .content--wide { max-width:1400px; margin:0 auto; width:100%; padding:24px 24px 48px; }
+    .page { display:flex; flex-direction:row; height:100vh; overflow:hidden; }
+    .kpis-main { flex:1; overflow-y:auto; padding:24px 32px 48px; }
+    .content--wide { max-width:1400px; margin:0 auto; width:100%; }
     .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
     .page-title { font-size:22px; font-weight:700; color:var(--c-text); }
     .page-sub { font-size:13px; color:var(--c-muted); margin-top:2px; }

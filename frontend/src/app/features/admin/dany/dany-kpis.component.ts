@@ -23,7 +23,8 @@ interface KpiDany {
   template: `
     <div class="page">
       <app-navbar section="Dany" />
-      <div class="content content--wide">
+      <div class="dany-main">
+      <div class="content--wide">
 
         <!-- Header -->
         <div class="page-header">
@@ -132,11 +133,13 @@ interface KpiDany {
           <div class="empty">No hay datos de Daniel para el período seleccionado.</div>
         }
       </div>
+      </div>
     </div>
   `,
   styles: [`
-    .page { display:flex; flex-direction:column; min-height:100vh; }
-    .content--wide { max-width:1200px; margin:0 auto; width:100%; padding:24px 24px 48px; }
+    .page { display:flex; flex-direction:row; height:100vh; overflow:hidden; }
+    .dany-main { flex:1; overflow-y:auto; padding:24px 32px 48px; }
+    .content--wide { max-width:1200px; margin:0 auto; width:100%; }
     .page-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:12px; }
     .page-title { font-size:22px; font-weight:700; color:var(--c-text); display:flex; align-items:center; gap:10px; }
     .page-sub { font-size:13px; color:var(--c-muted); margin-top:2px; }
