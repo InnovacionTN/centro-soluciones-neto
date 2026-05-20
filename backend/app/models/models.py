@@ -6,6 +6,7 @@ from sqlalchemy import (
     String,
     Boolean,
     DateTime,
+    Float,
     Text,
     ForeignKey,
     Enum,
@@ -155,6 +156,8 @@ class Tienda(Base):
     centro_costos = Column(String(50))
     estrategia = Column(String(50), default="normal")
     empresa = Column(String(50))
+    latitud = Column(Float, nullable=True)
+    longitud = Column(Float, nullable=True)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
     zona = relationship("Zona", back_populates="tiendas")
@@ -250,7 +253,9 @@ class Tipificacion(Base):
 class ReglaRuteo(Base):
     __tablename__ = "matriz_ruteo"
     id = Column(Integer, primary_key=True)
-    tipificacion_id = Column(Integer, ForeignKey("cat_tipificaciones.id"), nullable=False)
+    tipificacion_id = Column(
+        Integer, ForeignKey("cat_tipificaciones.id"), nullable=False
+    )
     zona_id = Column(Integer, ForeignKey("cat_zonas.id"), nullable=True)
     region_id = Column(Integer, ForeignKey("cat_regiones.id"), nullable=True)
     compania_id = Column(Integer, ForeignKey("cat_companias.id"), nullable=True)

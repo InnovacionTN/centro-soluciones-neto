@@ -106,8 +106,8 @@ interface DanyMsg { id: string; from: 'dany' | 'user'; text: string; time: Date;
                   <div class="skeleton sk-line sk-line--lg"></div>
                 </div>
               }
-            } @else if (auth.isAdminArea()) {
-              <!-- ADMIN_AREA: mini-torre por grupos -->
+            } @else if (auth.isAdminArea() || auth.isAdmin()) {
+              <!-- ADMIN_AREA / ADMIN: mini-torre por grupos -->
               <div class="grupo-torre">
                 @for (g of gruposTorre(); track g.nombre) {
                   <a class="grupo-card" [routerLink]="['/agente/cola']"

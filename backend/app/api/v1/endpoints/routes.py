@@ -645,7 +645,8 @@ def list_tickets(
     if prioridad:
         q = q.filter(Ticket.prioridad == prioridad.upper())
 
-    if area:
+    if area and current_user.rol != RolUsuario.ADMIN_AREA:
+        # ADMIN_AREA ya tiene JOIN+filtro por area_restriccion arriba; no repetir
         q = q.join(Tipificacion, Ticket.tipificacion_id == Tipificacion.id).filter(
             Tipificacion.area_tecnica == area.upper()
         )
