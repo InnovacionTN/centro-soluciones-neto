@@ -14,7 +14,8 @@ El **Centro de Soluciones** es el sistema mediante el cual las tiendas de la red
 Diferencias clave vs Zendesk:
 - **IA clasifica automáticamente** mientras la tienda escribe — elimina el árbol de tipificación de 4 niveles
 - **Dany** — asistente IA 24/7 que intenta resolver sin crear ticket (deflexión)
-- **Daniel** — copiloto para agentes, coordinadores y admins con datos en tiempo real vía n8n + Gemini
+- **Daniel** — copiloto para agentes, coordinadores y admins con datos en tiempo real
+- El agente corre como **servicio propio en Cloud Run** (Vercel AI SDK + Gemini 2.5), ver [`agentes/dany-vercel`](agentes/dany-vercel/README.md)
 
 ---
 
@@ -30,10 +31,14 @@ Diferencias clave vs Zendesk:
 │              FastAPI + Python 3.11 (Backend)                │
 │       Cloud Run — csn-api-prod-312707215871.us-central1     │
 ├─────────────────────────────────────────────────────────────┤
-│  Motor IA: Gemini 2.5 Flash (google-generativeai)           │
-│  Agente Dany: n8n + Gemini (webhook /dany/chat)             │
-│  Memoria: Postgres Chat Memory (n8n)                        │
+│  Motor IA: Gemini 2.5 Flash (clasificación de tickets)      │
+│  Proxy a Dany: POST /api/v1/dany/chat → agente Cloud Run    │
 └───────┬─────────────────────────┬───────────────────────────┘
+        │   ┌─────────────────────────────────────────────────┐
+        │   │  Agente Dany — servicio propio (Cloud Run)       │
+        │   │  Vercel AI SDK v6 + Gemini 2.5 + Hono (Node 20)  │
+        │   │  Memoria: dany_chat_memory (Neon) por sesión     │
+        │   └─────────────────────────────────────────────────┘
         │                         │
 ┌───────▼──────────┐   ┌──────────▼──────────────────────────┐
 │   PostgreSQL     │   │         Almacenamiento               │
@@ -62,11 +67,11 @@ centro-soluciones-neto/
 │       │   ├── coordinador/
 │       │   └── admin/      ← KPIs, usuarios, configuración
 │       └── shared/
-├── agentes/                ← Flows n8n (JSON exportados)
-│   └── A-dany CSN v2.4.json   ← versión en producción
+├── agentes/                ← Agente Dany
+│   ├── dany-vercel/          ← ⭐ Implementación actual (Vercel AI SDK + Gemini, Cloud Run)
+│   └── n8n-export/           ← Implementación previa en n8n (referencia)
 └── docs/
-    ├── canvas-csn-slack.md    ← Guía Slack Canvas
-    └── guia-usuario-csn-v1.0.html
+    └── canvas-csn-slack.md    ← Guía Slack Canvas
 ```
 
 ---
@@ -175,19 +180,20 @@ Todas usan la contraseña: **`Neto2024!`**
 
 ---
 
-## Dany — Agente IA (n8n + Gemini)
+## Dany — Agente IA (Vercel AI SDK + Gemini, Cloud Run)
 
-El sistema tiene **3 instancias de Dany** según el rol, todas corriendo en el mismo flow n8n (`A-dany CSN v2.4.json`) con un `Switch_Rol` que enruta:
+Dany corre como **servicio propio** (Node 20 + [Vercel AI SDK v6](https://ai-sdk.dev) + Gemini 2.5 Flash),
+no en n8n. Un solo agente enruta por `rol_usuario` a tres personas:
 
-| Instancia | Rol | Función |
+| Persona | Rol | Función |
 |---|---|---|
-| **Dany** (tienda) | TIENDA | Troubleshooting guiado, deflexión antes de crear ticket |
-| **Dany Agente** (copiloto) | AGENTE | Cola prioritaria, resúmenes de tickets, consultas de estado |
-| **Daniel** (admin) | ADMIN / ADMIN_AREA / COORDINADOR | KPIs en tiempo real, alertas, análisis operativo |
+| **Dany** (tienda) | TIENDA | Soporte guiado paso a paso (98 flujos), multimedia, deflexión y escalación |
+| **Dany copiloto** | AGENTE | Cola priorizada, ver ticket, casos similares (read-only) |
+| **Daniel** | ADMIN / ADMIN_AREA / COORDINADOR | KPIs, alertas, torre de control (read-only) |
 
-Cada instancia tiene su propia **Postgres Chat Memory** en n8n (por `sesion_id`), sin historial en el payload.
-
-El backend actúa como proxy: `POST /api/v1/dany/chat` → n8n webhook.
+La memoria de conversación vive en Postgres/Neon (`dany_chat_memory`, por `sesion_id`). El backend
+actúa como proxy: `POST /api/v1/dany/chat` → webhook del agente. Código, reglas y deploy en
+**[`agentes/dany-vercel/README.md`](agentes/dany-vercel/README.md)**.
 
 ---
 
@@ -243,7 +249,7 @@ Tienda describe → Dany intenta resolver (deflexión)
 
 **IA en lugar de árbol de tipificación** — Zendesk usa un árbol rígido de 4 niveles. Aquí la tienda describe en lenguaje natural y Gemini selecciona la tipificación. Si falla la API, hay fallback de keywords ponderadas.
 
-**Memoria en n8n, no en frontend** — El historial de conversación vive en Postgres Chat Memory (n8n), una instancia por agente. El frontend solo manda el mensaje actual.
+**Memoria en el agente, no en el frontend** — El historial vive en Postgres/Neon (`dany_chat_memory`, por `sesion_id`). El frontend solo manda el mensaje actual; el agente compacta el historial al enviarlo al modelo para ahorrar tokens.
 
 **Sin migración histórica** — La DB arranca limpia. Los catálogos se cargan desde el panel admin.
 

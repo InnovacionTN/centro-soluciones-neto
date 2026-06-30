@@ -22,7 +22,8 @@ from app.schemas.schemas import ClasificacionResponse
 settings = get_settings()
 
 # Modelo a usar — centralizado para cambiar en un solo lugar
-GEMINI_MODEL = "gemini-2.0-flash"
+# (gemini-2.0-flash fue retirado por Google → usar 2.5)
+GEMINI_MODEL = "gemini-2.5-flash"
 
 
 # ─── Normalización ────────────────────────────────────────────────────────────

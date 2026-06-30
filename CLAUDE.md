@@ -93,7 +93,8 @@ Store describes → AI classifies → Round-robin assigns → NUEVO
 
 - **Single routes.py**: All API endpoints live in one file. Add new endpoints there.
 - **Settings absolute path**: `config.py` resolves `.env` via `Path(__file__).parent.parent.parent / ".env"` — works regardless of where uvicorn is launched.
-- **Dany proxy**: The n8n webhook is called server-side via `POST /api/v1/dany/chat` to avoid browser CORS. Configure `DANY_WEBHOOK_URL` in `.env`.
+- **Dany agent**: Dany runs as its own Cloud Run service (Vercel AI SDK + Gemini 2.5), source in `agentes/dany-vercel/` (own README). The backend proxies to it server-side via `POST /api/v1/dany/chat` to avoid browser CORS — set `DANY_WEBHOOK_URL` in `.env`. The TIENDA chat UI lives in `tienda-dashboard.component.ts`. Behavior rules are in `agentes/dany-vercel/src/agents/prompts.ts`; validate changes with `npm run eval` (suite in `src/eval/`).
+- **Gemini key/model**: classification model is `gemini-2.5-flash` (`gemini-2.0-flash` was retired). Use the `AQ.Ab8...` key (the older `AIza...` key's project is access-denied → 403). Prod reads it from Secret Manager (`gemini-api-key`).
 - **Javier (WhatsApp agent)**: External agent that hits the API directly (no proxy). Uses a TIENDA-role service account. See `AGENTS_API.md` for full integration docs.
 - **External agents doc**: `AGENTS_API.md` at repo root — reference for Dany/Javier developers covering auth, ticket creation (resolved + open), and payload examples.
 - **Angular signals only**: No Observable-based state. Components use `signal()`, `computed()`, and `effect()` directly.

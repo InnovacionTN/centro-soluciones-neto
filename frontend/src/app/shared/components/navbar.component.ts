@@ -371,6 +371,9 @@ interface Notificaciones {
               </span>
               <span class="um-item-label">Cerrar sesión</span>
             </button>
+
+            <!-- Versión (marcador de build) -->
+            <div class="um-version">CSN · {{ appVersion }}</div>
           </div>
         }
       </div>
@@ -578,6 +581,11 @@ interface Notificaciones {
     }
     .um-item--danger .um-item-icon { background: var(--c-red-lt); color: var(--c-red); }
     .um-item-label { flex: 1; }
+    .um-version {
+      text-align: center; font-size: 10px; color: var(--c-muted);
+      padding: 8px 0 4px; border-top: 1px solid var(--c-border); margin-top: 4px;
+      letter-spacing: .04em;
+    }
 
     .um-item-badge {
       font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 6px;
@@ -663,6 +671,7 @@ interface Notificaciones {
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   @Input() section = '';
+  readonly appVersion = 'v0.4.2';
   collapsed    = signal(false);
   userMenuOpen = signal(false);
   configOpen   = signal(false);

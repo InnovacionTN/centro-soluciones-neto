@@ -70,7 +70,7 @@ const QUICK_CHIPS = [
               @if (thinking()) { <div class="thinking-ring"></div> }
             </div>
             <div>
-              <p class="chat-name">Daniel</p>
+              <p class="chat-name">Dany</p>
               <p class="chat-status">
                 @if (thinking()) { <span class="status-dot status-dot--thinking"></span> Escribiendo… }
                 @else { <span class="status-dot status-dot--online"></span> En línea }
@@ -101,12 +101,15 @@ const QUICK_CHIPS = [
                         @for (url of msg.mediaUrls; track url) {
                           @if (isVideo(url)) {
                             <video controls [src]="toProxyUrl(url)"
-                                   style="max-width:280px;width:100%;border-radius:8px;margin-top:6px;display:block"
-                                   preload="metadata">
+                                   style="max-width:240px;width:100%;border-radius:8px;margin-top:6px;display:block"
+                                   preload="metadata"
+                                   (error)="$any($event.target).style.display='none'">
                             </video>
                           } @else {
-                            <img [src]="toProxyUrl(url)" alt="Imagen"
-                                 style="max-width:100%;border-radius:8px;margin-top:6px;cursor:pointer;display:block"
+                            <img [src]="toProxyUrl(url)" alt=""
+                                 style="max-width:180px;max-height:180px;border-radius:8px;margin-top:6px;cursor:pointer;display:block;object-fit:cover"
+                                 title="Clic para ampliar"
+                                 (error)="$any($event.target).style.display='none'"
                                  (click)="openMedia(toProxyUrl(url))">
                           }
                         }
@@ -203,6 +206,7 @@ const QUICK_CHIPS = [
                    style="position:fixed;left:-9999px;opacity:0;width:1px;height:1px"
                    (change)="onImgFile($event)">
             <textarea
+              #chatInput
               class="chat-input"
               [(ngModel)]="inputText"
               placeholder="Describe tu problema… (Ctrl+V para pegar imagen)"
@@ -226,7 +230,7 @@ const QUICK_CHIPS = [
 
           <!-- Footer disclaimer -->
           <p class="chat-disclaimer">
-            Daniel · Adjunta imágenes con 📎, arrastrando o Ctrl+V
+            Dany · Adjunta imágenes con 📎, arrastrando o Ctrl+V
           </p>
         </div>
 
@@ -517,7 +521,12 @@ const QUICK_CHIPS = [
       background: var(--c-bg); transition: border-color .15s;
       max-height: 120px; overflow-y: auto;
       line-height: 1.5;
+      /* color faltaba: en tema oscuro el textarea usaba el negro por defecto del
+         navegador (los form controls no heredan 'color' de forma confiable). */
+      color: var(--c-text);
+      -webkit-text-fill-color: var(--c-text);
     }
+    .chat-input::placeholder { color: var(--c-muted); -webkit-text-fill-color: var(--c-muted); }
     .chat-input:focus { outline: none; border-color: var(--c-blue); }
     .chat-input:disabled { opacity: .6; cursor: not-allowed; }
     .send-btn {
@@ -614,6 +623,7 @@ const QUICK_CHIPS = [
 })
 export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('messagesRef') private messagesRef?: ElementRef<HTMLDivElement>;
+  @ViewChild('chatInput') private chatInputRef?: ElementRef<HTMLTextAreaElement>;
 
   private auth = inject(AuthService);
   private http = inject(HttpClient);
@@ -632,6 +642,13 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
   private needsScroll = false;
   private sesionId = this.newSesionId();
   private readonly proxyUrl = `${environment.apiUrl}/dany/chat`;
+
+  // ── Inactividad: recordatorio 5 min, otro 15 min, cierre 25 min ──
+  // Para PROBAR rápido baja temporalmente estos valores (ej. 10_000, 20_000, 30_000).
+  private inactivityTimers: ReturnType<typeof setTimeout>[] = [];
+  private readonly T_RECORDATORIO_1 = 5 * 60_000;
+  private readonly T_RECORDATORIO_2 = 15 * 60_000;
+  private readonly T_CIERRE = 25 * 60_000;
 
   readonly quickChips = QUICK_CHIPS;
 
@@ -735,6 +752,7 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
   }
 
   private send(text: string, imagen?: string) {
+    this.clearInactivity(); // actividad del usuario: reinicia el conteo
     this.addMsg({ from: 'user', text, imagen });
     this.needsScroll = true;
     setTimeout(() => { this.thinking.set(true); this.needsScroll = true; }, 1000);
@@ -763,19 +781,81 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
       })
     ).subscribe(res => {
       if (res === null) return;
-      this.thinking.set(false);
-      const accion = res.accion ?? 'continuar';
-      this.addMsg({
-        from: 'dany',
-        text: res.respuesta ?? res.output ?? 'No pude entender la respuesta.',
-        accion: accion === 'continuar' ? null : accion,
-        resumen: res.resumen,
-        mediaUrls: res.multimedia_url
-          ? res.multimedia_url.replace(/^=/, '').split(',').map((u: string) => u.trim()).filter((u: string) => u.length > 0)
-          : [],
-      });
-      this.needsScroll = true;
+      this.applyDanyResponse(res, true); // turno del usuario → (re)programa inactividad
     });
+  }
+
+  /** Aplica una respuesta de Dany al chat. reprograma=true solo en turnos del usuario
+   *  (NO en recordatorios, para no reiniciar el conteo de inactividad en bucle). */
+  private applyDanyResponse(res: any, reprograma = false) {
+    this.thinking.set(false);
+    const accion = res.accion ?? 'continuar';
+    this.addMsg({
+      from: 'dany',
+      text: res.respuesta ?? res.output ?? 'No pude entender la respuesta.',
+      accion: accion === 'continuar' ? null : accion,
+      resumen: res.resumen,
+      mediaUrls: res.multimedia_url
+        ? res.multimedia_url.replace(/^=/, '').split(',').map((u: string) => u.trim()).filter((u: string) => u.length > 0)
+        : [],
+    });
+    this.needsScroll = true;
+    this.focusInput();
+    if (accion !== 'continuar') {
+      // El caso cerró (resuelto/escalado) → no más recordatorios de inactividad.
+      this.clearInactivity();
+    } else if (reprograma) {
+      this.scheduleInactivity();
+    }
+  }
+
+  /** Devuelve el foco al input tras responder Dany (espera a que se rehabilite). */
+  private focusInput() {
+    setTimeout(() => this.chatInputRef?.nativeElement?.focus(), 80);
+  }
+
+  // ── Inactividad ─────────────────────────────────────────────────────────────
+  private clearInactivity() {
+    this.inactivityTimers.forEach(t => clearTimeout(t));
+    this.inactivityTimers = [];
+  }
+
+  private scheduleInactivity() {
+    this.clearInactivity();
+    if (this.ticketCreado()) return;
+    this.inactivityTimers.push(
+      setTimeout(() => this.sendEvento('recordatorio'), this.T_RECORDATORIO_1),
+      setTimeout(() => this.sendEvento('recordatorio'), this.T_RECORDATORIO_2),
+      setTimeout(() => this.sendEvento('cierre_inactividad'), this.T_CIERRE),
+    );
+  }
+
+  private sendEvento(evento: 'recordatorio' | 'cierre_inactividad') {
+    if (this.thinking() || this.ticketCreado()) return;
+    this.thinking.set(true);
+    this.needsScroll = true;
+    this.http.post<any>(this.proxyUrl, {
+      evento,
+      tienda_id: this.auth.currentUser()?.tienda_id,
+      tienda_nombre: this.tiendaNombre(),
+      sesion_id: this.sesionId,
+    }).pipe(takeUntil(this.destroy$), timeout(115000), catchError(() => of(null)))
+      .subscribe(res => {
+        if (res === null) { this.thinking.set(false); return; }
+        this.applyDanyResponse(res);
+        if (evento === 'cierre_inactividad') {
+          this.clearInactivity();
+          // Reinicia para que la próxima consulta empiece de 0.
+          setTimeout(() => {
+            this.messages.set([]);
+            this.ticketCreado.set(null);
+            this.esResueltoIA.set(false);
+            this.sesionId = this.newSesionId();
+            this.pushWelcome();
+            this.needsScroll = true;
+          }, 3000);
+        }
+      });
   }
 
   private handleDemoResponse(userText: string) {
@@ -896,7 +976,7 @@ export class TiendaDashboardComponent implements OnInit, OnDestroy, AfterViewChe
     const nombre = this.tiendaNombre();
     this.addMsg({
       from: 'dany',
-      text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Daniel, del equipo de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando.`,
+      text: `¡Hola${nombre ? ` — ${nombre}` : ''}! Soy Dany, tu compañero de soporte. ¿En qué te puedo ayudar hoy? Cuéntame qué está pasando. 😊`,
     });
   }
 

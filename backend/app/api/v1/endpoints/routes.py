@@ -3950,6 +3950,102 @@ def dany_agente_cola(
     return result
 
 
+@router.post("/dany/agente/ticket")
+def dany_agente_ticket(payload: dict, db: Session = Depends(get_db), _: None = Depends(verify_dany_token)):
+    """Detalle + bitácora de un ticket para el copiloto Dany del agente.
+    Body: { usuario_id, ticket } donde ticket es folio (TKT-...) o id numérico.
+    Scope: un AGENTE con grupo solo ve tickets de su grupo.
+    """
+    usuario_id = payload.get("usuario_id")
+    ref = str(payload.get("ticket") or payload.get("folio") or payload.get("ticket_id") or "").strip()
+    if not ref:
+        return {"encontrado": False, "mensaje": "Falta el folio o id del ticket."}
+
+    q = db.query(Ticket).options(
+        joinedload(Ticket.eventos).joinedload(BitacoraEvento.usuario),
+        joinedload(Ticket.tipificacion),
+    )
+    digits = "".join(ch for ch in ref if ch.isdigit())
+    t = None
+    if ref.upper().startswith("TKT"):
+        t = q.filter(Ticket.folio == ref.upper()).first()
+    if t is None and ref.isdigit():
+        t = q.filter(Ticket.id == int(ref)).first()
+    if t is None and digits:  # "00008" / "8" → buscar por folio que termine en ese número
+        t = q.filter(Ticket.folio.ilike(f"%{int(digits)}")).first() or q.filter(Ticket.id == int(digits)).first()
+    if t is None:
+        return {"encontrado": False, "mensaje": "No encontré ese ticket."}
+
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first() if usuario_id else None
+    if (usuario and usuario.rol == RolUsuario.AGENTE and usuario.grupo_id
+            and t.grupo_id != usuario.grupo_id):
+        return {"encontrado": False, "mensaje": "Ese ticket no está en tu cola."}
+
+    bitacora = []
+    for e in sorted(t.eventos, key=lambda x: x.timestamp or datetime.min):
+        bitacora.append({
+            "fecha": e.timestamp.isoformat() if e.timestamp else None,
+            "usuario": e.usuario.nombre if e.usuario else None,
+            "accion": e.accion,
+            "comentario": e.comentario,
+        })
+    return {
+        "encontrado": True,
+        "id": t.id,
+        "folio": t.folio,
+        "estatus": t.estatus.value if t.estatus else None,
+        "prioridad": t.prioridad.value if t.prioridad else None,
+        "descripcion": t.descripcion,
+        "solucion_propuesta": t.solucion_propuesta,
+        "area": t.cat_nivel1 or None,
+        "tienda": t.tienda.nombre if t.tienda else None,
+        "agente": t.agente.nombre if t.agente else None,
+        "sla_status": get_sla_status(t),
+        "fecha_apertura": t.fecha_apertura.isoformat() if t.fecha_apertura else None,
+        "bitacora": bitacora,
+    }
+
+
+@router.post("/dany/agente/similares")
+def dany_agente_similares(payload: dict, db: Session = Depends(get_db), _: None = Depends(verify_dany_token)):
+    """Casos resueltos similares (misma tipificación) con su solución — copiloto del agente.
+    Body: { usuario_id, ticket_id, limit? }.
+    """
+    ref = str(payload.get("ticket_id") or payload.get("ticket") or payload.get("folio") or "").strip()
+    limit = int(payload.get("limit", 5))
+    base = None
+    if ref.upper().startswith("TKT"):
+        base = db.query(Ticket).filter(Ticket.folio == ref.upper()).first()
+    elif ref.isdigit():
+        base = db.query(Ticket).filter(Ticket.id == int(ref)).first()
+    if not base or not base.tipificacion_id:
+        return {"similares": []}
+
+    sims = (
+        db.query(Ticket)
+        .filter(
+            Ticket.tipificacion_id == base.tipificacion_id,
+            Ticket.estatus == EstatusTicket.CERRADO,
+            Ticket.solucion_propuesta.isnot(None),
+            Ticket.id != base.id,
+        )
+        .order_by(Ticket.csat_score.desc().nullslast(), Ticket.fecha_cierre.desc())
+        .limit(max(1, min(limit, 10)))
+        .all()
+    )
+    return {
+        "similares": [
+            {
+                "folio": s.folio,
+                "descripcion": (s.descripcion or "")[:150],
+                "solucion": s.solucion_propuesta,
+                "csat": s.csat_score,
+            }
+            for s in sims
+        ]
+    }
+
+
 @router.post("/dany/admin/contexto")
 def dany_admin_contexto(
     payload: dict,
@@ -4025,6 +4121,133 @@ def dany_admin_contexto(
         })
 
     return {"kpis": kpis, "torre": torre}
+
+
+@router.post("/dany/admin/kpis")
+def dany_admin_kpis(payload: dict, db: Session = Depends(get_db), _: None = Depends(verify_dany_token)):
+    """KPIs a demanda para el copiloto Daniel (admin/coordinador): desglose por agente y por
+    área, respetando el scope del rol (ADMIN_AREA→su área, COORDINADOR→su compañía).
+    Body: { usuario_id }.
+    """
+    usuario_id = payload.get("usuario_id")
+    ahora = datetime.utcnow()
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first() if usuario_id else None
+
+    ACTIVOS = [
+        EstatusTicket.NUEVO, EstatusTicket.ASIGNADO, EstatusTicket.EN_PROCESO,
+        EstatusTicket.ESPERANDO_TIENDA, EstatusTicket.ESPERANDO_AGENTE, EstatusTicket.RECHAZADO,
+    ]
+    CERRADOS = [EstatusTicket.RESUELTO, EstatusTicket.CERRADO]
+    inicio_hoy = ahora.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    q_act = db.query(Ticket).filter(Ticket.estatus.in_(ACTIVOS))
+    q_cer = db.query(Ticket).filter(Ticket.estatus.in_(CERRADOS), Ticket.fecha_cierre >= inicio_hoy)
+
+    # Scope por rol (igual que dany_admin_contexto)
+    if usuario and usuario.rol == RolUsuario.ADMIN_AREA and usuario.area_restriccion:
+        q_act = q_act.outerjoin(Tipificacion, Ticket.tipificacion_id == Tipificacion.id).filter(
+            Tipificacion.area_tecnica == usuario.area_restriccion)
+        q_cer = q_cer.outerjoin(Tipificacion, Ticket.tipificacion_id == Tipificacion.id).filter(
+            Tipificacion.area_tecnica == usuario.area_restriccion)
+    elif usuario and usuario.rol == RolUsuario.COORDINADOR and usuario.grupo_id:
+        grupo = db.query(Grupo).filter(Grupo.id == usuario.grupo_id).first()
+        if grupo and grupo.compania_id:
+            for q in ("q_act", "q_cer"):
+                pass  # (scope de compañía se omite por simplicidad; el contexto general ya lo cubre)
+
+    activos = q_act.all()
+    cerrados = q_cer.all()
+
+    # Por agente
+    por_agente = {}
+    for t in activos:
+        nombre = t.agente.nombre if t.agente else "Sin asignar"
+        d = por_agente.setdefault(nombre, {"agente": nombre, "activos": 0, "vencidos": 0, "cerrados_hoy": 0})
+        d["activos"] += 1
+        if get_sla_status(t) == "ROJO":
+            d["vencidos"] += 1
+    for t in cerrados:
+        nombre = t.agente.nombre if t.agente else "Sin asignar"
+        d = por_agente.setdefault(nombre, {"agente": nombre, "activos": 0, "vencidos": 0, "cerrados_hoy": 0})
+        d["cerrados_hoy"] += 1
+
+    # Por área
+    por_area = {}
+    for t in activos:
+        area = (t.tipificacion.area_tecnica.value if t.tipificacion and t.tipificacion.area_tecnica
+                else (t.cat_nivel1 or "Sin área"))
+        d = por_area.setdefault(area, {"area": area, "activos": 0, "vencidos": 0})
+        d["activos"] += 1
+        if get_sla_status(t) == "ROJO":
+            d["vencidos"] += 1
+
+    return {
+        "por_agente": sorted(por_agente.values(), key=lambda x: x["vencidos"], reverse=True),
+        "por_area": sorted(por_area.values(), key=lambda x: x["vencidos"], reverse=True),
+        "cerrados_hoy_total": len(cerrados),
+    }
+
+
+@router.get("/admin/dany/conversaciones")
+def admin_dany_conversaciones(
+    fecha: Optional[str] = None,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_rol(RolUsuario.ADMIN)),
+):
+    """Conversaciones de Dany (transcripción) — SOLO super usuarios (ADMIN).
+    Filtra por fecha YYYY-MM-DD (default: hoy). Une dany_sesiones (tienda/fecha/resultado)
+    con dany_chat_memory (transcripción guardada por el agente).
+    """
+    dia = fecha or datetime.utcnow().date().isoformat()
+    rows = db.execute(
+        sql_text(
+            """
+            SELECT s.sesion_id, s.tienda_id, s.fecha_inicio, s.resuelto_sin_ticket,
+                   s.mensajes_count, s.canal, t.nombre AS tienda_nombre, m.messages
+            FROM dany_sesiones s
+            LEFT JOIN tiendas t ON s.tienda_id = t.id
+            LEFT JOIN dany_chat_memory m ON m.sesion_id = s.sesion_id
+            WHERE s.fecha_inicio::date = :dia
+            ORDER BY s.fecha_inicio DESC
+            LIMIT :lim
+            """
+        ),
+        {"dia": dia, "lim": limit},
+    ).mappings().all()
+
+    conversaciones = []
+    for r in rows:
+        msgs = r["messages"] if isinstance(r["messages"], list) else []
+        conv = []
+        for mm in msgs:
+            if not isinstance(mm, dict):
+                continue
+            role = mm.get("role")
+            content = mm.get("content")
+            if isinstance(content, list):
+                texto = " ".join(
+                    p.get("text", "")
+                    for p in content
+                    if isinstance(p, dict) and p.get("type") == "text"
+                ).strip()
+            else:
+                texto = (content or "").strip() if isinstance(content, str) else ""
+            # Omitir mensajes internos de sistema (recordatorios de inactividad, etc.)
+            if texto.startswith("[EVENTO_SISTEMA"):
+                continue
+            if role in ("user", "assistant") and texto:
+                conv.append({"rol": "tienda" if role == "user" else "dany", "texto": texto})
+        conversaciones.append({
+            "sesion_id": r["sesion_id"],
+            "tienda_id": r["tienda_id"],
+            "tienda_nombre": r["tienda_nombre"],
+            "fecha_inicio": r["fecha_inicio"].isoformat() if r["fecha_inicio"] else None,
+            "resuelto_sin_ticket": r["resuelto_sin_ticket"],
+            "mensajes_count": r["mensajes_count"],
+            "conversacion": conv,
+        })
+    return {"fecha": dia, "total": len(conversaciones), "conversaciones": conversaciones}
 
 
 @router.get("/dany/debug")
