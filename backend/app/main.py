@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Centro de Soluciones API",
     description="Portal de gestión de tickets impulsado por IA",
-    version="1.3.0",
+    version="1.4.0",
     lifespan=lifespan,
     # Swagger deshabilitado en producción
     docs_url=None if settings.is_production else "/docs",
@@ -40,4 +40,4 @@ app.include_router(router, prefix="/api/v1")
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "1.3.0", "env": settings.ENVIRONMENT}
+    return {"status": "ok", "version": "1.4.0", "env": settings.ENVIRONMENT}

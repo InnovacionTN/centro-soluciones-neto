@@ -293,6 +293,9 @@ interface Notificaciones {
 
       <!-- ── Footer / Usuario ── -->
       <div class="sb-footer">
+        @if (!collapsed()) {
+          <div class="sb-version-chip">{{ appVersion }} <span class="sb-env-tag sb-env-tag--{{ appEnv }}">{{ appEnv }}</span></div>
+        }
         <div class="sb-user" (click)="toggleUserMenu()">
           <div class="sb-avatar" [class]="avatarClass()">{{ initial() }}</div>
           @if (!collapsed()) {
@@ -373,7 +376,7 @@ interface Notificaciones {
             </button>
 
             <!-- Versión (marcador de build) -->
-            <div class="um-version">CSN · {{ appVersion }}</div>
+            <div class="um-version">CSN {{ appVersion }} · <span class="um-env-badge">{{ appEnv }}</span></div>
           </div>
         }
       </div>
@@ -513,6 +516,17 @@ interface Notificaciones {
 
     /* ── Footer / Usuario ── */
     .sb-footer { padding: 8px 7px 12px; border-top: 1px solid var(--c-border); flex-shrink: 0; position: relative; }
+    .sb-version-chip {
+      display: flex; align-items: center; gap: 5px; padding: 0 10px 6px;
+      font-size: 10px; font-weight: 600; color: var(--c-muted); letter-spacing: .04em;
+    }
+    .sb-env-tag {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .06em;
+    }
+    .sb-env-tag--prod    { background: #e9f4ec; color: #2e7d45; }
+    .sb-env-tag--staging { background: #fff3e0; color: #b85c00; }
+    .sb-env-tag--local   { background: var(--c-blue-lt); color: var(--c-blue); }
     .sb-user {
       display: flex; align-items: center; gap: 8px;
       padding: 8px 10px; border-radius: 7px; cursor: pointer; transition: background .15s;
@@ -584,7 +598,12 @@ interface Notificaciones {
     .um-version {
       text-align: center; font-size: 10px; color: var(--c-muted);
       padding: 8px 0 4px; border-top: 1px solid var(--c-border); margin-top: 4px;
-      letter-spacing: .04em;
+      letter-spacing: .04em; display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .um-env-badge {
+      font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 4px;
+      text-transform: uppercase; letter-spacing: .06em;
+      background: var(--c-blue-lt); color: var(--c-blue);
     }
 
     .um-item-badge {
@@ -671,7 +690,8 @@ interface Notificaciones {
 })
 export class NavbarComponent implements OnInit, OnDestroy {
   @Input() section = '';
-  readonly appVersion = 'v0.4.2';
+  readonly appVersion = 'v1.4.0';
+  readonly appEnv = environment.env;
   collapsed    = signal(false);
   userMenuOpen = signal(false);
   configOpen   = signal(false);
