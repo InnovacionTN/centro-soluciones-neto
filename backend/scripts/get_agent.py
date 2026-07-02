@@ -1,6 +1,6 @@
 import psycopg2, os
 
-DB = "postgresql://neondb_owner:npg_Cp8JnFfYvr6a@ep-rapid-term-adiwlyy2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB = os.environ["DATABASE_URL"]
 conn = psycopg2.connect(DB)
 cur = conn.cursor()
 cur.execute("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
