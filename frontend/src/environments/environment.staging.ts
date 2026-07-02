@@ -2,6 +2,6 @@ export const environment = {
   production: false,
   env: 'staging',
   apiUrl: '/api/v1',
-  supabaseUrl: 'REEMPLAZA_CON_TU_SUPABASE_URL',
-  supabaseAnonKey: 'REEMPLAZA_CON_TU_SUPABASE_ANON_KEY',
+  supabaseUrl: 'https://dgrlfxcqfcujotynzqyj.supabase.co',
+  supabaseAnonKey: 'sb_publishable_PnPSRHi5NTDxMArrssmgWQ_03dbYPcT',
 };
