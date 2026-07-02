@@ -40,15 +40,23 @@ export class SlackCallbackComponent implements OnInit {
   constructor(private supabase: SupabaseService, private auth: AuthService) {}
 
   async ngOnInit() {
-    try {
-      const { data, error } = await this.supabase.getSession();
-      if (error || !data.session) {
-        this.error.set('No se pudo obtener la sesión de Slack. Intenta de nuevo.');
-        return;
+    // Supabase PKCE flow: the callback URL has ?code=... which the SDK exchanges
+    // for tokens asynchronously. We listen to onAuthStateChange to catch SIGNED_IN.
+    const { data: { subscription } } = this.supabase.client.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          subscription.unsubscribe();
+          try {
+            await this.auth.loginWithSlack(session.access_token);
+          } catch (e: unknown) {
+            this.error.set((e as Error).message ?? 'Error al autenticar con Slack');
+          }
+        } else if (event === 'INITIAL_SESSION' && !session) {
+          // No session after processing URL — auth failed or user cancelled
+          subscription.unsubscribe();
+          this.error.set('No se pudo obtener la sesión de Slack. Intenta de nuevo.');
+        }
       }
-      await this.auth.loginWithSlack(data.session.access_token);
-    } catch (e: unknown) {
-      this.error.set((e as Error).message ?? 'Error al autenticar con Slack');
-    }
+    );
   }
 }
