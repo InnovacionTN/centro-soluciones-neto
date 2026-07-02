@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     STORAGE_BACKEND: str = "local"
     GCS_BUCKET_NAME: str = ""
     MAX_UPLOAD_SIZE_MB: int = 10
-    DANY_WEBHOOK_URL: str = "https://webhook.soyneto.com/webhook/dany-csn"
+    DANY_WEBHOOK_URL: str = "https://csn-dany-agent-staging-xdngdvdxua-uc.a.run.app/dany-csn"
     CORS_ORIGINS: str = "http://localhost:4200,http://localhost:3000"
 
     # ── Sprint 3: token fijo que usa n8n para crear tickets desde Dany ──────
