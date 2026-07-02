@@ -330,7 +330,7 @@ async def slack_login(request: Request, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(
             status_code=403,
-            detail=f"El correo {email} no está registrado en CSN. Contacta al administrador.",
+            detail=f"El correo {email} no tiene acceso a CSN. Si eres colaborador de Tiendas Neto, pide a A-EVA que te asigne tu correo corporativo @soyneto.com — con ese correo podrás ingresar sin problema.",
         )
 
     user.last_login = datetime.utcnow()

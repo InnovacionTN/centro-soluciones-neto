@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -61,7 +61,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
             </div>
             <div>
               <h2 class="welcome-title">¡Bienvenido de regreso!</h2>
-              <p class="welcome-sub">Ingresa tus credenciales corporativas para continuar</p>
+              <p class="welcome-sub">Usa tu cuenta de Slack corporativa para ingresar</p>
             </div>
           </div>
 
@@ -76,116 +76,123 @@ import { SupabaseService } from '../../core/services/supabase.service';
             </div>
           }
 
-          <!-- Formulario -->
-          <form (ngSubmit)="submit()" class="login-form" novalidate>
-
-            <div class="field">
-              <label class="field__label" for="email">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                  <polyline points="22,6 12,13 2,6"/>
-                </svg>
-                Correo corporativo
-              </label>
-              <input
-                id="email"
-                class="input"
-                type="email"
-                placeholder="usuario@soyneto.com"
-                [(ngModel)]="email"
-                name="email"
-                autocomplete="username"
-                [disabled]="loading()"
-                required
-              />
-            </div>
-
-            <div class="field">
-              <label class="field__label" for="password">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-                Contraseña
-              </label>
-              <div class="password-wrap">
-                <input
-                  id="password"
-                  class="input"
-                  [type]="showPwd() ? 'text' : 'password'"
-                  placeholder="••••••••"
-                  [(ngModel)]="password"
-                  name="password"
-                  autocomplete="current-password"
-                  [disabled]="loading()"
-                  required
-                />
-                <button
-                  type="button"
-                  class="pwd-toggle"
-                  (click)="showPwd.set(!showPwd())"
-                  tabindex="-1"
-                  [attr.aria-label]="showPwd() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-                >
-                  @if (showPwd()) {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                      <line x1="1" y1="1" x2="23" y2="23"/>
-                    </svg>
-                  } @else {
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                      <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                  }
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              id="btn-login"
-              class="btn-submit"
-              [class.btn-submit--loading]="loading()"
-              [disabled]="loading() || !email || !password"
-            >
-              @if (loading()) {
-                <span class="spinner"></span>
-              } @else {
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-                  <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-                  <polyline points="10 17 15 12 10 7"/>
-                  <line x1="15" y1="12" x2="3" y2="12"/>
-                </svg>
-                Iniciar sesión
-              }
-            </button>
-
-          </form>
-
-          <!-- Divisor Slack -->
-          <div class="divider"><span>o continúa con</span></div>
-
-          <!-- Botón Slack -->
+          <!-- Botón Slack (primario) -->
           <button
             type="button"
-            class="btn-slack"
+            class="btn-slack btn-slack--primary"
             (click)="loginWithSlack()"
             [disabled]="loading()"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" fill="#E01E5A"/>
-              <path d="M6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
-              <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834z" fill="#36C5F0"/>
-              <path d="M8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
-              <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834z" fill="#2EB67D"/>
-              <path d="M17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
-              <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52z" fill="#ECB22E"/>
-              <path d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
-            </svg>
+            @if (slackLoading()) {
+              <span class="spinner spinner--dark"></span>
+            } @else {
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" fill="#E01E5A"/>
+                <path d="M6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+                <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834z" fill="#36C5F0"/>
+                <path d="M8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+                <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834z" fill="#2EB67D"/>
+                <path d="M17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+                <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52z" fill="#ECB22E"/>
+                <path d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+              </svg>
+            }
             Entrar con Slack
           </button>
+
+          <!-- Toggle correo/contraseña -->
+          <button
+            type="button"
+            class="btn-email-toggle"
+            (click)="showEmailForm.set(!showEmailForm())"
+            [disabled]="loading()"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+              <polyline points="22,6 12,13 2,6"/>
+            </svg>
+            {{ showEmailForm() ? 'Ocultar' : 'Usar correo y contraseña' }}
+            <svg class="chevron" [class.chevron--open]="showEmailForm()" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </button>
+
+          <!-- Formulario email/password (colapsable) -->
+          @if (showEmailForm()) {
+            <div class="email-form-wrap slide-in">
+              <div class="divider divider--sm"><span>correo corporativo</span></div>
+
+              <form (ngSubmit)="submit()" class="login-form" novalidate>
+
+                <div class="field">
+                  <label class="field__label" for="email">Correo</label>
+                  <input
+                    id="email"
+                    class="input"
+                    type="email"
+                    placeholder="usuario@soyneto.com"
+                    [(ngModel)]="email"
+                    name="email"
+                    autocomplete="username"
+                    [disabled]="loading()"
+                    required
+                  />
+                </div>
+
+                <div class="field">
+                  <label class="field__label" for="password">Contraseña</label>
+                  <div class="password-wrap">
+                    <input
+                      id="password"
+                      class="input"
+                      [type]="showPwd() ? 'text' : 'password'"
+                      placeholder="••••••••"
+                      [(ngModel)]="password"
+                      name="password"
+                      autocomplete="current-password"
+                      [disabled]="loading()"
+                      required
+                    />
+                    <button
+                      type="button"
+                      class="pwd-toggle"
+                      (click)="showPwd.set(!showPwd())"
+                      tabindex="-1"
+                      [attr.aria-label]="showPwd() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
+                    >
+                      @if (showPwd()) {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                      } @else {
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      }
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  id="btn-login"
+                  class="btn-submit"
+                  [class.btn-submit--loading]="loading()"
+                  [disabled]="loading() || !email || !password"
+                >
+                  @if (loading() && !slackLoading()) {
+                    <span class="spinner"></span>
+                  } @else {
+                    Iniciar sesión
+                  }
+                </button>
+
+              </form>
+            </div>
+          }
 
           <!-- Footer -->
           <p class="form-footer">
@@ -499,6 +506,7 @@ import { SupabaseService } from '../../core/services/supabase.service';
       gap: 12px;
       margin: 20px 0 16px;
     }
+    .divider--sm { margin: 16px 0 12px; }
     .divider::before, .divider::after {
       content: '';
       flex: 1;
@@ -511,33 +519,64 @@ import { SupabaseService } from '../../core/services/supabase.service';
       white-space: nowrap;
     }
 
-    /* ── Botón Slack ─────────────────────────────────────── */
-    .btn-slack {
+    /* ── Botón Slack primario ────────────────────────────── */
+    .btn-slack--primary {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
-      padding: 12px 24px;
+      gap: 12px;
+      padding: 15px 24px;
       background: #fff;
       color: #1d1c1d;
-      border: 1.5px solid #E0E0E0;
+      border: 1.5px solid #ddd;
       border-radius: 12px;
       font-family: 'Montserrat', sans-serif;
-      font-size: 14px;
-      font-weight: 600;
+      font-size: 15px;
+      font-weight: 700;
       cursor: pointer;
       transition: all 200ms ease;
-      margin-bottom: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
     }
-    .btn-slack:not(:disabled):hover {
+    .btn-slack--primary:not(:disabled):hover {
       border-color: #4A154B;
       background: #fdf6ff;
-      box-shadow: 0 4px 12px rgba(74,21,75,.1);
+      box-shadow: 0 6px 20px rgba(74,21,75,0.13);
+      transform: translateY(-1px);
     }
-    .btn-slack:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
+    .btn-slack--primary:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ── Botón toggle correo ─────────────────────────────── */
+    .btn-email-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 16px;
+      background: transparent;
+      color: #666;
+      border: 1.5px solid #E0E0E0;
+      border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .btn-email-toggle:hover { color: #0E3B83; border-color: #A0BAE2; background: #f0f5ff; }
+    .btn-email-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .chevron { transition: transform 200ms ease; }
+    .chevron--open { transform: rotate(180deg); }
+
+    /* ── Formulario email/pass colapsable ────────────────── */
+    .email-form-wrap { margin-top: 4px; }
+
+    .spinner--dark {
+      border-color: rgba(0,0,0,0.2);
+      border-top-color: #333;
     }
 
     /* ── Footer ─────────────────────────────────────────── */
@@ -672,8 +711,10 @@ export class LoginComponent {
   email = '';
   password = '';
   loading = signal(false);
+  slackLoading = signal(false);
   error = signal('');
   showPwd = signal(false);
+  showEmailForm = signal(false);
 
   constructor(
     private auth: AuthService,
@@ -686,10 +727,12 @@ export class LoginComponent {
   }
 
   loginWithSlack() {
+    this.slackLoading.set(true);
     this.loading.set(true);
     this.error.set('');
     const redirectTo = window.location.origin + '/auth/callback';
     this.supabase.signInWithSlack(redirectTo).catch(() => {
+      this.slackLoading.set(false);
       this.loading.set(false);
       this.error.set('No se pudo iniciar sesión con Slack. Intenta de nuevo.');
     });
