@@ -5,8 +5,8 @@ PROJECT="gen-lang-client-0189172552"
 REGION="us-central1"
 REGISTRY="gcr.io/$PROJECT"
 
-SECRETS_STAGING="DATABASE_URL=csn-database-url-staging:latest,SECRET_KEY=csn-secret-key-staging:latest,GEMINI_API_KEY=gemini-api-key:latest,DANY_SYSTEM_TOKEN=dany-webhook:latest"
-SECRETS_PROD="DATABASE_URL=csn-database-url-prod:latest,SECRET_KEY=csn-secret-key-prod:latest,GEMINI_API_KEY=gemini-api-key:latest,DANY_SYSTEM_TOKEN=dany-webhook:latest"
+SECRETS_STAGING="DATABASE_URL=csn-database-url-staging:latest,SECRET_KEY=csn-secret-key-staging:latest,GEMINI_API_KEY=gemini-api-key:latest,DANY_SYSTEM_TOKEN=dany-webhook:latest,SUPABASE_URL=csn-supabase-url-staging:latest,SUPABASE_ANON_KEY=csn-supabase-anon-key-staging:latest"
+SECRETS_PROD="DATABASE_URL=csn-database-url-prod:latest,SECRET_KEY=csn-secret-key-prod:latest,GEMINI_API_KEY=gemini-api-key:latest,DANY_SYSTEM_TOKEN=dany-webhook:latest,SUPABASE_URL=csn-supabase-url-staging:latest,SUPABASE_ANON_KEY=csn-supabase-anon-key-staging:latest"
 
 case "$1" in
   staging)

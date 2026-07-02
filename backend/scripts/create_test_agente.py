@@ -1,7 +1,7 @@
 """Crea o actualiza usuario de prueba agente.test@csn.com con password conocido."""
-import psycopg2, bcrypt
+import psycopg2, bcrypt, os
 
-DB = "postgresql://neondb_owner:npg_Cp8JnFfYvr6a@ep-rapid-term-adiwlyy2-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB = os.environ["DATABASE_URL"]
 EMAIL = "agente.test@csn.com"
 PWD   = "CSNt2026!"
 
