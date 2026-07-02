@@ -1,10 +1,9 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
-import { Rol } from '../models';
 
-export const authGuard = (allowedRoles?: Rol[]): CanActivateFn => () => {
-  const auth   = inject(AuthService);
+export const authGuard = (allowedRoles?: string[]): CanActivateFn => () => {
+  const auth = inject(AuthService);
   const router = inject(Router);
 
   if (!auth.isLoggedIn()) {
@@ -13,8 +12,16 @@ export const authGuard = (allowedRoles?: Rol[]): CanActivateFn => () => {
   }
 
   if (allowedRoles && !allowedRoles.includes(auth.rol()!)) {
-    const fallback = auth.isTienda() ? '/tienda' : '/agente';
-    router.navigate([fallback]);
+    // Redirigir a la página correcta según el rol real del usuario
+    const fallbacks: Record<string, string> = {
+      TIENDA: '/tienda',
+      AGENTE: '/agente',
+      ADMIN: '/agente',
+      ADMIN_AREA: '/agente',
+      COORDINADOR: '/coordinador',
+    };
+    const destino = fallbacks[auth.rol() ?? ''] ?? '/login';
+    router.navigate([destino]);
     return false;
   }
 

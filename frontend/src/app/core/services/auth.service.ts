@@ -6,27 +6,30 @@ import { environment } from '../../../environments/environment';
 import { LoginRequest, TokenResponse, CurrentUser, Rol } from '../models';
 
 const TOKEN_KEY = 'cs_token';
-const USER_KEY  = 'cs_user';
+const USER_KEY = 'cs_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = environment.apiUrl;
 
-  // Signals — toda la app reacciona a estos
   readonly currentUser = signal<CurrentUser | null>(this.loadUser());
-  readonly isLoggedIn  = computed(() => !!this.currentUser());
-  readonly rol         = computed(() => this.currentUser()?.rol ?? null);
-  readonly isTienda    = computed(() => this.rol() === 'TIENDA');
-  readonly isAgente    = computed(() => this.rol() === 'AGENTE');
-  readonly isAdmin     = computed(() => this.rol() === 'ADMIN');
+  readonly isLoggedIn = computed(() => !!this.currentUser());
+  readonly rol = computed(() => this.currentUser()?.rol ?? null);
+  readonly isTienda = computed(() => this.rol() === 'TIENDA');
+  readonly isAgente = computed(() => this.rol() === 'AGENTE');
+  readonly isAdmin = computed(() => this.rol() === 'ADMIN');
+  readonly isAdminArea = computed(() => this.rol() === 'ADMIN_AREA');
+  readonly isCoordinador = computed(() => this.rol() === 'COORDINADOR');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  // Exponer token como signal para componentes que lo necesiten
+  readonly token = computed(() => localStorage.getItem(TOKEN_KEY) ?? '');
+
+  constructor(private http: HttpClient, private router: Router) { }
 
   login(creds: LoginRequest) {
     return this.http.post<TokenResponse>(`${this.api}/auth/login`, creds).pipe(
       tap(res => {
         localStorage.setItem(TOKEN_KEY, res.access_token);
-        // Cargar perfil completo
         this.loadProfile();
       }),
       catchError(err => {
@@ -44,6 +47,24 @@ export class AuthService {
         this.redirectByRole(user.rol);
       },
       error: () => this.logout(),
+    });
+  }
+
+  loginWithSlack(supabaseToken: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http
+        .post<TokenResponse>(`${this.api}/auth/slack`, { supabase_token: supabaseToken })
+        .subscribe({
+          next: res => {
+            localStorage.setItem(TOKEN_KEY, res.access_token);
+            this.loadProfile();
+            resolve();
+          },
+          error: err => {
+            const msg = err.error?.detail ?? 'Error al autenticar con Slack';
+            reject(new Error(msg));
+          },
+        });
     });
   }
 
@@ -68,10 +89,12 @@ export class AuthService {
   }
 
   private redirectByRole(rol: Rol) {
-    const routes: Record<Rol, string> = {
+    const routes: Record<string, string> = {
       TIENDA: '/tienda',
       AGENTE: '/agente',
-      ADMIN:  '/admin',
+      ADMIN: '/agente',
+      ADMIN_AREA: '/agente',   // ve dashboard de agente + cola, filtrado por su área
+      COORDINADOR: '/coordinador',
     };
     this.router.navigate([routes[rol] ?? '/']);
   }

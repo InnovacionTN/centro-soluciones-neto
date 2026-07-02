@@ -1,0 +1,469 @@
+{
+  "name": "Actualizar_producto",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.netopower123.com/api/validacion/validar-evidencia",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get row(s)').item.json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"folio\": \"{{ $json.folio }}\",\n  \"articulo_id\": \"{{ $json.articulo_id }}\",\n  \"nombre_articulo\": \"{{ $json.nombre_articulo }}\",\n  \"tipo_merma\": \"{{ $json.tipo_merma }}\",\n  \"cantidad\": \"{{ $json.cantidad }}\",\n  \"imagen_url\": \"{{ $json.imagen_url }}\",\n  \"slack_user_id\": \"{{ $json.slack_user_id }}\",\n  \"numero_articulos_folio\": {{ $json.numero_articulos_folio }},\n\"nombre_empleado\":\"{{ $json.nombre_empleado }}\",\n\"fuente_foto\": \"{{ $json.fuente_foto}}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -96,
+        320
+      ],
+      "id": "f6abf25a-8814-4c1a-88ad-4fa5480872c5",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "68c7dcf7-ecf7-44c6-ae80-13767b4d99b2",
+              "name": "token",
+              "value": "={{ $('Get row(s)').item.json.access_token }}",
+              "type": "string"
+            },
+            {
+              "id": "7dc91c9e-bffc-47f7-ba82-490bfd50005c",
+              "name": "folio",
+              "value": "={{ $('When Executed by Another Workflow').item.json.folio }}",
+              "type": "string"
+            },
+            {
+              "id": "12e8eb87-2260-4b7f-9a78-1be5ac893d28",
+              "name": "articulo_id",
+              "value": "={{ $('When Executed by Another Workflow').item.json.articulo_id }}",
+              "type": "string"
+            },
+            {
+              "id": "5d01c7c4-5f19-4ef8-b813-4008598aa7fe",
+              "name": "nombre_articulo",
+              "value": "={{ $('When Executed by Another Workflow').item.json.nombre_articulo }}",
+              "type": "string"
+            },
+            {
+              "id": "67c3b9ed-8da8-42aa-a9bd-afea7ca3e7a4",
+              "name": "tipo_merma",
+              "value": "={{ $('When Executed by Another Workflow').item.json.tipo_merma }}",
+              "type": "string"
+            },
+            {
+              "id": "9fc529c5-c5d7-4daf-bf6d-b10d3d0145fc",
+              "name": "cantidad",
+              "value": "={{ $('When Executed by Another Workflow').item.json.cantidad }}",
+              "type": "string"
+            },
+            {
+              "id": "13a9ee89-400b-44e0-a410-aa4608623475",
+              "name": "imagen_url",
+              "value": "={{ $('When Executed by Another Workflow').item.json.imagen_url }}",
+              "type": "string"
+            },
+            {
+              "id": "feac882b-2498-4ea1-84ee-3ee9e00c4838",
+              "name": "slack_user_id",
+              "value": "={{ $('When Executed by Another Workflow').item.json.slack_user_id }}",
+              "type": "string"
+            },
+            {
+              "id": "7f502a12-e956-41cc-a3ff-e4710e333591",
+              "name": "numero_articulos_folio",
+              "value": "={{ $('When Executed by Another Workflow').item.json.numero_articulos_folio }}",
+              "type": "string"
+            },
+            {
+              "id": "a8d7a1ba-71e8-4010-bb4b-e9bbec117869",
+              "name": "fuente_foto",
+              "value": "={{ $('When Executed by Another Workflow').item.json.fuente_foto }}",
+              "type": "string"
+            },
+            {
+              "id": "571d749b-8d18-4fa9-bbb2-68912ba4d262",
+              "name": "nombre_empleado",
+              "value": "={{ $('When Executed by Another Workflow').item.json.nombre_empleado }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -336,
+        320
+      ],
+      "id": "34857683-81e0-44cb-b0e3-4721820c2fa7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "mY0qQD9jgkp86X8i",
+          "mode": "list",
+          "cachedResultName": "A-BrisaTokens",
+          "cachedResultUrl": "/projects/fgWmDSSDMemoGrHi/datatables/mY0qQD9jgkp86X8i"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "1"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "expires_in": "={{ $json.expires_in }}",
+            "access_token": "={{ $json.access_token }}",
+            "token_type": "={{ $json.token_type }}",
+            "message": "={{ $json.message }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "access_token",
+              "displayName": "access_token",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "token_type",
+              "displayName": "token_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "expires_in",
+              "displayName": "expires_in",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        32
+      ],
+      "id": "d049d590-05ed-44c9-a74b-a601bc1b4cdc",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.netopower123.com/api/auth/login",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"usuario_id\": \"1182557\",\n  \"password\": \"1182557\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -304,
+        32
+      ],
+      "id": "01a9d422-82a3-45a6-b8f3-19d1a35abf61",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d57cac95-c7e1-4566-b7d7-892606681f9d",
+              "leftValue": "={{ $json.autenticado }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -608,
+        304
+      ],
+      "id": "a749d06a-fea4-4b74-9239-ad6f5da4958a",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "https://api.netopower123.com/api/auth/check",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get row(s)').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -832,
+        304
+      ],
+      "id": "bcd131eb-d7a1-47ce-8543-b5cdb8c3efc7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "nYY4KIiiXkk0lb21",
+          "mode": "list",
+          "cachedResultName": "A-DanyTokens",
+          "cachedResultUrl": "/projects/fgWmDSSDMemoGrHi/datatables/nYY4KIiiXkk0lb21"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "1"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        304
+      ],
+      "id": "4d2ab8b9-14a1-48d9-93c8-92d2d32d86e6",
+      "name": "Get row(s)"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "folio"
+            },
+            {
+              "name": "articulo_id"
+            },
+            {
+              "name": "nombre_articulo"
+            },
+            {
+              "name": "tipo_merma"
+            },
+            {
+              "name": "cantidad"
+            },
+            {
+              "name": "imagen_url"
+            },
+            {
+              "name": "slack_user_id"
+            },
+            {
+              "name": "numero_articulos_folio"
+            },
+            {
+              "name": "fuente_foto"
+            },
+            {
+              "name": "nombre_empleado"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1504,
+        304
+      ],
+      "id": "f910e9ed-7ce5-4ca7-b3c8-264a992ceea0",
+      "name": "When Executed by Another Workflow"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "folio": "260304832825",
+          "articulo_id": "3030000548",
+          "nombre_articulo": "LECHE PASTEURIZADA LALA ENTERA 1 LT",
+          "tipo_merma": "Caduco",
+          "cantidad": "1",
+          "imagen_url": "https://files.slack.com/files-pri/TA20EJRHC-F0AJWSG0M8U/download/img_20260304_133034.jpg",
+          "slack_user_id": "U0A796R3RAA",
+          "numero_articulos_folio": "1",
+          "fuente_foto": "camara_telefono",
+          "nombre_empleado": "Andres Pedroza"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "HTTP Request2": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "34629bbb-9c1d-4370-bf33-17ec6d4af4c2",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "xQpHZ68Wl3cclvkV",
+  "tags": []
+}

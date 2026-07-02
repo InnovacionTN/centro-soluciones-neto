@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Centro de Soluciones — Guía del Sistema</title>
+    <style>
+        :root {
+            --blue: #1E3A8A;
+            --blue-lt: #DBEAFE;
+            --blue-md: #3B82F6;
+            --teal: #0F6E56;
+            --teal-lt: #E1F5EE;
+            --teal-md: #5DCAA5;
+            --amber: #854F0B;
+            --amber-lt: #FAEEDA;
+            --amber-md: #EF9F27;
+            --red: #A32D2D;
+            --red-lt: #FCEBEB;
+            --red-md: #F09595;
+            --green: #3B6D11;
+            --green-lt: #EAF3DE;
+            --green-md: #97C459;
+            --purple: #3C3489;
+            --purple-lt: #EEEDFE;
+            --purple-md: #AFA9EC;
+            --gray: #5F5E5A;
+            --gray-lt: #F1EFE8;
+            --gray-md: #B4B2A9;
+            --text: #111827;
+            --muted: #6B7280;
+            --border: #E5E7EB;
+            --surface: #F9FAFB;
+            --radius: 10px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F3F4F6;
+            color: var(--text);
+            font-size: 14px
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px
+        }
+
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--blue);
+            margin-bottom: 4px
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--muted);
+            margin-bottom: 28px
+        }
+
+        .version-chip {
+            display: inline-block;
+            background: var(--blue-lt);
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 10px;
+            border-radius: 8px;
+            margin-left: 10px;
+            vertical-align: middle
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            border-bottom: 2px solid var(--border);
+            margin-bottom: 28px;
+            flex-wrap: wrap
+        }
+
+        .tab {
+            padding: 9px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            border: none;
+            background: none;
+            color: var(--muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all .15s;
+            border-radius: 6px 6px 0 0;
+            white-space: nowrap
+        }
+
+        .tab:hover {
+            color: var(--text);
+            background: var(--surface)
+        }
+
+        .tab.active {
+            color: var(--blue-md);
+            border-bottom-color: var(--blue-md);
+            background: var(--blue-lt)
+        }
+
+        .panel {
+            display: none
+        }
+
+        .panel.active {
+            display: block
+        }
+
+        .section-title {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--blue);
+            margin-bottom: 6px
+        }
+
+        .section-desc {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 18px;
+            line-height: 1.6;
+            max-width: 820px
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 14px;
+            margin-bottom: 20px
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px
+        }
+
+        .card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px
+        }
+
+        .icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            flex-shrink: 0
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5;
+            margin-bottom: 10px
+        }
+
+        .ex-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 12px
+        }
+
+        .ex-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            color: var(--muted);
+            margin-bottom: 3px
+        }
+
+        .ex-val {
+            color: var(--text);
+            line-height: 1.5
+        }
+
+        .badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 9px;
+            border-radius: 8px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+            white-space: nowrap
+        }
+
+        .bb {
+            background: var(--blue-lt);
+            color: var(--blue)
+        }
+
+        .ba {
+            background: var(--amber-lt);
+            color: var(--amber)
+        }
+
+        .br {
+            background: var(--red-lt);
+            color: var(--red)
+        }
+
+        .bg {
+            background: var(--green-lt);
+            color: var(--green)
+        }
+
+        .bp {
+            background: var(--purple-lt);
+            color: var(--purple)
+        }
+
+        .bgr {
+            background: var(--gray-lt);
+            color: var(--gray)
+        }
+
+        .bt {
+            background: var(--teal-lt);
+            color: var(--teal)
+        }
+
+        .by {
+            background: #FEF3C7;
+            color: #92400E
+        }
+
+        .flow {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin: 12px 0
+        }
+
+        .st {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid;
+            white-space: nowrap
+        }
+
+        .s1 {
+            background: var(--blue-lt);
+            border-color: #85B7EB;
+            color: var(--blue)
+        }
+
+        .s2 {
+            background: var(--purple-lt);
+            border-color: var(--purple-md);
+            color: var(--purple)
+        }
+
+        .s3 {
+            background: var(--amber-lt);
+            border-color: var(--amber-md);
+            color: var(--amber)
+        }
+
+        .s4 {
+            background: #FEF3C7;
+            border-color: #FCD34D;
+            color: #92400E
+        }
+
+        .s5 {
+            background: var(--teal-lt);
+            border-color: var(--teal-md);
+            color: var(--teal)
+        }
+
+        .s6 {
+            background: var(--green-lt);
+            border-color: var(--green-md);
+            color: var(--green)
+        }
+
+        .s7 {
+            background: var(--gray-lt);
+            border-color: var(--gray-md);
+            color: var(--gray)
+        }
+
+        .s8 {
+            background: var(--red-lt);
+            border-color: var(--red-md);
+            color: var(--red)
+        }
+
+        .arr {
+            font-size: 16px;
+            color: var(--muted)
+        }
+
+        .arr-both {
+            font-size: 16px;
+            color: var(--blue-md);
+            font-weight: 700
+        }
+
+        .tbl {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-bottom: 18px
+        }
+
+        .tbl th {
+            background: var(--blue-lt);
+            color: var(--blue);
+            font-weight: 600;
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--blue-md)
+        }
+
+        .tbl td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+            line-height: 1.5
+        }
+
+        .tbl tr:nth-child(even) td {
+            background: var(--surface)
+        }
+
+        .perm-grid {
+            display: grid;
+            grid-template-columns: 200px 1fr 1fr 1fr;
+            gap: 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            margin-bottom: 18px
+        }
+
+        .ph {
+            background: var(--blue-lt);
+            color: var(--blue);
+            font-size: 11px;
+            font-weight: 700;
+            padding: 8px 12px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .pc {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+            border-right: 0.5px solid var(--border)
+        }
+
+        .pc:last-child {
+            border-right: none
+        }
+
+        .yes {
+            color: var(--green);
+            font-weight: 600
+        }
+
+        .no {
+            color: var(--red-md)
+        }
+
+        .partial {
+            color: var(--amber)
+        }
+
+        .ia-step {
+            display: flex;
+            gap: 14px;
+            padding: 14px 16px;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-bottom: none
+        }
+
+        .ia-step:first-child {
+            border-radius: var(--radius) var(--radius) 0 0
+        }
+
+        .ia-step:last-child {
+            border-bottom: 1px solid var(--border);
+            border-radius: 0 0 var(--radius) var(--radius)
+        }
+
+        .ia-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            flex-shrink: 0;
+            margin-top: 2px
+        }
+
+        .ia-title {
+            font-weight: 600;
+            font-size: 13px;
+            margin-bottom: 3px
+        }
+
+        .ia-desc {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.5
+        }
+
+        .info {
+            background: var(--blue-lt);
+            border: 1px solid #85B7EB;
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: var(--blue)
+        }
+
+        .warn {
+            background: var(--amber-lt);
+            border: 1px solid var(--amber-md);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            font-size: 12px;
+            color: var(--amber)
+        }
+
+        .new-chip {
+            display: inline-block;
+            background: #DCFCE7;
+            color: #166534;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 7px;
+            border-radius: 6px;
+            margin-left: 6px;
+            vertical-align: middle
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px
+        }
+
+        @media(max-width:640px) {
+            .two-col {
+                grid-template-columns: 1fr
+            }
+
+            .perm-grid {
+                grid-template-columns: 1fr
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:4px">
+            <div
+                style="width:40px;height:40px;background:#2563EB;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <svg width="20" height="20" fill="none">
+                    <path d="M10 6v8M7 10h6" stroke="white" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+            </div>
+            <div>
+                <h1>Centro de Soluciones <span class="version-chip">v1.3</span></h1>
+                <p class="subtitle" style="margin:0">Documentación operativa · Soluciones Neto · Actualizado marzo 2026
+                    &middot; v1.3</p>
+            </div>
+        </div>
+        <p class="subtitle" style="margin-top:16px">Guía completa del sistema para administradores, agentes y equipos de
+            soporte. Cubre roles, flujo de tickets, IA, SLA y configuración.</p>
+
+        <div class="tabs">
+            <button class="tab active" onclick="show('roles')">👤 Roles</button>
+            <button class="tab" onclick="show('grupos')">👥 Grupos CC</button>
+            <button class="tab" onclick="show('tipificaciones')">🗂 Tipificaciones</button>
+            <button class="tab" onclick="show('ruteo')">🗺 Matriz de Ruteo</button>
+            <button class="tab" onclick="show('estados')">🔄 Estados</button>
+            <button class="tab" onclick="show('ia')">✦ Motor IA</button>
+            <button class="tab" onclick="show('sla')">⏱ SLA</button>
+            <button class="tab" onclick="show('funciones')">⚡ Novedades v1.3</button>
+            <button class="tab" onclick="show('agentes')">🤖 Agentes IA</button>
+        </div>
+
+        <!-- ══════════════════════ ROLES ══════════════════════ -->
+        <div class="panel active" id="p-roles">
+            <p class="section-title">Usuarios y Roles</p>
+            <p class="section-desc">Existen 3 tipos de usuario. Cada rol tiene acceso a secciones y acciones
+                específicas. No se puede cambiar el rol sin pasar por el panel de administración.</p>
+
+            <div class="cards">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">🏪</div>
+                        <div>
+                            <div class="card-title">TIENDA</div><span class="badge bt">Usuario de tienda</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Representa al encargado de una tienda. Accede al portal para reportar y dar
+                        seguimiento a sus propios tickets.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Puede hacer</div>
+                        <div class="ex-val">✅ Crear tickets · Ver sus tickets · Confirmar solución · Responder (↩
+                            seguimiento) · Rechazar · Subir evidencias · Calificar CSAT</div>
+                        <div class="ex-label" style="margin-top:8px">No puede</div>
+                        <div class="ex-val">❌ Ver tickets de otras tiendas · Tomar tickets · Acceder al panel admin
+                        </div>
+                        <div class="ex-label" style="margin-top:8px">Ejemplo</div>
+                        <div class="ex-val">Encargada tienda 749 PANZACOLA → t749@soyneto.com</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--purple-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--purple-lt)">🎧</div>
+                        <div>
+                            <div class="card-title">AGENTE</div><span class="badge bp">Call Center</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Analista del Call Center asignado a un grupo técnico. Atiende los tickets de su
+                        grupo y puede escalarlos.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Puede hacer</div>
+                        <div class="ex-val">✅ Ver todos los tickets de su grupo · Tomar ticket · Enviar solución ·
+                            Continuar conversación · Escalar · Notas internas · Plantillas de respuesta · Cerrar</div>
+                        <div class="ex-label" style="margin-top:8px">No puede</div>
+                        <div class="ex-val">❌ Confirmar/rechazar (eso lo hace la tienda) · Acceder al panel admin · Ver
+                            tickets de otros grupos</div>
+                        <div class="ex-label" style="margin-top:8px">Ejemplo</div>
+                        <div class="ex-val">Christian Gutiérrez → christian.gutierrez@soyneto.com · Grupo: Sistemas
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--amber-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--amber-lt)">⚙️</div>
+                        <div>
+                            <div class="card-title">ADMIN</div><span class="badge ba">Administrador</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Administrador del sistema. Configura todos los catálogos y tiene acceso
+                        completo. Al entrar, ve el dashboard del agente y accede a Configuración desde el navbar.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Acceso exclusivo</div>
+                        <div class="ex-val">🔒 Panel Configuración · Cancelar tickets · KPIs de agentes · Gestión de
+                            usuarios, tipificaciones, grupos y ruteo</div>
+                        <div class="ex-label" style="margin-top:8px">Flujo al entrar</div>
+                        <div class="ex-val">Login → Dashboard (igual que agente) → Navbar: Dashboard · Cola · ⚙
+                            Configuración</div>
+                        <div class="ex-label" style="margin-top:8px">Ejemplo</div>
+                        <div class="ex-val">admin@soyneto.com / Neto2024!</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Permisos por acción</p>
+            <div class="perm-grid">
+                <div class="ph">Acción</div>
+                <div class="ph">TIENDA</div>
+                <div class="ph">AGENTE</div>
+                <div class="ph">ADMIN</div>
+                <div class="pc">Crear ticket</div>
+                <div class="pc yes">✅ Solo los suyos</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Ver tickets</div>
+                <div class="pc partial">Solo los suyos</div>
+                <div class="pc partial">Solo su grupo</div>
+                <div class="pc yes">✅ Todos</div>
+                <div class="pc">Tomar ticket</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Enviar solución</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅ mín 10 chars</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Confirmar / Rechazar</div>
+                <div class="pc yes">✅</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Responder (↩ seguimiento)</div>
+                <div class="pc yes">✅</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Escalar</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+                <div class="pc yes">✅</div>
+                <div class="pc">Cancelar</div>
+                <div class="pc no">—</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅ solo Admin</div>
+                <div class="pc">Notas internas</div>
+                <div class="pc no">No las ve</div>
+                <div class="pc yes">✅ Crea y ve</div>
+                <div class="pc yes">✅ Crea y ve</div>
+                <div class="pc">Plantillas de respuesta</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅ Usa y crea</div>
+                <div class="pc yes">✅ Globales</div>
+                <div class="pc">Calificar CSAT</div>
+                <div class="pc yes">✅ al resolver</div>
+                <div class="pc no">—</div>
+                <div class="pc no">—</div>
+                <div class="pc">Panel Configuración</div>
+                <div class="pc no">—</div>
+                <div class="pc no">—</div>
+                <div class="pc yes">✅</div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════ GRUPOS ══════════════════════ -->
+        <div class="panel" id="p-grupos">
+            <p class="section-title">Grupos del Call Center</p>
+            <p class="section-desc">Un Grupo es un equipo de agentes especializados en un área técnica. Cada ticket se
+                dirige automáticamente al grupo correcto según la tipificación y zona. Los agentes pertenecen a un único
+                grupo.</p>
+
+            <div class="cards">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--blue-lt)">💻</div>
+                        <div class="card-title">SISTEMAS</div>
+                    </div>
+                    <p class="card-desc">Conectividad, equipos de cómputo, punto de venta, lectores y software.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Sin internet · Lector de huella no detecta · Caja bloqueada · Antena sin
+                            señal · Terminal bancaria</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--amber-lt)">🔧</div>
+                        <div class="card-title">MANTENIMIENTO</div>
+                    </div>
+                    <p class="card-desc">Problemas físicos: instalaciones eléctricas, plomería, climatización,
+                        iluminación.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Gotera · Sin energía eléctrica · Amplificador dañado · Lámparas fundidas ·
+                            Aire acondicionado</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--green-lt)">📦</div>
+                        <div class="card-title">ABASTO</div>
+                    </div>
+                    <p class="card-desc">Proveedores, órdenes de compra y entregas de mercancía.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Proveedor no visitó · Artículo no aparece en OC · Diferencia en factura ·
+                            Mercancía incompleta</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--red-lt)">💰</div>
+                        <div class="card-title">FINANZAS</div>
+                    </div>
+                    <p class="card-desc">Nómina, depósitos, caja electrónica y justificaciones.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Justificación de retardo · Caja electrónica con diferencia · Depósito no
+                            reflejado</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--purple-lt)">🏷</div>
+                        <div class="card-title">COMERCIAL</div>
+                    </div>
+                    <p class="card-desc">Precios, promociones, catálogo de productos y etiquetas.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Precio diferente al folleto · Artículo sin código · Promoción no aplica en
+                            sistema</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">👔</div>
+                        <div class="card-title">RRHH</div>
+                    </div>
+                    <p class="card-desc">Recursos humanos, contrataciones, incapacidades y uniformes.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Tickets típicos</div>
+                        <div class="ex-val">Solicitud de uniforme · Incapacidad · Alta de nuevo colaborador · Vacaciones
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ex-box" style="background:#fff;border-color:var(--teal-md)">
+                <div class="ex-label">¿Cómo se asigna el agente dentro del grupo? — Smart Load Balancing <span class="new-chip">v1.3</span></div>
+                <div class="ex-val" style="margin-top:4px">El sistema asigna el ticket al agente con <strong>menor carga ponderada activa</strong>. Cada ticket abierto vale 1.0 punto base, más 0.5 adicional por cada 24h que lleve sin cerrarse (máximo 3.0). Esto significa que un agente que acumula tickets sin resolverlos se ve progresivamente más cargado y recibe menos tickets nuevos — eliminando el incentivo de dejar tickets abiertos. En caso de empate de carga, gana quien lleva más tiempo sin recibir un ticket.</div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════ TIPIFICACIONES ══════════════════════ -->
+        <div class="panel" id="p-tipificaciones">
+            <p class="section-title">Tipificaciones</p>
+            <p class="section-desc">Una tipificación es la categoría específica del problema. Es la unidad mínima del
+                catálogo. La IA clasifica el texto libre de la tienda buscando la tipificación más apropiada. Se
+                administran desde Panel → Configuración → Tipificaciones.</p>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Área</th>
+                        <th>Categoría</th>
+                        <th>Problema</th>
+                        <th>SLA</th>
+                        <th>Urgencia</th>
+                        <th>Palabras clave</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bb">SISTEMAS</span></td>
+                        <td>Conectividad</td>
+                        <td>Sin internet o antena sin señal</td>
+                        <td>4h</td>
+                        <td><span class="badge br">CRITICA</span></td>
+                        <td>internet, antena, red, wifi, señal</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">SISTEMAS</span></td>
+                        <td>Punto de Venta</td>
+                        <td>Lector de huella no detecta</td>
+                        <td>8h</td>
+                        <td><span class="badge ba">ALTA</span></td>
+                        <td>lector, huella, huellero, no detecta</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">SISTEMAS</span></td>
+                        <td>Administración Caja</td>
+                        <td>Caja electrónica bloqueada</td>
+                        <td>2h</td>
+                        <td><span class="badge br">CRITICA</span></td>
+                        <td>caja, bloqueada, no abre</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">MANTENIMIENTO</span></td>
+                        <td>Energía Eléctrica</td>
+                        <td>Sin energía eléctrica en tienda</td>
+                        <td>2h</td>
+                        <td><span class="badge br">CRITICA</span></td>
+                        <td>sin luz, sin energía, apagón</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">MANTENIMIENTO</span></td>
+                        <td>Instalaciones</td>
+                        <td>Gotera o filtración de agua</td>
+                        <td>24h</td>
+                        <td><span class="badge ba">ALTA</span></td>
+                        <td>gotera, filtración, agua, fuga</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">MANTENIMIENTO</span></td>
+                        <td>Instalaciones</td>
+                        <td>Amplificador dañado o con falla</td>
+                        <td>48h</td>
+                        <td><span class="badge ba">ALTA</span></td>
+                        <td>amplificador, audio, sonido</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg">ABASTO</span></td>
+                        <td>Órdenes de Compra</td>
+                        <td>Proveedor no ha visitado la tienda</td>
+                        <td>48h</td>
+                        <td><span class="badge bgr">BAJA</span></td>
+                        <td>proveedor, visita, entrega</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge" style="background:var(--red-lt);color:var(--red)">FINANZAS</span></td>
+                        <td>Nómina</td>
+                        <td>Justificación de retardo</td>
+                        <td>72h</td>
+                        <td><span class="badge bgr">BAJA</span></td>
+                        <td>justificación, retardo, llegué tarde</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bp">COMERCIAL</span></td>
+                        <td>Catálogo</td>
+                        <td>Precio incorrecto en sistema</td>
+                        <td>24h</td>
+                        <td><span class="badge bb">MEDIA</span></td>
+                        <td>precio, etiqueta, folleto, costo</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info">💡 <strong>Las palabras clave son el fallback de la IA.</strong> Si no hay API key de
+                Gemini configurada, el sistema clasifica el texto usando estas palabras. Palabras más largas valen más:
+                "amplificador" pesa más que "red".</div>
+        </div>
+
+        <!-- ══════════════════════ RUTEO ══════════════════════ -->
+        <div class="panel" id="p-ruteo">
+            <p class="section-title">Matriz de Ruteo</p>
+            <p class="section-desc">Define a qué grupo del Call Center se envía cada tipificación. Se puede configurar
+                por zona geográfica (para equipos regionales) o para todas las zonas. Se administra desde Panel →
+                Configuración → Ruteo.</p>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Tipificación</th>
+                        <th>Zona</th>
+                        <th>Grupo destino</th>
+                        <th>Prioridad</th>
+                        <th>Lógica</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sin internet o antena sin señal</td>
+                        <td>Todas</td>
+                        <td>Sistemas SION</td>
+                        <td>1</td>
+                        <td>Siempre va a Sistemas</td>
+                    </tr>
+                    <tr>
+                        <td>Lector de huella no detecta</td>
+                        <td>Zona Norte</td>
+                        <td>Sistemas Norte</td>
+                        <td>1</td>
+                        <td>Zona específica tiene su grupo</td>
+                    </tr>
+                    <tr>
+                        <td>Lector de huella no detecta</td>
+                        <td>Todas</td>
+                        <td>Sistemas Central</td>
+                        <td>2</td>
+                        <td>Fallback si no hay regla de zona</td>
+                    </tr>
+                    <tr>
+                        <td>Sin energía eléctrica</td>
+                        <td>Todas</td>
+                        <td>Mantenimiento Sur</td>
+                        <td>1</td>
+                        <td>Todos los eléctricos</td>
+                    </tr>
+                    <tr>
+                        <td>Justificación de retardo</td>
+                        <td>Todas</td>
+                        <td>Finanzas RH</td>
+                        <td>1</td>
+                        <td>Nómina siempre a Finanzas</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="two-col">
+                <div class="ex-box" style="background:#fff">
+                    <div class="ex-label">¿Qué pasa si no hay regla?</div>
+                    <div class="ex-val" style="margin-top:4px">El ticket se crea en NUEVO sin grupo ni agente. El admin
+                        debe asignarlo manualmente o configurar la regla faltante en el panel.</div>
+                </div>
+                <div class="ex-box" style="background:#fff">
+                    <div class="ex-label">Prioridad de reglas</div>
+                    <div class="ex-val" style="margin-top:4px">Si hay dos reglas para la misma tipificación, gana la de
+                        número menor. Primero se intenta la regla más específica (por zona), luego la global (todas las
+                        zonas).</div>
+                </div>
+            </div>
+
+            <div class="info">💡 <strong>¿Grupos + Tipificaciones + Matriz es la técnica correcta?</strong> Sí — es
+                exactamente ITIL: <em>Service Catalog + Assignment Groups + Routing Rules</em>. Es el mismo modelo que
+                usa ServiceNow, Jira Service Management y Freshservice.</div>
+        </div>
+
+        <!-- ══════════════════════ ESTADOS ══════════════════════ -->
+        <div class="panel" id="p-estados">
+            <p class="section-title">Estados del Ticket — Ciclo de vida completo</p>
+            <p class="section-desc">El flujo permite conversación bidireccional entre tienda y agente. No es necesario
+                que la tienda "cierre" la conversación con cada respuesta — puede continuar el diálogo hasta llegar a la
+                solución final.</p>
+
+            <div class="flow" style="margin-bottom:6px">
+                <span class="st s1">NUEVO</span><span class="arr">→</span>
+                <span class="st s2">ASIGNADO</span><span class="arr">→</span>
+                <span class="st s3">EN_PROCESO</span>
+                <span class="arr-both">⇄</span>
+                <span class="st s4">ESPERANDO_TIENDA</span>
+                <span class="arr-both">⇄</span>
+                <span class="st s5">ESPERANDO_AGENTE <span class="new-chip">NUEVO</span></span>
+            </div>
+            <div class="flow" style="margin-top:4px;margin-bottom:16px">
+                <span class="st s4">ESPERANDO_TIENDA</span><span class="arr">→</span>
+                <span class="st s6">RESUELTO</span><span class="arr">→</span>
+                <span class="st s7">CERRADO</span>
+                &nbsp;&nbsp;|&nbsp;&nbsp;
+                <span class="st s8">RECHAZADO</span><span class="arr">→</span>
+                <span class="st s3">EN_PROCESO</span>
+            </div>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Estado</th>
+                        <th>Significado</th>
+                        <th>Quién puede entrar</th>
+                        <th>Opciones siguientes</th>
+                        <th>Ejemplo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bb">NUEVO</span></td>
+                        <td>Ticket creado, sin agente asignado</td>
+                        <td>Sistema (al crear)</td>
+                        <td>Round Robin asigna → ASIGNADO</td>
+                        <td>Tienda envió el reporte, sistema lo recibe</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bp">ASIGNADO</span></td>
+                        <td>Agente designado por Round Robin, pendiente de tomar</td>
+                        <td>Sistema (Round Robin)</td>
+                        <td>Agente toma → EN_PROCESO</td>
+                        <td>Christian aparece en la cola pero no ha abierto el ticket</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">EN_PROCESO</span></td>
+                        <td>Agente trabajando activamente</td>
+                        <td>AGENTE / ADMIN (al tomar)</td>
+                        <td>Enviar solución → ESPERANDO_TIENDA</td>
+                        <td>Christian reinicia el equipo de red</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge by">ESPERANDO_TIENDA</span></td>
+                        <td>Agente envió solución o pregunta, tienda debe responder</td>
+                        <td>AGENTE (mín 10 chars)</td>
+                        <td>Tienda: ✓ Confirmar → RESUELTO<br>Tienda: ↩ Necesito más ayuda → ESPERANDO_AGENTE<br>Tienda:
+                            ✕ Rechazar → RECHAZADO</td>
+                        <td>"Se configuró la antena. ¿Ya tienes internet?"</td>
+                    </tr>
+                    <tr style="background:#E1F5EE">
+                        <td><span class="badge bt">ESPERANDO_AGENTE <span class="new-chip">NUEVO</span></span></td>
+                        <td>Tienda respondió con más info pero no confirma solución — el agente debe continuar</td>
+                        <td>TIENDA (botón "↩ Necesito más ayuda")</td>
+                        <td>Agente: Continuar → EN_PROCESO<br>Agente: Nueva solución → ESPERANDO_TIENDA</td>
+                        <td>"El internet ya funciona pero la caja 3 sigue lenta"</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg">RESUELTO</span></td>
+                        <td>Tienda confirmó que el problema quedó resuelto</td>
+                        <td>TIENDA / ADMIN</td>
+                        <td>Agente cierra → CERRADO<br>Auto-cierre 72h → CERRADO<br>CSAT disponible para la tienda</td>
+                        <td>Encargada confirma que ya tienen internet</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bgr">CERRADO</span></td>
+                        <td>Estado final. Sin más acciones posibles</td>
+                        <td>AGENTE / auto-cierre 72h</td>
+                        <td>Solo lectura — histórico</td>
+                        <td>72h después de RESUELTO sin actividad, se cierra solo</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge br">RECHAZADO</span></td>
+                        <td>Tienda rechazó formalmente la solución propuesta</td>
+                        <td>TIENDA (motivo obligatorio)</td>
+                        <td>Agente retoma → EN_PROCESO (prioridad sube a ALTA)</td>
+                        <td>"Sigue sin funcionar el internet en caja 3"</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bgr">CANCELADO</span></td>
+                        <td>Cancelado por el administrador</td>
+                        <td>ADMIN únicamente</td>
+                        <td>Ninguna — estado final</td>
+                        <td>Ticket duplicado, error, o resuelto fuera del sistema</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="two-col">
+                <div class="ex-box" style="background:#fff;border-color:var(--teal-md)">
+                    <div class="ex-label">¿Cuándo usar RECHAZADO vs ESPERANDO_AGENTE?</div>
+                    <div class="ex-val" style="margin-top:4px"><strong>RECHAZADO</strong> = la solución propuesta
+                        definitivamente NO funcionó. Feedback negativo formal, sube prioridad a
+                        ALTA.<br><br><strong>ESPERANDO_AGENTE</strong> = la tienda da más información o dice que algo
+                        sigue fallando pero el diálogo continúa normalmente. No penaliza al agente.</div>
+                </div>
+                <div class="ex-box" style="background:#fff">
+                    <div class="ex-label">¿Puede el agente comentar al tomar el ticket?</div>
+                    <div class="ex-val" style="margin-top:4px">Sí, es correcto y es la práctica estándar. El comentario
+                        es opcional al tomar. Puede ser nota interna ("reincidencia del lunes") o nota pública ("Ya tomé
+                        tu caso, te contacto en breve"). Zendesk, Jira y ServiceNow funcionan igual.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ══════════════════════ IA ══════════════════════ -->
+        <div class="panel" id="p-ia">
+            <p class="section-title">Motor de IA — Clasificación automática</p>
+            <p class="section-desc">El motor tiene 3 capas que se ejecutan en secuencia. Siempre devuelve un resultado,
+                incluso si Gemini no está disponible. La tienda puede ajustar la clasificación antes de enviar el
+                ticket.</p>
+
+            <div style="margin-bottom:18px">
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--red-lt);color:var(--red)">1</div>
+                    <div>
+                        <div class="ia-title">Detección de urgencia — siempre activa, sin IA</div>
+                        <div class="ia-desc">Busca frases críticas en el texto: "sin luz", "caja bloqueada", "no tenemos
+                            internet", "incendio". Si detecta nivel CRITICA o ALTA, lo establece inmediatamente.
+                            Normaliza acentos (energía → energia). No requiere Gemini y nunca falla.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--teal-lt);color:var(--teal)">2</div>
+                    <div>
+                        <div class="ia-title">Gemini 2.5 Flash — clasificación con LLM (requiere GEMINI_API_KEY)</div>
+                        <div class="ia-desc">Envía el texto + catálogo completo de tipificaciones + 11 ejemplos reales
+                            de tickets Neto. Temperature 0.1 para máximo determinismo. Devuelve JSON con tipificación,
+                            área, urgencia y confianza (80-95%). Costo estimado: ~$4 USD/mes para 500 tickets/día.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--gray-lt);color:var(--gray)">3</div>
+                    <div>
+                        <div class="ia-title">Fallback por palabras clave — cuando Gemini no responde</div>
+                        <div class="ia-desc">Compara el texto contra las palabras clave de cada tipificación. Palabras
+                            más largas valen más ("amplificador" = 3.25 pts vs "red" = 0.75 pts). Stop words excluidas.
+                            Normaliza acentos. Confianza máxima: 70%.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="ex-box" style="background:#fff">
+                    <div class="ex-label">Ejemplo de clasificación</div>
+                    <div class="ex-val" style="margin-top:4px;font-style:italic">"no tenemos energia electrica en todo
+                        el dia"</div>
+                    <div style="margin-top:8px">→ Área: <span class="badge ba">MANTENIMIENTO</span></div>
+                    <div>→ Urgencia: <span class="badge br">CRITICA</span></div>
+                    <div>→ Confianza: 94%</div>
+                </div>
+                <div class="ex-box" style="background:#fff">
+                    <div class="ex-label">¿Qué pasa si la tienda ajusta la clasificación?</div>
+                    <div class="ex-val" style="margin-top:4px">Se registra
+                        <code>ia_clasificacion_aceptada = false</code>. El dashboard muestra la tasa de aceptación de la
+                        IA. Si es baja (menos del 70%), hay que mejorar los ejemplos del prompt o las palabras clave en
+                        tipificaciones.</div>
+                </div>
+            </div>
+
+            <div class="info" style="margin-top:14px">💡 <strong>Sugerencia al agente:</strong> cuando se asigna un
+                ticket, la IA genera automáticamente una respuesta sugerida para el agente. El agente puede usarla,
+                editarla o ignorarla. Si no hay API key, la sugerencia simplemente no aparece.</div>
+        </div>
+
+        <!-- ══════════════════════ SLA ══════════════════════ -->
+        <div class="panel" id="p-sla">
+            <p class="section-title">SLA y Prioridades</p>
+            <p class="section-desc">El SLA define el tiempo máximo para resolver un ticket. Se calcula al crear el
+                ticket sumando las horas de la tipificación a la fecha de apertura. La barra de progreso en la cola del
+                agente muestra en tiempo real cuánto del SLA se ha consumido.</p>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Prioridad</th>
+                        <th>SLA típico</th>
+                        <th>Color en cola</th>
+                        <th>Ejemplos</th>
+                        <th>¿Sube automáticamente?</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge br">CRITICA</span></td>
+                        <td>2-4 horas</td>
+                        <td>🔴 Fila roja</td>
+                        <td>Sin internet, caja bloqueada, sin energía eléctrica</td>
+                        <td>Se asigna según tipificación al crear</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">ALTA</span></td>
+                        <td>8-24 horas</td>
+                        <td>🟠 Naranja</td>
+                        <td>Lector dañado, gotera, amplificador</td>
+                        <td>Sube a ALTA si la tienda rechaza la solución</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">MEDIA</span></td>
+                        <td>24-48 horas</td>
+                        <td>🔵 Azul</td>
+                        <td>Precio incorrecto, artículo sin código</td>
+                        <td>Es la prioridad por defecto</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bgr">BAJA</span></td>
+                        <td>48-72 horas</td>
+                        <td>⚪ Gris</td>
+                        <td>Justificación retardo, proveedor no visitó</td>
+                        <td>—</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--green-lt)">📊</div>
+                        <div class="card-title">Barra de progreso SLA</div>
+                    </div>
+                    <p class="card-desc">Visible en la cola del agente, debajo de cada fecha SLA.</p>
+                    <div class="ex-box">
+                        <div style="background:#22C55E;height:6px;border-radius:3px;width:50%;margin-bottom:4px"></div>
+                        <div class="ex-val">Verde: &lt;60% consumido</div>
+                        <div style="background:#F59E0B;height:6px;border-radius:3px;width:75%;margin:4px 0"></div>
+                        <div class="ex-val">Amarillo: 60-85%</div>
+                        <div style="background:#EF4444;height:6px;border-radius:3px;width:100%;margin:4px 0"></div>
+                        <div class="ex-val">Rojo: &gt;85% o vencido</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--red-lt)">⚠️</div>
+                        <div class="card-title">SLA vencido</div>
+                    </div>
+                    <p class="card-desc">El SLA se recalcula en tiempo real en cada consulta.</p>
+                    <div class="ex-box">
+                        <div class="ex-val">Ticket marcado en rojo en la cola. Aparece en contador "SLA Vencidos" del
+                            dashboard y la cola. El KPI del agente registra cuántos vencieron en su turno.</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--gray-lt)">⏰</div>
+                        <div class="card-title">Auto-cierre 72h</div>
+                    </div>
+                    <p class="card-desc">Tickets en RESUELTO sin actividad se cierran solos.</p>
+                    <div class="ex-box">
+                        <div class="ex-val">Endpoint <code>POST /internal/auto-cierre</code>. En producción, Cloud
+                            Scheduler lo llama cada hora. En desarrollo, se puede invocar manualmente desde
+                            <code>/docs</code>. Deja nota interna automática en la bitácora.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="warn">⚠️ El campo <code>sla_vencido</code> en la DB no se actualiza automáticamente con el
+                tiempo. El sistema recalcula el estado real en cada consulta comparando <code>sla_limite</code> con la
+                hora actual. Por eso el dashboard y la cola siempre muestran el mismo número de vencidos.</div>
+        </div>
+
+        <!-- ══════════════════════ NOVEDADES V1.3 ══════════════════════ -->
+        <div class="panel" id="p-funciones">
+            <p class="section-title">Novedades Sprint 1 &mdash; v1.3 <span class="new-chip" style="font-size:12px">NUEVO</span></p>
+            <p class="section-desc">Funciones nuevas del Sprint 1 más todas las funciones previas. Todas activas en el sistema actual.</p>
+
+            <div class="cards">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">⚖️</div>
+                        <div class="card-title">Smart Load Balancing <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">Distribución inteligente por carga real activa — no por rotación histórica. Elimina el incentivo de acumular tickets sin cerrar.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Cómo funciona</div>
+                        <div class="ex-val">Cada ticket abierto pesa 1.0 punto + 0.5 extra por cada día que lleva sin cerrarse (máx 3.0). El ticket nuevo siempre va al agente con menor puntuación. Empate → quien lleva más sin recibir ticket.</div>
+                        <div class="ex-label" style="margin-top:8px">Resultado práctico</div>
+                        <div class="ex-val">Agente A: 2 tickets frescos → 2.0 pts. Agente B: 2 tickets de 48h → 3.0+ pts. Nuevo ticket → Agente A.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">✦</div>
+                        <div class="card-title">Copiloto del Agente <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">Panel "Soluciones Anteriores" en la vista del ticket. Muestra hasta 5 resoluciones exitosas del mismo tipo, ordenadas por CSAT.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">¿Cómo aparece?</div>
+                        <div class="ex-val">Carga automáticamente al abrir el ticket (columna derecha). Muestra folio, descripción del caso, solución aplicada, estrellas CSAT y horas de resolución.</div>
+                        <div class="ex-label" style="margin-top:8px">Botón "Usar esta solución"</div>
+                        <div class="ex-val">Copia la solución histórica al área de texto del agente con un clic. Reduce el tiempo de resolución en problemas recurrentes ~40-60%.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--blue-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--blue-lt)">⏰</div>
+                        <div class="card-title">Recordatorio 12h <span class="new-chip">NUEVO</span></div>
+                    </div>
+                    <p class="card-desc">El job de auto-cierre detecta tickets en ESPERANDO_TIENDA sin respuesta durante 12 horas y agrega una nota interna de seguimiento.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Cuándo se activa</div>
+                        <div class="ex-val">Cuando el job <code>POST /internal/auto-cierre</code> detecta que la solución fue enviada hace entre 12 y 13 horas sin confirmación.</div>
+                        <div class="ex-label" style="margin-top:8px">Dónde se ve</div>
+                        <div class="ex-val">Nota interna en el historial del ticket (visible para agente y admin). La tienda no la ve.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin:20px 0 12px">Funciones previas (v1.1 — v1.2)</p>
+
+            <div class="cards">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">↩</div>
+                        <div class="card-title">ESPERANDO_AGENTE — Conversación bidireccional</div>
+                    </div>
+                    <p class="card-desc">La tienda puede responder con información adicional sin forzar "resuelto o
+                        rechazado". El ticket regresa al agente para continuar el diálogo.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Flujo</div>
+                        <div class="ex-val">Agente envía solución → Tienda responde "sigue fallando caja 3" →
+                            ESPERANDO_AGENTE → Agente continúa → ESPERANDO_TIENDA → Tienda confirma → RESUELTO</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid #F59E0B">
+                    <div class="card-head">
+                        <div class="icon" style="background:#FEF3C7">★</div>
+                        <div class="card-title">CSAT — Calificación de servicio</div>
+                    </div>
+                    <p class="card-desc">Al resolver un ticket, la tienda puede calificar el servicio con 1-5 estrellas
+                        y un comentario opcional.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">¿Cuándo aparece?</div>
+                        <div class="ex-val">Automáticamente en el detalle del ticket cuando el estatus es RESUELTO o
+                            CERRADO. Una vez calificado, muestra las estrellas llenas y el score.</div>
+                        <div class="ex-label" style="margin-top:8px">En KPIs del agente</div>
+                        <div class="ex-val">Se calcula el promedio de CSAT por agente en el período seleccionado. Verde
+                            ≥4, ámbar &lt;4.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--purple-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--purple-lt)">⚡</div>
+                        <div class="card-title">Plantillas de respuesta rápida</div>
+                    </div>
+                    <p class="card-desc">Macros de texto que el agente puede insertar en su respuesta con un clic.
+                        Reducen el tiempo por ticket ~40%.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">¿Cómo funciona?</div>
+                        <div class="ex-val">El agente ve el botón ⚡ junto al textarea. Al hacer clic, aparece la lista
+                            de plantillas de su área. Al seleccionar una, el texto se inserta directamente.</div>
+                        <div class="ex-label" style="margin-top:8px">¿Quién las crea?</div>
+                        <div class="ex-val">Cualquier agente puede crear plantillas propias. El admin puede crear
+                            plantillas globales (sin área = aplica a todos).</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--blue-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--blue-lt)">📊</div>
+                        <div class="card-title">KPIs por agente</div>
+                    </div>
+                    <p class="card-desc">Panel en Configuración → KPIs con métricas de rendimiento individual de cada
+                        agente.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Métricas disponibles</div>
+                        <div class="ex-val">Tickets cerrados · Tickets activos · Tiempo promedio de resolución · % SLA
+                            cumplido (verde ≥90%, rojo &lt;70%) · CSAT promedio · Total escalaciones</div>
+                        <div class="ex-label" style="margin-top:8px">Filtros</div>
+                        <div class="ex-val">Por rango de fechas (desde / hasta). Filtra todos los tickets abiertos en
+                            ese período.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--green-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--green-lt)">📎</div>
+                        <div class="card-title">Adjuntos vinculados al historial</div>
+                    </div>
+                    <p class="card-desc">El agente puede adjuntar un archivo junto con su comentario. Aparece inline en
+                        la burbuja del historial.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">¿Cómo funciona?</div>
+                        <div class="ex-val">Botón 📎 junto al textarea del agente. El archivo se sube inmediatamente. Al
+                            enviar el comentario, queda vinculado a ese evento. Las imágenes se muestran en miniatura;
+                            los PDF y videos como chip descargable.</div>
+                        <div class="ex-label" style="margin-top:8px">Tipos permitidos</div>
+                        <div class="ex-val">jpg, png, webp, gif, mp4, mov, avi, pdf · Máx 10 MB</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--amber-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--amber-lt)">🔔</div>
+                        <div class="card-title">Notificaciones en tiempo real</div>
+                    </div>
+                    <p class="card-desc">La navbar muestra alertas en tiempo real mediante polling cada 30 segundos.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Por rol</div>
+                        <div class="ex-val">
+                            🏪 Tienda: ⏳ tickets esperando su respuesta<br>
+                            🎧 Agente: badge con tickets pendientes de tomar en Cola<br>
+                            ⚙ Admin: ⚠ SLA vencidos · 📥 tickets sin asignar
+                        </div>
+                        <div class="ex-label" style="margin-top:8px">Técnica</div>
+                        <div class="ex-val">Polling al endpoint <code>GET /notificaciones</code> cada 30s. Sin
+                            WebSockets — suficiente para el volumen actual.</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--red-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--red-lt)">🚨</div>
+                        <div class="card-title">Alerta Slack para tickets CRÍTICOS</div>
+                    </div>
+                    <p class="card-desc">Cuando se crea un ticket con prioridad CRITICA, se envía automáticamente un
+                        mensaje al canal Slack del grupo.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Configuración</div>
+                        <div class="ex-val">Requiere <code>SLACK_BOT_TOKEN</code> en el .env. El canal se toma del campo
+                            "Canal Slack" del grupo en Configuración. Si no hay canal configurado, usa
+                            <code>SLACK_DEFAULT_CHANNEL</code>.</div>
+                        <div class="ex-label" style="margin-top:8px">Contenido del mensaje</div>
+                        <div class="ex-val">Folio · Tienda · Problema · Descripción (200 chars) · SLA límite</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--gray-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--gray-lt)">⏰</div>
+                        <div class="card-title">Auto-cierre 72 horas</div>
+                    </div>
+                    <p class="card-desc">Tickets en RESUELTO sin actividad por más de 72h se cierran automáticamente.
+                    </p>
+                    <div class="ex-box">
+                        <div class="ex-label">Activar en desarrollo</div>
+                        <div class="ex-val">Ir a <code>localhost:8000/docs</code> → POST /internal/auto-cierre →
+                            Execute. Parámetro <code>horas</code> configurable (default 72).</div>
+                        <div class="ex-label" style="margin-top:8px">En producción</div>
+                        <div class="ex-val">Cloud Scheduler llama el endpoint cada hora. Registra nota interna en la
+                            bitácora con el motivo.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info">💡 <strong>Nota técnica — SLA en tiempo real:</strong> el campo <code>sla_vencido</code>
+                en la DB no se actualiza automáticamente. El backend recalcula el estado real en cada
+                <code>GET /tickets</code> comparando <code>sla_limite</code> con la hora actual. Esto garantiza que el
+                contador "SLA Vencidos" del dashboard y la cola siempre muestren el mismo número.</div>
+        </div>
+
+    </div>
+
+        <!-- ══════════════════════ AGENTES IA ══════════════════════ -->
+        <div class="panel" id="p-agentes">
+            <p class="section-title">Agentes IA — Dany &amp; Javier <span class="new-chip" style="font-size:12px">v1.3</span></p>
+            <p class="section-desc">Agentes conversacionales que interactúan con tiendas antes de generar un ticket humano. Pueden crear tickets resueltos (autoservicio exitoso) o tickets abiertos (escalación al Call Center). Ambos consumen el mismo backend REST.</p>
+
+            <div class="two-col" style="margin-bottom:18px">
+                <div class="card" style="border-top:3px solid var(--teal-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--teal-lt)">💬</div>
+                        <div>
+                            <div class="card-title">Dany — Slack</div>
+                            <span class="badge bt">n8n webhook</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Agente de primera línea accesible desde el portal web (panel derecho del dashboard de tienda). El backend actúa de proxy para evitar CORS.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Integración backend</div>
+                        <div class="ex-val"><code>POST /api/v1/dany/chat</code> → reenvía al webhook n8n configurado en <code>DANY_WEBHOOK_URL</code></div>
+                        <div class="ex-label" style="margin-top:8px">Respuestas esperadas del webhook</div>
+                        <div class="ex-val"><code>accion: "continuar"</code> → sigue el chat<br><code>accion: "resuelto"</code> → crea ticket en RESUELTO<br><code>accion: "escalar"</code> → crea ticket en NUEVO/ASIGNADO</div>
+                    </div>
+                </div>
+
+                <div class="card" style="border-top:3px solid var(--purple-md)">
+                    <div class="card-head">
+                        <div class="icon" style="background:var(--purple-lt)">📱</div>
+                        <div>
+                            <div class="card-title">Javier — WhatsApp</div>
+                            <span class="badge bp">API directa</span>
+                        </div>
+                    </div>
+                    <p class="card-desc">Agente conversacional por WhatsApp Business. Consume el backend directamente desde su propio servidor, sin proxy intermedio.</p>
+                    <div class="ex-box">
+                        <div class="ex-label">Integración</div>
+                        <div class="ex-val">Llama directamente a <code>POST /api/v1/tickets</code> con JWT de servicio. Identifica la tienda por número de teléfono → busca <code>tienda_id</code>.</div>
+                        <div class="ex-label" style="margin-top:8px">Sin proxy</div>
+                        <div class="ex-val">WhatsApp → servidor de Javier → backend CSN. No pasa por el frontend ni por n8n.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Flujo de creación de ticket desde agente externo</p>
+
+            <div style="margin-bottom:18px">
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--blue-lt);color:var(--blue)">1</div>
+                    <div>
+                        <div class="ia-title">Autenticación — obtener JWT</div>
+                        <div class="ia-desc"><code>POST /api/v1/auth/login</code> con las credenciales del usuario de servicio (rol TIENDA asignado a esa tienda). La respuesta incluye <code>access_token</code> y los datos del usuario (incluyendo <code>tienda_id</code>). El token dura 480 minutos — cache del token en el agente para evitar login en cada mensaje.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--teal-lt);color:var(--teal)">2</div>
+                    <div>
+                        <div class="ia-title">Clasificar el problema (opcional pero recomendado)</div>
+                        <div class="ia-desc"><code>POST /api/v1/ai/classify</code> con el texto de la conversación. Devuelve <code>tipificacion_id</code>, <code>area_tecnica</code>, <code>urgencia</code> y <code>confianza</code>. Si el agente ya conoce la tipificación por su propio flujo, puede saltarse este paso.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--amber-lt);color:var(--amber)">3A</div>
+                    <div>
+                        <div class="ia-title">Crear ticket RESUELTO (autoservicio exitoso)</div>
+                        <div class="ia-desc">Primero <code>POST /api/v1/tickets</code> → crea en estado NUEVO/ASIGNADO. Luego inmediatamente <code>PATCH /api/v1/tickets/{id}</code> con <code>estatus: "RESUELTO"</code> + <code>solucion_propuesta</code> con el resumen de la solución. La tienda queda en CSAT disponible.</div>
+                    </div>
+                </div>
+                <div class="ia-step">
+                    <div class="ia-num" style="background:var(--purple-lt);color:var(--purple)">3B</div>
+                    <div>
+                        <div class="ia-title">Crear ticket ABIERTO (escalación al Call Center)</div>
+                        <div class="ia-desc">Solo <code>POST /api/v1/tickets</code>. El sistema asigna automáticamente al agente con menor carga del grupo correcto (Smart Load Balancing). El agente del Call Center recibe el ticket en su cola con toda la conversación en la descripción.</div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Referencia rápida de endpoints</p>
+
+            <table class="tbl">
+                <thead>
+                    <tr>
+                        <th>Método</th>
+                        <th>Endpoint</th>
+                        <th>Cuándo usarlo</th>
+                        <th>Auth</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/auth/login</code></td>
+                        <td>Obtener JWT. Renovar cuando expire (480 min)</td>
+                        <td>Sin token</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bg">GET</span></td>
+                        <td><code>/api/v1/tipificaciones?area=SISTEMAS</code></td>
+                        <td>Obtener catálogo de tipificaciones para mapear el problema</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/ai/classify</code></td>
+                        <td>Clasificar texto libre → obtener tipificacion_id automáticamente</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/tickets</code></td>
+                        <td>Crear ticket (abierto o como paso previo a resolver)</td>
+                        <td>Bearer JWT (rol TIENDA)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge ba">PATCH</span></td>
+                        <td><code>/api/v1/tickets/{id}</code></td>
+                        <td>Marcar como RESUELTO después de crear (autoservicio exitoso)</td>
+                        <td>Bearer JWT (mismo usuario)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge bb">POST</span></td>
+                        <td><code>/api/v1/dany/chat</code></td>
+                        <td>Solo Dany: proxy al webhook n8n (no usar para Javier)</td>
+                        <td>Bearer JWT</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class="section-title" style="font-size:15px;margin-bottom:12px">Payloads de referencia</p>
+
+            <div class="two-col">
+                <div>
+                    <div class="ex-box" style="background:#fff">
+                        <div class="ex-label">POST /auth/login</div>
+                        <pre style="font-size:11px;margin-top:6px;white-space:pre-wrap;color:var(--text)">{
+  "email": "dany-service@soyneto.com",
+  "password": "***"
+}</pre>
+                        <div class="ex-label" style="margin-top:8px">Respuesta</div>
+                        <pre style="font-size:11px;margin-top:4px;white-space:pre-wrap;color:var(--text)">{
+  "access_token": "eyJ...",
+  "token_type": "bearer",
+  "usuario": {
+    "id": 12, "tienda_id": 749,
+    "rol": "TIENDA", "nombre": "Dany Bot"
+  }
+}</pre>
+                    </div>
+                </div>
+                <div>
+                    <div class="ex-box" style="background:#fff">
+                        <div class="ex-label">POST /tickets — crear ticket</div>
+                        <pre style="font-size:11px;margin-top:6px;white-space:pre-wrap;color:var(--text)">{
+  "descripcion": "Sin internet desde las 8am,
+    reinicié el router y persiste.",
+  "tipificacion_id": 3,
+  "tipo": "INCIDENCIA",
+  "ia_clasificacion_aceptada": true,
+  "ia_confianza": 88
+}</pre>
+                        <div class="ex-label" style="margin-top:8px">PATCH — marcar RESUELTO</div>
+                        <pre style="font-size:11px;margin-top:4px;white-space:pre-wrap;color:var(--text)">{
+  "estatus": "RESUELTO",
+  "solucion_propuesta": "Se configuró la
+    antena vía Dany. Tienda confirmó que
+    ya tiene internet.",
+  "comentario": "Resuelto por Dany (chat)",
+  "tipo_comentario": "PUBLICO"
+}</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="two-col" style="margin-top:14px">
+                <div class="info">💡 <strong>Token de servicio:</strong> Crear un usuario con rol TIENDA por cada agente IA (ej: <code>dany-bot@soyneto.com</code>, <code>javier-bot@soyneto.com</code>). Asignarle la tienda genérica correspondiente. El <code>tienda_id</code> se toma automáticamente del usuario autenticado — no hay que pasarlo en el payload.</div>
+                <div class="warn">⚠️ <strong>Cache del JWT:</strong> El token dura 480 min (8h). El agente debe guardar el token y renovarlo solo cuando expire (error 401). No hacer login en cada mensaje o se ralentiza el flujo.</div>
+            </div>
+
+            <div class="info" style="margin-top:14px">💡 <strong>Descripción enriquecida:</strong> Incluir en <code>descripcion</code> el resumen de la conversación completa, no solo el último mensaje. El agente del Call Center verá esa descripción como contexto. Ejemplo: <em>"[Javier/WhatsApp] Tienda 749 — Conversación: 'No tenemos internet' → 'Reiniciamos router' → 'Sigue sin funcionar' → Escalando al Call Center."</em></div>
+        </div>
+
+    </div>
+
+    <script>
+        function show(id) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('p-' + id).classList.add('active');
+        }
+    </script>
+</body>
+
+</html>

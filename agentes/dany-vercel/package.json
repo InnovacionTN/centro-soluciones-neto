@@ -1,0 +1,32 @@
+{
+  "name": "csn-dany-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agente Dany (CSN) reimplementado con Vercel AI SDK para Cloud Run",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json && node -e \"const fs=require('fs');fs.mkdirSync('dist/kb',{recursive:true});fs.copyFileSync('src/kb/flujos.json','dist/kb/flujos.json');fs.copyFileSync('src/kb/media-manifest.json','dist/kb/media-manifest.json')\"",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "eval": "tsx src/eval/run.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "latest",
+    "@hono/node-server": "latest",
+    "ai": "latest",
+    "dotenv": "^17.4.2",
+    "hono": "latest",
+    "pg": "^8.21.0",
+    "zod": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "latest",
+    "@types/pg": "^8.20.0",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

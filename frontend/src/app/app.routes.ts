@@ -8,6 +8,11 @@ export const routes: Routes = [
       import('./features/auth/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./features/auth/slack-callback.component').then(m => m.SlackCallbackComponent),
+  },
+  {
     path: 'tienda',
     canActivate: [authGuard(['TIENDA'])],
     loadChildren: () =>
@@ -15,15 +20,22 @@ export const routes: Routes = [
   },
   {
     path: 'agente',
-    canActivate: [authGuard(['AGENTE', 'ADMIN'])],
+    canActivate: [authGuard(['AGENTE', 'ADMIN', 'ADMIN_AREA'])],
     loadChildren: () =>
       import('./features/agente/agente.routes').then(m => m.AGENTE_ROUTES),
   },
   {
     path: 'admin',
-    canActivate: [authGuard(['ADMIN'])],
+    canActivate: [authGuard(['ADMIN', 'ADMIN_AREA', 'COORDINADOR'])],
     loadChildren: () =>
       import('./features/admin/admin.routes').then(m => m.ADMIN_ROUTES),
+  },
+  {
+    path: 'coordinador',
+    canActivate: [authGuard(['COORDINADOR', 'ADMIN'])],
+    loadComponent: () =>
+      import('./features/coordinador/coordinador-dashboard.component')
+        .then(m => m.CoordinadorDashboardComponent),
   },
   { path: '', redirectTo: 'login', pathMatch: 'full' },
   { path: '**', redirectTo: 'login' },

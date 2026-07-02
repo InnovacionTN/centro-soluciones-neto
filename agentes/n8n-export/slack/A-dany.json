@@ -1,0 +1,1235 @@
+{
+  "name": "A-dany",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8ef8ad2f-f7fe-4137-b90f-0a209d0e75ac",
+              "leftValue": "={{ $('Slack Trigger').item.json.subtype }}",
+              "rightValue": "message_deleted",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "822cbf5d-78c5-43cc-aef5-de0b7e880f55",
+              "leftValue": "={{ $('Slack Trigger').item.json.subtype }}",
+              "rightValue": "message_changed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        640
+      ],
+      "id": "139ac6af-135e-4b48-b266-0d3bdca279fb",
+      "name": "If2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        16,
+        544
+      ],
+      "id": "77f09515-e66b-4c16-a32b-6dd44c07a8a7",
+      "name": "No Operation, do nothing3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "13947528-a5ed-4969-a1db-1dbdc4f0d99e",
+              "leftValue": "={{ $json.files }}",
+              "rightValue": "",
+              "operator": {
+                "type": "array",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        736
+      ],
+      "id": "eca661c4-3831-4ecf-9cf5-be74c59d5a8f",
+      "name": "If3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c6f9cddd-ec6e-4258-8caf-200da9acf93e",
+              "name": "prompt",
+              "value": "={{ $('Slack Trigger').item.json.text }}",
+              "type": "string"
+            },
+            {
+              "id": "333e2ed1-a08c-4ee9-81c5-ba63b91e555f",
+              "name": "id_slack",
+              "value": "={{ $('Slack Trigger').item.json.user }}",
+              "type": "string"
+            },
+            {
+              "id": "6ca33b52-06f2-4e61-9a89-40d746e77472",
+              "name": "slack_channel_id",
+              "value": "={{ $('Slack Trigger').item.json.channel }}",
+              "type": "string"
+            },
+            {
+              "id": "bf61be49-8ab5-47cd-a998-13483893c891",
+              "name": "imagen_url",
+              "value": "={{ $('Slack Trigger').item.json.files[0].url_private_download }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        464,
+        736
+      ],
+      "id": "478722e6-ed73-4801-a65a-75a47ecc1e3d",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').item.json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $('Slack Trigger').item.json.ts }}",
+        "name": "eyes"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        240,
+        736
+      ],
+      "id": "1cefb54e-f4f2-461e-a900-174007b23e00",
+      "name": "Add a reaction1",
+      "webhookId": "38c93f9b-b08d-4284-b2fa-50d18eb9a4af",
+      "retryOnFail": true,
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "user",
+        "operation": "getProfile",
+        "user": {
+          "__rl": true,
+          "value": "={{ $json.user }}",
+          "mode": "id"
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        -432,
+        640
+      ],
+      "id": "7f0be34d-8daf-4ecd-9f48-e7cfa5450fcf",
+      "name": "Get a user's profile1",
+      "webhookId": "15134320-9a84-4901-be99-54e2931e65a2",
+      "credentials": {
+        "slackApi": {
+          "id": "D6Twc60p0MjXtLW6",
+          "name": "A-Brisa Operaciones"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "user",
+        "user": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.user }}",
+          "mode": "id"
+        },
+        "text": "={{ $('Edit Fields3').item.json.agent_response }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2752,
+        736
+      ],
+      "id": "f4ef4cd5-d6d6-4e34-b9e3-5c917e051d4a",
+      "name": "Send a message1",
+      "webhookId": "034b5858-527d-4af4-b48f-afd33f40f6b8",
+      "retryOnFail": true,
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "operation": "remove",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $('Slack Trigger').first().json.ts }}",
+        "name": "eyes"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2528,
+        736
+      ],
+      "id": "08a0683c-6c5b-4f8c-b594-1b0fa3ec310f",
+      "name": "Remove a reaction1",
+      "webhookId": "00c5c617-6d90-4c39-990a-d1069acbc374",
+      "retryOnFail": true,
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "reaction",
+        "channelId": {
+          "__rl": true,
+          "value": "={{ $('Slack Trigger').first().json.channel }}",
+          "mode": "id"
+        },
+        "timestamp": "={{ $('Slack Trigger').first().json.ts }}",
+        "name": "white_check_mark"
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        2976,
+        736
+      ],
+      "id": "83f4ac80-dc46-4681-935a-c9d741a87bc0",
+      "name": "Add a reaction3",
+      "webhookId": "40f8efbf-0dcb-4676-93d6-18c7f0578420",
+      "retryOnFail": true,
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3200,
+        736
+      ],
+      "id": "1ab9c9bc-935e-4cfd-9101-c5ffa4c24fd8",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cc705ce5-74e0-4d25-acdc-d59fba558c2d",
+              "name": "agent_response",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2304,
+        736
+      ],
+      "id": "f046ad0d-e443-49b2-b3f1-ac638266009b",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "trigger": [
+          "message"
+        ],
+        "watchWorkspace": true,
+        "options": {
+          "userIds": "=U0AM3SHKLMC"
+        }
+      },
+      "type": "n8n-nodes-base.slackTrigger",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        640
+      ],
+      "id": "09c18cb4-19c4-40c7-8d80-56f88c12771e",
+      "name": "Slack Trigger",
+      "webhookId": "b38ea5b8-b83a-4d6f-8495-c1dd88fb13c2",
+      "credentials": {
+        "slackApi": {
+          "id": "w2XqU6c7zY88hMis",
+          "name": "A-Dany"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Edit Fields2').first().json.id_slack }}12",
+        "tableName": "Dany_prod25",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        944,
+        960
+      ],
+      "id": "2ecd7411-bc9e-4f58-b875-632af1130e4a",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "FUPrhwvYBQgx1csz",
+          "name": "Postgres NetoBox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.1-flash-lite-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        960
+      ],
+      "id": "ce8f35ec-72bb-446a-a4ad-5c9b28da39d4",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Deewd9iNpcj1fU3J",
+          "name": "Andres Salinas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Consulta precios de productos en lenguaje natural. Usa esta tool cuando el usuario pregunte por precios de productos específicos SIN enviar imagen. El parámetro \\\"consulta\\\" es el mensaje completo del usuario (ej: \\\"precio del fabuloso en la tienda 791\\\"). El sistema interpreta automáticamente qué tienda y productos buscar.",
+        "workflowId": {
+          "__rl": true,
+          "value": "kR8AXf16ODBRqzRL",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kR8AXf16ODBRqzRL",
+          "cachedResultName": "consultar-precios"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consulta": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('consulta', ``, 'string') }}",
+            "channel_id": "={{ $json.slack_channel_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "consulta",
+              "displayName": "consulta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "channel_id",
+              "displayName": "channel_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1072,
+        960
+      ],
+      "id": "2b94444e-b03d-44a7-bd9e-85d1c6815833",
+      "name": "consultar-precios"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Edit Fields2').first().json.prompt }}\n{{ $('Edit Fields2').first().json.imagen_url }}\n\nHora_fecha_cdmx: {{ $now.setLocale('es').format('EEEE HH:mm:ss yyyy-MM-dd') }}\n\nNO ME INVENTES DATOS, USA LA TOOL OBLIGATORIAMENTE, TIENES PROBIHIDO INVENTAR\n\n-> CONTESTA EN FORMATO SLACK OBLIGATORIO:\n- **PROHIBIDO**: # ## ### *texto* __texto__ [links]\n- **PERMITIDO**: *negritas* _cursivas_ ~tachado~ `código` > citas • listas\n\n\nTu respuesta final es SOLO el texto que leerá el usuario en Slack. Nada más.\n\nANTES de enviar cualquier respuesta, escanea tu texto completo y elimina CUALQUIER fragmento que:\n- Empiece con: Used tools:, Tool:, Input:, Result:, Output:, toolcall:, vsystemcall:, systemcall:\n- Contenga corchetes con nombres de tools: [Call_algo], [Tool: ...]\n- Sea un objeto JSON o parezca un log técnico\n- Mencione explícitamente que usaste una herramienta\n\nSi encuentras alguno de esos fragmentos en tu respuesta → BÓRRALO COMPLETO antes de responder.\nEl usuario solo debe ver texto conversacional amigable, nunca metadatos internos.\n\n❌ NUNCA: \"[Used tools: Tool: Call_Mandar_multimedia_, Input: {}, Result: [...]] ",
+        "needsFallback": true,
+        "options": {
+          "systemMessage": "=# PARCHE — Pegar al inicio del system message, justo después de \"QUIÉN ERES\"\n\n---\n\n## 🚦 GATE OBLIGATORIO ANTES DE CADA RESPUESTA DE SOPORTE\n\nSi la conversación está en un FLUJO DE SOPORTE activo (ya llamaste `Resolver_problema_soporte` antes), ANTES de escribir CUALQUIER texto al usuario tienes que haber hecho lo siguiente en este mismo turno:\n\n**Cada vez que el usuario responde \"no funcionó / sigue igual / no prendió\" y vas a presentar la SIGUIENTE fase:**\n\n1. ✅ Ya tienes el procedimiento de `Resolver_problema_soporte` en memoria (no lo vuelvas a llamar).\n2. 🔍 Identifica cuál es la siguiente FASE pendiente (B, C, D...).\n3. 📎 ¿Esa fase menciona IMG o VID en el procedimiento?\n   - **SÍ** → la lista de multimedia DEBE estar cacheada. Si NO la cacheaste antes en esta conversación → llama `Obtener_url_de_la_multimedia` AHORA. Luego identifica el archivo exacto y llama `Mandar_multimedia(url=<url completa de la lista>)`. ESTA LLAMADA ES OBLIGATORIA antes de escribir el texto al usuario.\n   - **NO** → escribe el texto directamente.\n4. ✍️ SOLO entonces redacta el mensaje de texto al usuario, en el MISMO turno donde llamaste la tool.\n\n🔒 **REGLA DURA**: Si tu siguiente turno NO incluye un `tool_call` y la fase a presentar tiene multimedia, ESTÁS ROMPIENDO EL PROTOCOLO. Detente, llama la tool, y vuelve a generar.\n\n---\n\n## 🚫 PROHIBIDO INVENTAR LAS FASES SIGUIENTES\n\nCuando `Resolver_problema_soporte` te retorna el procedimiento, contiene un texto fijo para cada fase. Para las fases B, C, D... NO PUEDES:\n\n- ❌ Reescribir el paso con tus propias palabras agregando detalles que no vinieron en el procedimiento (ej. \"foquitos verdes\", \"clavijas con foquitos\", \"regulador o contacto\")\n- ❌ Numerar sub-preguntas (1, 2, 3) dentro del mismo paso\n- ❌ Listar varias verificaciones encadenadas en el mismo mensaje\n\nLo que SÍ puedes hacer:\n- ✅ Adaptar el tono del paso al estilo amigable de Dany\n- ✅ Agregar UN saludo corto o validación emocional antes del paso (\"Entendido, vamos al siguiente 💪\")\n- ✅ Hacer UNA sola pregunta cerrada al final del paso\n\nSi el procedimiento dice literalmente \"Verificar regulador de voltaje\", NO lo expandas a \"checa los foquitos verdes y dime cuántas clavijas hay\". Mantente fiel al texto retornado por la tool.\n\n---\n\n## 🧪 AUTOCHEQUEO ANTES DE ENVIAR (obligatorio en cada turno de soporte)\n\nAntes de devolver tu respuesta, contesta mentalmente estas 4 preguntas. Si CUALQUIERA es \"no\", regenera:\n\n1. ¿La fase que voy a presentar viene textual del procedimiento que retornó `Resolver_problema_soporte`, sin invenciones mías?\n2. Si la fase tiene IMG/VID → ¿en este mismo turno hay un `tool_call` a `Mandar_multimedia` con una URL completa de la lista cacheada?\n3. ¿Mi mensaje tiene UNA sola pregunta cerrada al final (no dos, no tres, no numeradas)?\n4. ¿Mi mensaje está libre de detalles inventados que no vinieron en el procedimiento (foquitos, colores, formas, contactos específicos, etc.)?\n\nSi las 4 son sí → envía. Si alguna es no → corrige antes de enviar.\n\n---"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1328,
+        736
+      ],
+      "id": "37bb146c-2ac0-43a2-96c9-1af6e09f7929",
+      "name": "Dany"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "rsfFPT5NvydNwTRC",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/rsfFPT5NvydNwTRC",
+          "cachedResultName": "Obtener_promociones_motor"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id_tienda": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('id_tienda', ``, 'string') }}",
+            "fecha_inicio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fecha_inicio', ``, 'string') }}",
+            "decha_termino": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('decha_termino', ``, 'string') }}",
+            "producto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('producto', ``, 'string') }}",
+            "precio": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('precio', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "producto",
+              "displayName": "producto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "id_tienda",
+              "displayName": "id_tienda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "fecha_inicio",
+              "displayName": "fecha_inicio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "decha_termino",
+              "displayName": "decha_termino",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "precio",
+              "displayName": "precio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1200,
+        960
+      ],
+      "id": "df2bc585-d9cd-4376-bc9f-21b6a1e3af41",
+      "name": "Consultar_promociones"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "0qAlD3ZnZ3hJ9Y4H",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/0qAlD3ZnZ3hJ9Y4H",
+          "cachedResultName": "Sincronizar_prodcutos"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "sku": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('sku', ``, 'string') }}",
+            "tienda_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('tienda_id', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "sku",
+              "displayName": "sku",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "tienda_id",
+              "displayName": "tienda_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1328,
+        960
+      ],
+      "id": "420a3f59-5a06-448e-8a35-abf4bb0bb60e",
+      "name": "Actualizar_promocion"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Cuando tu flujo te pida mandar imagen o video usa esta tool para mapear que archivo mandar",
+        "url": "https://dany.netopower123.com/api/media/files",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-API-Key",
+              "value": "dany-promo-2026-s3cur3-k3y"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        1456,
+        960
+      ],
+      "id": "64ae0bd5-264a-402f-a5dc-0d4fe1bd2ea0",
+      "name": "Obtener url de la multimedia"
+    },
+    {
+      "parameters": {
+        "description": "Esta es tu tool para mandar imagens y video, siemrpe que las instrucciones indiquen la multimedia usa esta tool,",
+        "workflowId": {
+          "__rl": true,
+          "value": "REY1IN2BDRxsvqlk",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/REY1IN2BDRxsvqlk",
+          "cachedResultName": "Mandar multimedia"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Id_slack": "={{ $('Slack Trigger').first().json.channel }}",
+            "Url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Url', `Aseguarate de mandar eel documento correcto que poenen tus instrucciones, unicamente manda la url https://dany.netopower123.com/api/media/{file_name}`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Id_slack",
+              "displayName": "Id_slack",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "Url",
+              "displayName": "Url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1584,
+        960
+      ],
+      "id": "650c84c8-fd5e-45f3-be45-47b79ebadf47",
+      "name": "Call 'Mandar multimedia'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "vaPVCh6HS52NSh3J",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/vaPVCh6HS52NSh3J",
+          "cachedResultName": "Analizar_foto_promocion"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imagen_url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('imagen_url', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "imagen_url"
+          ],
+          "schema": [
+            {
+              "id": "imagen_url",
+              "displayName": "imagen_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1968,
+        960
+      ],
+      "id": "bafb4f0e-5861-42af-8ee3-2faab2f03646",
+      "name": "analizar_foto"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        816,
+        960
+      ],
+      "id": "af7af2cc-a2a9-44c3-82a3-fe8d7dc43abb",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "MOmOpc2nJXEMgQVA",
+          "name": "Renatat"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Usa esta tool OBLIGATORIAMENTE cuando el usuario reporte CUALQUIER problema operativo, técnico o de soporte. Cubre 47 flujos en 4 categorías:\n\n1) HARDWARE: CPU, impresora, monitor, teclado, scanner, lector de huella, terminal bancaria, cajón de dinero, firewall, switch, antena, internet\n\n2) SISTEMA SION (punto de venta): inventarios cíclicos, pagos de servicio, corresponsalía BAZ, ingreso de usuario, lentitud de módulos, módulos inhabilitados, ventas fuera de línea, egreso de valores, traspaso de valores, redondeo, recargas, giftcard, módulo NULL, boleto de lotería, retiros\n\n3) COACH (dudas operativas): justificación de asistencia, bloqueo de usuario, corte Z, corte ZZ, órdenes de compra, transferencia entre tiendas, egreso de valores, traspaso de valores, inventarios, recaptura de huella, consulta de tarjeta, validar venta\n\n4) ASEGURAMIENTO DE INGRESOS: bloqueo de usuario, corresponsalía BAZ, faltantes, reversos, egreso de valores\n\nParámetro: descripcion = el mensaje exacto del usuario (ej: \"no puedo cerrar inventario\", \"el monitor no enciende\", \"traspaso no funciona\", \"usuario bloqueado\", \"faltante\", \"reverso pendiente\")\n\nUSA ESTA TOOL PRIMERO antes de responder cualquier duda operativa o técnica. NO respondas con conocimiento propio.",
+        "workflowId": {
+          "__rl": true,
+          "value": "CcPjSAWwxfo6yhhd",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/CcPjSAWwxfo6yhhd",
+          "cachedResultName": "Resolver_problema_soporte"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "descripcion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('descripcion', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "descripcion"
+          ],
+          "schema": [
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        2096,
+        960
+      ],
+      "id": "2f744177-b7d0-4c11-b6cd-c9a41e215871",
+      "name": "Resolver_problema_soporte'"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "34hZQXGo6wR6pWCb",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/34hZQXGo6wR6pWCb",
+          "cachedResultName": "Obtener info tienda"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "eco": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('eco', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "eco"
+          ],
+          "schema": [
+            {
+              "id": "eco",
+              "displayName": "eco",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        1184
+      ],
+      "id": "440a8c5b-8973-4232-ad7e-20b310dfacd3",
+      "name": "Call 'Obtener info tienda'"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-5.5-2026-04-23",
+          "mode": "list",
+          "cachedResultName": "gpt-5.5-2026-04-23"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1328,
+        1088
+      ],
+      "id": "212b99bc-bbd9-4c66-960d-e1f68fef8023",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "uiSGfXq0uedkbMws",
+          "name": "OpenAi PatriciaOPE"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "4LffIwh87gYT3j2C",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/4LffIwh87gYT3j2C",
+          "cachedResultName": "Mandar folio"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "tienda": "={{ $fromAI('tienda', ``, 'string') }}",
+            "descripcion": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('descripcion', `que sucedio`, 'string') }}",
+            "resuelto": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('resuelto', `true or false`, 'string') }}",
+            "pasos_intentados": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('pasos_intentados', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "tienda",
+              "displayName": "tienda",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "descripcion",
+              "displayName": "descripcion",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "resuelto",
+              "displayName": "resuelto",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "pasos_intentados",
+              "displayName": "pasos_intentados",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1648,
+        1088
+      ],
+      "id": "1a51fa74-d06e-452d-986a-2cd9f192cdb3",
+      "name": "Mandar folio'"
+    }
+  ],
+  "pinData": {
+    "Slack Trigger": [
+      {
+        "json": {
+          "type": "message",
+          "user": "U0A796R3RAA",
+          "ts": "1777503718.015689",
+          "client_msg_id": "66bf3282-a026-4989-931f-7e4e3a77f0d7",
+          "text": "no prende mi cpu",
+          "team": "TA20EJRHC",
+          "blocks": [
+            {
+              "type": "rich_text",
+              "block_id": "fPrIo",
+              "elements": [
+                {
+                  "type": "rich_text_section",
+                  "elements": [
+                    {
+                      "type": "text",
+                      "text": "no prende mi cpu"
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "channel": "D0AM5V6BLM8",
+          "event_ts": "1777503718.015689",
+          "channel_type": "im"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "If3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Add a reaction1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Dany",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add a reaction1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a user's profile1": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Add a reaction3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove a reaction1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add a reaction3": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Operation, do nothing2": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "Remove a reaction1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slack Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a user's profile1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "consultar-precios": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dany": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar_promociones": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Actualizar_promocion": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener url de la multimedia": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Mandar multimedia'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analizar_foto": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Resolver_problema_soporte'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Obtener info tienda'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mandar folio'": {
+      "ai_tool": [
+        [
+          {
+            "node": "Dany",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "America/Mexico_City",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "0d8b27c5-995e-4297-8dd7-bbecca993d22",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "ZKIt7pmjmPpU3LoE",
+  "tags": []
+}

@@ -1,0 +1,141 @@
+{
+  "name": "CSN - Escalación SLA Dany (cron)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -656,
+        80
+      ],
+      "id": "b6b32195-8a9a-4836-9d46-61da31bd9ba3",
+      "name": "Cada 60 minutos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $vars.CSN_API_URL }}/api/v1/internal/escalar-sla-dany",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -448,
+        80
+      ],
+      "id": "61c17fc1-0e20-4e85-87c6-ff5791fa773d",
+      "name": "Escalar SLA Dany"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.escalados }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -224,
+        80
+      ],
+      "id": "c405e5e8-0453-4ddc-89dd-46931f6b5288",
+      "name": "¿Hay escalados?"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#cc-sistemas",
+          "mode": "name"
+        },
+        "text": "=⚠️ *Auto-escalación SLA Dany*\n{{ $json.escalados }} ticket(s) elevados a prioridad ALTA porque consumieron ≥70% del SLA.\n\n*Folios:* {{ $json.folios.join(', ') }}\n\nRevisa la cola del Centro de Soluciones.",
+        "otherOptions": {}
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1b8591b6-35d5-4fcd-b76e-785f7de40438",
+      "name": "Alerta Slack",
+      "webhookId": "2c844ce4-6a55-45f5-9643-b277e46250ef"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cada 60 minutos": {
+      "main": [
+        [
+          {
+            "node": "Escalar SLA Dany",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalar SLA Dany": {
+      "main": [
+        [
+          {
+            "node": "¿Hay escalados?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Hay escalados?": {
+      "main": [
+        [
+          {
+            "node": "Alerta Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "e0011b42-0ce8-411c-bbca-e83d01cb161e",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "E7zV4WTF3Mcadhb4",
+  "tags": []
+}

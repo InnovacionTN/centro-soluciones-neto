@@ -15,8 +15,30 @@ frontend/node_modules/
 frontend/.angular/
 frontend/dist/
 frontend/.env
+frontend/src/assets/
 
-# ─── IDEs / OS ───────────────────────────────────────────────────────────────
+# ─── Agente Dany (Node) ──────────────────────────────────────────────────────
+agentes/dany-vercel/node_modules/
+agentes/dany-vercel/dist/
+
+# ─── Assets locales (viven en GCS, no en git) ────────────────────────────────
+# Multimedia original de soporte (~156MB) — respaldo local; producción usa el bucket csn-dany-media
+/AGENTE-DANY/
+
+# ─── Datos / catálogos (no versionar) ────────────────────────────────────────
+backend/scripts/*.xlsx
+tiendas_prod.json
+usuarios_prod.json
+
+# ─── Temporales de análisis ──────────────────────────────────────────────────
+**/_*.txt
+**/_*.mjs
+
+# ─── Firebase ────────────────────────────────────────────────────────────────
+.firebase/
+
+# ─── Claude Code / IDEs / OS ─────────────────────────────────────────────────
+.claude/
 .vscode/
 .idea/
 *.DS_Store

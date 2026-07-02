@@ -1,0 +1,78 @@
+{
+  "name": "CSN: mandar multimedia",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "Url"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        48
+      ],
+      "id": "1e986908-ffdf-4a18-b317-a95b0439456c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "041ea5a3-f8cd-45dc-aaf0-5315f6b3e405",
+              "name": "multimedia_url",
+              "value": "={{ $json.Url }}",
+              "type": "string"
+            },
+            {
+              "id": "9d51bf0b-263e-42ca-9907-9ebd425bf209",
+              "name": "tipo",
+              "value": "={{ $json.Url && $json.Url.match(/\\.mp4|\\.mov|\\.webm/i) ? 'video' : 'imagen' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        608,
+        48
+      ],
+      "id": "9239ffbc-2c15-4e30-a2e4-8fd0e188189a",
+      "name": "Preparar respuesta multimedia"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Preparar respuesta multimedia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "a057ff9c-a5c7-4b35-bc92-9091a7047d40",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "BapBsnrU6lJaN99L",
+  "tags": []
+}

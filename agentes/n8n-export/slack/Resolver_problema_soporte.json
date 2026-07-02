@@ -1,0 +1,220 @@
+{
+  "name": "Resolver_problema_soporte",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "descripcion"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        1728,
+        400
+      ],
+      "id": "e86358f0-a413-41da-99a9-acdc27425a73",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "-- ============================================================\n-- SQL v2 para Resolver_problema_soporte workflow\n-- Tablas actualizadas a _v2 (categorias_v2, flujos_v2, pasos_v2,\n-- multimedia_v2, escalaciones_v2)\n-- Devuelve el árbol completo del flujo formateado para el LLM\n-- ============================================================\n\nSELECT \n  f.id,\n  c.nombre AS categoria,\n  f.numero,\n  f.nombre AS flujo,\n  f.descripcion AS descripcion_corta,\n  -- Procedimiento completo con todos los pasos en orden\n  COALESCE(\n    (\n      SELECT string_agg(linea, E'\\n' ORDER BY ord)\n      FROM (\n        SELECT \n          paso.orden AS ord,\n          CASE paso.tipo\n            WHEN 'inicio' THEN \n              '🟢 INICIO: ' || paso.contenido ||\n              COALESCE(' [MULTIMEDIA: ' || (\n                SELECT string_agg(mm.nombre_ref, ', ')\n                FROM multimedia_v2 mm WHERE mm.paso_id = paso.id AND mm.activo = TRUE\n              ) || ']', '')\n            WHEN 'proceso' THEN \n              'PASO ' || paso.orden || ': ' || paso.contenido ||\n              COALESCE(' [MULTIMEDIA: ' || (\n                SELECT string_agg(mm.nombre_ref, ', ')\n                FROM multimedia_v2 mm WHERE mm.paso_id = paso.id AND mm.activo = TRUE\n              ) || ']', '')\n            WHEN 'decision' THEN \n              '❓ DECISIÓN: ' || COALESCE(paso.pregunta_decision, paso.contenido)\n            WHEN 'resuelto' THEN \n              '✅ RESUELTO: ' || paso.contenido\n            WHEN 'escalar' THEN \n              '🚨 ESCALAR: ' || paso.contenido ||\n              COALESCE(' | ' || (\n                SELECT string_agg(esc.folio_csn || ' → ' || esc.destino, '; ')\n                FROM escalaciones_v2 esc WHERE esc.paso_id = paso.id\n              ), '')\n          END AS linea\n        FROM pasos_v2 paso\n        WHERE paso.flujo_id = f.id\n      ) sub\n    ),\n    f.descripcion\n  ) AS procedimiento_completo,\n  -- Multimedia disponible para este flujo\n  (\n    SELECT string_agg(DISTINCT m2.nombre_ref || ' (' || m2.tipo || ')', ' | ')\n    FROM multimedia_v2 m2\n    JOIN pasos_v2 p2 ON m2.paso_id = p2.id\n    WHERE p2.flujo_id = f.id AND m2.activo = TRUE\n  ) AS multimedia_disponible\nFROM flujos_v2 f\nJOIN categorias_v2 c ON f.categoria_id = c.id\nWHERE f.activo = TRUE\nORDER BY c.id, f.numero;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2400,
+        496
+      ],
+      "id": "11089ced-5ca5-4908-bd2b-15d986d42af4",
+      "name": "Execute a SQL query2",
+      "credentials": {
+        "postgres": {
+          "id": "FUPrhwvYBQgx1csz",
+          "name": "Postgres NetoBox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: el SQL alias la descripción como `descripcion_corta`, no `descripcion`.\n// Antes el catálogo mandaba Keywords vacío al LLM.\nconst rows = $input.all();\nconst descripcion = $('When Executed by Another Workflow').first().json.descripcion;\n\nconst catalogo = rows.map(r => \n  `ID: ${r.json.id} | [${r.json.categoria}] ${r.json.flujo} | Keywords: ${r.json.descripcion_corta ? r.json.descripcion_corta.substring(0, 200) : ''}`\n).join('\\n');\n\nreturn [{ json: { catalogo, descripcion, total_flujos: rows.length } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2608,
+        496
+      ],
+      "id": "19ae595c-9697-40eb-b005-128ef0143815",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un clasificador de problemas de soporte técnico para tiendas Neto.\n\nSe te dará un catálogo de flujos de soporte organizados por categoría:\n- Soporte Técnico (Hardware): problemas con equipos físicos (CPU, impresora, terminal, teclado, monitor, etc.)\n- Sistema SION: problemas con el sistema punto de venta (inventarios, pagos, módulos, recargas, etc.)\n- Coach: dudas operativas (asistencia, cortes, órdenes de compra, traspasos, etc.)\n- Aseguramiento de Ingresos: bloqueos, faltantes, reversos, egresos\n\nTu tarea: responde ÚNICAMENTE con el número ID del flujo más relevante.\nSi ninguno aplica, responde con el número 0.\nNO expliques nada. Solo el número.\n\nCATÁLOGO ({{ $json.total_flujos }} flujos):\n{{ $json.catalogo }}\n\nDESCRIPCIÓN DEL USUARIO:\n{{ $json.descripcion }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        2816,
+        496
+      ],
+      "id": "29171f69-87fa-4e84-88e5-00fd196c807e",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2752,
+        704
+      ],
+      "id": "0d09dd0e-dfe5-414a-b714-727b5a39cb82",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Deewd9iNpcj1fU3J",
+          "name": "Andres Salinas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIX: ahora devuelve procedimiento_completo (árbol paso a paso)\n// en lugar de descripcion (que ni siquiera era un campo existente).\nconst idElegido = parseInt($input.first().json.text.trim());\nconst rows = $('Execute a SQL query2').all();\n\nif (idElegido === 0 || isNaN(idElegido)) {\n  return [{ json: { \n    procedimiento: 'No encontré un flujo de soporte que coincida con este problema. Por favor describe mejor el equipo, módulo o síntoma.',\n    categoria: 'N/A',\n    flujo: 'No identificado',\n    multimedia: ''\n  }}];\n}\n\nconst match = rows.find(r => r.json.id === idElegido);\n\nif (!match) {\n  return [{ json: { \n    procedimiento: 'No encontré un flujo para este problema.',\n    categoria: 'N/A',\n    flujo: 'No encontrado',\n    multimedia: ''\n  }}];\n}\n\nreturn [{ json: { \n  procedimiento: match.json.procedimiento_completo || match.json.descripcion_corta || 'Sin procedimiento registrado',\n  categoria: match.json.categoria,\n  flujo: match.json.flujo,\n  multimedia: match.json.multimedia_disponible || 'Sin multimedia registrada'\n}}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3168,
+        496
+      ],
+      "id": "1c28fc47-2c62-4c23-b61f-8f2922d88e99",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c69b2ab9-b5c1-436c-940c-9a2c5453deaf",
+              "name": "procedimiento",
+              "value": "=[{{ $json.categoria }}] {{ $json.flujo }}\n\n{{ $json.procedimiento }}\n\n---\nMULTIMEDIA DISPONIBLE:\n{{ $json.multimedia }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3376,
+        496
+      ],
+      "id": "9dc90daf-0f5a-4134-9011-a8fa41859a56",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "descripcion": "ayuda con el cajon de dinero"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "134c0e5a-fd5d-446a-81d0-7d047a78130c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "CcPjSAWwxfo6yhhd",
+  "tags": []
+}

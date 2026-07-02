@@ -1,0 +1,1129 @@
+<title>Centro de Soluciones Neto — Piloto Región Toluca 2026</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0E3B83;--navy-dk:#071F4A;--navy-lt:#E6EDF8;
+  --orange:#FF5100;--orange-lt:#FFF0EA;
+  --teal:#1ABC9C;--teal-lt:#E4F9F5;
+  --off:#F4F7FD;--border:#C8D8F0;--text:#0D1B2A;--muted:#526180;
+  --green:#22C55E;--red:#EF4444;--amber:#F59E0B;--white:#FFFFFF;
+  --r:5px;--shadow:0 2px 16px rgba(14,59,131,.10);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:16px;line-height:1.6;color:var(--text);background:var(--off)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--navy-dk);display:flex;align-items:center;height:52px;padding:0 28px;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.nav-brand{color:var(--white);font-weight:700;font-size:.92rem;letter-spacing:.01em;margin-right:auto;display:flex;align-items:center;gap:10px}
+.nav-dot{width:8px;height:8px;border-radius:50%;background:var(--orange)}
+nav a{color:rgba(255,255,255,.65);text-decoration:none;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;padding:0 12px;line-height:52px;transition:color .15s;white-space:nowrap}
+nav a:hover,nav a.active{color:var(--white)}
+nav a.cta{color:var(--orange)}
+
+/* LAYOUT */
+.wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+section{padding:80px 0 64px}
+
+/* HERO */
+#hero{background:linear-gradient(135deg,var(--navy-dk) 0%,#142F6E 60%,var(--navy) 100%);padding:116px 0 88px;text-align:center;position:relative;overflow:hidden}
+#hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 110%,rgba(255,81,0,.18) 0%,transparent 70%)}
+#hero .wrap{position:relative}
+.eyebrow{display:inline-block;background:var(--orange);color:var(--white);font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:4px 14px;border-radius:2px;margin-bottom:24px}
+#hero h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;color:var(--white);line-height:1.12;letter-spacing:-.02em;text-wrap:balance;margin-bottom:18px}
+#hero h1 span{color:var(--orange)}
+#hero p.sub{color:rgba(255,255,255,.72);font-size:1.1rem;max-width:560px;margin:0 auto 48px;text-wrap:balance}
+.hero-stats{display:flex;justify-content:center;gap:48px;flex-wrap:wrap}
+.hero-stat{text-align:center}
+.hero-stat .num{display:block;font-size:2.2rem;font-weight:800;color:var(--white);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.hero-stat .lbl{color:rgba(255,255,255,.55);font-size:.78rem;letter-spacing:.06em;text-transform:uppercase}
+
+/* SECTION HEADERS */
+.sec-ey{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);margin-bottom:10px}
+.sec-h{font-size:clamp(1.4rem,3vw,1.9rem);font-weight:800;letter-spacing:-.02em;color:var(--navy-dk);text-wrap:balance;margin-bottom:10px}
+.sec-sub{color:var(--muted);max-width:580px;font-size:.95rem;margin-bottom:36px}
+
+/* QUÉ CAMBIÓ */
+#cambios{background:var(--white)}
+.cambios-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.cambio-card{border:1px solid var(--border);border-radius:var(--r);padding:26px 22px;background:var(--white);border-top:3px solid var(--navy)}
+.cambio-card.hi{border-top-color:var(--orange)}
+.cambio-card.alt{border-top-color:var(--teal)}
+.cambio-icon{font-size:1.5rem;margin-bottom:14px}
+.cambio-card h3{font-size:.97rem;font-weight:700;color:var(--navy-dk);margin-bottom:8px}
+.cambio-card p{font-size:.86rem;color:var(--muted);line-height:1.55}
+.vs-row{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+.vs-pill{font-size:.71rem;font-weight:600;padding:3px 9px;border-radius:20px}
+.vs-pill.b{background:#FEE2E2;color:#991B1B}
+.vs-pill.a{background:var(--teal-lt);color:#0F766E}
+
+/* TIENDAS PILOTO */
+#piloto{background:var(--off)}
+.piloto-note{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-size:.78rem;padding:6px 14px;border-radius:var(--r);margin-bottom:28px}
+.piloto-table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow)}
+table{width:100%;border-collapse:collapse;background:var(--white)}
+thead tr{background:var(--navy)}
+th{color:var(--white);font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;padding:11px 14px;text-align:left;font-weight:600}
+td{font-size:.84rem;padding:11px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even) td{background:var(--off)}
+.cc{font-family:'Courier New',monospace;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.zona-chip{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:3px;background:var(--navy-lt);color:var(--navy);white-space:nowrap}
+.mandatory-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--orange);margin-right:6px;vertical-align:middle}
+.coach-name{font-size:.78rem;color:var(--muted)}
+.coach-name strong{color:var(--text)}
+.grupo-tag{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 9px;border-radius:3px}
+.g-sis{background:#DBEAFE;color:#1E40AF}
+.g-com{background:#F3E8FF;color:#6B21A8}
+.g-ops{background:#FEF3C7;color:#92400E}
+.g-fin{background:var(--teal-lt);color:#0F766E}
+.g-mant{background:#FFE4E6;color:#9F1239}
+
+/* EQUIPOS DE ÁREA */
+#equipos{background:var(--white)}
+.equipos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.equipo-card{border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.equipo-header{padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.equipo-header h4{font-size:.92rem;font-weight:700;color:var(--white)}
+.equipo-count{font-size:1.4rem;font-weight:800;color:rgba(255,255,255,.85);font-variant-numeric:tabular-nums}
+.eq-sis .equipo-header{background:var(--navy)}
+.eq-com .equipo-header{background:#6B21A8}
+.eq-ops .equipo-header{background:#B45309}
+.eq-fin .equipo-header{background:#0F766E}
+.eq-rh  .equipo-header{background:#9F1239}
+.eq-mant .equipo-header{background:#374151}
+.equipo-body{padding:14px 18px}
+.agente-item{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:.82rem}
+.agente-item:last-child{border-bottom:none}
+.agente-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;color:#fff;flex-shrink:0}
+.av-sis{background:var(--navy)}
+.av-com{background:#6B21A8}
+.av-ops{background:#B45309}
+.av-fin{background:#0F766E}
+.av-rh{background:#9F1239}
+.av-mant{background:#374151}
+.equipo-note{font-size:.75rem;color:var(--muted);padding:10px 18px;border-top:1px solid var(--border);background:var(--off)}
+
+/* ZONAS OVERVIEW */
+#region{background:var(--off)}
+.region-kpis{display:flex;gap:18px;flex-wrap:wrap;margin-bottom:32px}
+.kpi-box{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:14px 20px;text-align:center;min-width:80px}
+.kpi-box .num{font-size:1.8rem;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;display:block}
+.kpi-box .lbl{font-size:.7rem;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.zonas-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.zona-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);transition:transform .15s}
+.zona-card:hover{transform:translateY(-2px)}
+.zona-badge{display:inline-block;background:var(--navy-lt);color:var(--navy);font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:3px;margin-bottom:9px}
+.zona-card h4{font-size:.88rem;font-weight:700;color:var(--navy-dk);margin-bottom:4px}
+.zona-coach-sm{font-size:.76rem;color:var(--muted);margin-bottom:8px}
+.zona-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.zona-count{font-size:1.2rem;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.zona-pilot-count{font-size:.7rem;color:var(--orange);font-weight:700}
+
+/* COACH PANEL */
+.coach-explainer{background:var(--navy-lt);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:var(--r);padding:16px 20px;margin-top:28px;display:flex;gap:16px;align-items:flex-start}
+.coach-explainer .icon{font-size:1.4rem;flex-shrink:0;margin-top:2px}
+.coach-explainer h4{font-size:.9rem;font-weight:700;color:var(--navy-dk);margin-bottom:4px}
+.coach-explainer p{font-size:.84rem;color:var(--muted);line-height:1.5}
+.coach-can{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.coach-can span{font-size:.72rem;padding:2px 9px;border-radius:20px;font-weight:600}
+.can-yes{background:var(--teal-lt);color:#0F766E}
+.can-no{background:#FEE2E2;color:#991B1B}
+
+/* CÓMO FUNCIONA */
+#como{background:var(--white)}
+.flow-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px}
+.flow-tab{padding:10px 22px;font-size:.84rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+.flow-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
+.scenario-block{display:none}
+.scenario-block.active{display:block}
+.scenario-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:32px;align-items:start}
+.chat-window{background:var(--off);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.chat-header{background:var(--navy);color:var(--white);padding:12px 16px;font-size:.84rem;font-weight:600;display:flex;align-items:center;gap:10px}
+.chat-header .avatar{width:28px;height:28px;border-radius:50%;background:var(--orange);color:var(--white);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:800;flex-shrink:0}
+.chat-body{padding:14px;display:flex;flex-direction:column;gap:9px}
+.msg{max-width:83%}
+.msg.user{align-self:flex-end}
+.msg.bot{align-self:flex-start}
+.msg-bubble{padding:8px 13px;border-radius:14px;font-size:.81rem;line-height:1.45}
+.msg.user .msg-bubble{background:var(--navy);color:var(--white);border-radius:14px 14px 3px 14px}
+.msg.bot .msg-bubble{background:var(--white);color:var(--text);border:1px solid var(--border);border-radius:3px 14px 14px 14px}
+.msg-label{font-size:.67rem;color:var(--muted);margin-bottom:3px;letter-spacing:.02em}
+.msg.user .msg-label{text-align:right}
+.result-badge{margin:10px 14px;padding:10px 14px;border-radius:var(--r);font-size:.82rem;font-weight:600;display:flex;align-items:center;gap:8px}
+.rb-ok{background:#DCFCE7;color:#166534;border:1px solid #BBF7D0}
+.rb-ticket{background:var(--orange-lt);color:#92400E;border:1px solid #FED7AA}
+.rb-warn{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA}
+
+/* LIFECYCLE */
+.lifecycle h4{font-size:.85rem;font-weight:700;color:var(--navy-dk);margin-bottom:16px}
+.lc-steps{display:flex;flex-direction:column;gap:0}
+.lc-step{display:flex;gap:0;align-items:stretch}
+.lc-connector{display:flex;flex-direction:column;align-items:center;width:30px;flex-shrink:0}
+.lc-dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);background:var(--white);flex-shrink:0;z-index:1;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:800;color:#fff}
+.lc-dot.done{background:var(--navy);border-color:var(--navy)}
+.lc-dot.done::after{content:'✓'}
+.lc-dot.curr{background:var(--orange);border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,81,0,.2)}
+.lc-dot.curr::after{content:'✓'}
+.lc-dot.warn{background:var(--amber);border-color:var(--amber)}
+.lc-dot.warn::after{content:'↩';color:#fff}
+.lc-dot.good{background:var(--green);border-color:var(--green)}
+.lc-dot.good::after{content:'✓'}
+.lc-line{flex:1;width:2px;background:var(--border);margin:2px 0}
+.lc-step:last-child .lc-line{display:none}
+.lc-content{padding:2px 0 16px 12px}
+.lc-status{display:inline-block;font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:3px;margin-bottom:5px}
+.st-nuevo{background:#DBEAFE;color:#1E40AF}
+.st-asig{background:#EDE9FE;color:#5B21B6}
+.st-proc{background:#FEF3C7;color:#92400E}
+.st-esp{background:#E0F2FE;color:#0369A1}
+.st-res{background:#DCFCE7;color:#166534}
+.st-rech{background:#FEE2E2;color:#991B1B}
+.st-cerr{background:#F3F4F6;color:#374151}
+.lc-content p{font-size:.81rem;color:var(--muted);line-height:1.45;margin-top:4px}
+.lc-content strong{color:var(--text)}
+.actor-tag{display:inline-flex;align-items:center;gap:5px;background:var(--navy-lt);color:var(--navy);font-size:.71rem;font-weight:600;padding:2px 9px;border-radius:20px;margin-right:4px;margin-top:4px}
+.actor-tag.or{background:var(--orange-lt);color:#92400E}
+.actor-tag.tl{background:var(--teal-lt);color:#0F766E}
+.actor-tag.pu{background:#F3E8FF;color:#6B21A8}
+.highlight-box{margin-top:18px;padding:12px 16px;background:var(--teal-lt);border-radius:var(--r);font-size:.82rem;color:#0F766E;border:1px solid #99F6E4}
+
+/* ROLES TABLE */
+#roles{background:var(--off)}
+.roles-table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border)}
+.role-chip{display:inline-block;font-size:.71rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:3px 9px;border-radius:3px;white-space:nowrap}
+.r-ti{background:#DBEAFE;color:#1E40AF}
+.r-ag{background:#EDE9FE;color:#5B21B6}
+.r-co{background:#D1FAE5;color:#065F46}
+.r-ad{background:#FEF3C7;color:#92400E}
+
+/* CIERRE */
+#arranque{background:linear-gradient(135deg,var(--navy-dk) 0%,var(--navy) 100%);text-align:center;padding:80px 0}
+#arranque h2{font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;color:var(--white);letter-spacing:-.02em;margin-bottom:14px}
+#arranque p{color:rgba(255,255,255,.65);max-width:480px;margin:0 auto 36px;font-size:.95rem}
+.checklist{display:flex;flex-direction:column;gap:8px;max-width:420px;margin:0 auto 40px;text-align:left}
+.check-item{display:flex;align-items:center;gap:12px;color:rgba(255,255,255,.85);font-size:.88rem}
+.check-icon{width:22px;height:22px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.7rem;color:#fff;font-weight:700}
+.url-box{display:inline-block;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:var(--r);color:var(--white);font-family:'Courier New',monospace;font-size:.95rem;padding:12px 28px;letter-spacing:.02em}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .cambios-grid,.zonas-grid,.equipos-grid{grid-template-columns:1fr 1fr}
+  .scenario-grid{grid-template-columns:1fr}
+  nav a:not(.cta):not(:nth-child(-n+3)){display:none}
+}
+@media(max-width:560px){
+  .cambios-grid,.zonas-grid,.equipos-grid{grid-template-columns:1fr}
+  .hero-stats{gap:24px}
+}
+@media(prefers-reduced-motion:reduce){.zona-card{transition:none}}
+
+/* ── PRINT / PDF ── */
+@media print {
+  @page { size: A4 portrait; margin: 14mm 16mm 14mm 16mm; }
+
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  nav { display: none !important; }
+  body { background: white; }
+
+  /* Section spacing */
+  section { padding: 36px 0 28px; }
+
+  /* Page breaks: cada sección grande empieza en página nueva */
+  #cambios, #piloto, #equipos, #region, #roles, #arranque {
+    break-before: page; page-break-before: always;
+  }
+
+  /* Escenarios: mostrar los 3, cada uno en página nueva */
+  .flow-tabs { display: none !important; }
+  .scenario-block { display: block !important; break-before: page; page-break-before: always; }
+
+  /* Etiqueta de escenario para PDF */
+  #s1::before { content: 'Escenario A — Dany resuelve sin ticket'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s2::before { content: 'Escenario B — Ticket completo hasta cierre'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s3::before { content: 'Escenario C — Tienda rechaza la solución'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+
+  /* No cortar en medio */
+  .cambio-card, .zona-card, .equipo-card, .chat-window, .lifecycle,
+  .scenario-grid, .coach-explainer, .highlight-box, .lc-step,
+  .piloto-table-wrap, .roles-table-wrap, .hero-stats, .checklist,
+  .region-kpis, .kpi-box { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Grids: mantener columnas en impresión */
+  .cambios-grid  { grid-template-columns: repeat(3,1fr) !important; }
+  .zonas-grid    { grid-template-columns: repeat(4,1fr) !important; }
+  .equipos-grid  { grid-template-columns: repeat(3,1fr) !important; }
+  .scenario-grid { grid-template-columns: 1fr 1.35fr !important; }
+
+  /* Hero compacto */
+  #hero { padding: 56px 0 44px; }
+  #directorio { break-before: page; }
+  .dir-grupos { grid-template-columns: repeat(3,1fr); }
+  .cred-grid { grid-template-columns: repeat(4,1fr); }
+  .dir-persona, .dir-grupo, .cred-card { break-inside: avoid; }
+  #arranque { padding: 56px 0; }
+
+  /* Sin sombras */
+  * { box-shadow: none !important; }
+
+  /* Tabla de piloto: no cortar filas */
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Sección #como necesita su propio break antes */
+  #como { break-before: page; page-break-before: always; }
+}
+</style>
+
+<nav>
+  <div class="nav-brand"><div class="nav-dot"></div>Centro de Soluciones Neto</div>
+  <a href="#cambios">Mejoras</a>
+  <a href="#piloto">10 Tiendas</a>
+  <a href="#equipos">Equipos</a>
+  <a href="#region">Zonas</a>
+  <a href="#como">Flujos</a>
+  <a href="#roles">Roles</a>
+  <a href="#directorio">Directorio</a>
+  <a href="#arranque" class="cta">Arranque</a>
+</nav>
+
+<!-- HERO -->
+<section id="hero">
+  <div class="wrap">
+    <div class="eyebrow">Piloto 2026 — Región Toluca · 10 Tiendas</div>
+    <h1>El nuevo sistema de<br><span>soporte para tiendas</span></h1>
+    <p class="sub">Dany atiende 24/7, la IA clasifica automáticamente y el equipo resuelve desde un solo lugar. Sin Zendesk, sin árboles de tipificación.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><span class="num">10</span><span class="lbl">Tiendas piloto</span></div>
+      <div class="hero-stat"><span class="num">8</span><span class="lbl">Zonas activas</span></div>
+      <div class="hero-stat"><span class="num">39</span><span class="lbl">Agentes área</span></div>
+      <div class="hero-stat"><span class="num">24/7</span><span class="lbl">Dany disponible</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- QUÉ CAMBIÓ -->
+<section id="cambios">
+  <div class="wrap">
+    <div class="sec-ey">Innovación</div>
+    <h2 class="sec-h">¿Qué cambió respecto al sistema anterior?</h2>
+    <p class="sec-sub">Tres mejoras clave que eliminan fricción para la tienda, el agente y el coach.</p>
+    <div class="cambios-grid">
+      <div class="cambio-card hi">
+        <div class="cambio-icon">🤖</div>
+        <h3>Dany — Soporte IA 24/7</h3>
+        <p>Antes de abrir un ticket, Dany intenta resolver guiando a la tienda paso a paso. Si lo logra, el ticket nunca se crea. Menos carga para el call center.</p>
+        <div class="vs-row"><span class="vs-pill b">Antes: ticket inmediato</span><span class="vs-pill a">Ahora: deflexión primero</span></div>
+      </div>
+      <div class="cambio-card">
+        <div class="cambio-icon">⚡</div>
+        <h3>Clasificación automática por IA</h3>
+        <p>Gemini 2.5 lee la descripción y selecciona tipificación + área. El ticket llega al agente correcto sin que nadie clasifique a mano.</p>
+        <div class="vs-row"><span class="vs-pill b">Antes: árbol de 4 niveles</span><span class="vs-pill a">Ahora: texto libre + IA</span></div>
+      </div>
+      <div class="cambio-card alt">
+        <div class="cambio-icon">📊</div>
+        <h3>Visibilidad en tiempo real</h3>
+        <p>Cada coach ve KPIs y tickets de su zona sin pedir reportes. Los agentes ven su cola priorizada. El admin ve todo el sistema en vivo.</p>
+        <div class="vs-row"><span class="vs-pill b">Antes: sin visibilidad</span><span class="vs-pill a">Ahora: dashboard en vivo</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 TIENDAS PILOTO -->
+<section id="piloto">
+  <div class="wrap">
+    <div class="sec-ey">Alcance del piloto</div>
+    <h2 class="sec-h">Las 10 tiendas del piloto Toluca</h2>
+    <p class="sec-sub">Selección de 5 zonas. Para cada tienda: su coach de zona y el equipo de agentes que atendería sus tickets según la tipificación.</p>
+    <div class="piloto-note">⚠ "Rosa Torres" no está registrada aún en la BD — se incorporará en la siguiente carga. "Héctor Victoria" aparece como <strong>Villa Victoria</strong> (cc=480).</div>
+    <div class="piloto-table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tienda</th>
+            <th>CC</th>
+            <th>Zona</th>
+            <th>Coach de zona</th>
+            <th>Agentes que la atienden</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td><span class="mandatory-dot"></span><strong>Lerma</strong></td>
+            <td class="cc">7909</td>
+            <td><span class="zona-chip">Toluca Centro</span></td>
+            <td><div class="coach-name"><strong>Dorisdiana Martinez</strong><br>dorisdiana.martinez@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span> <span class="grupo-tag g-com">Soporte Comercial</span></td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td><span class="mandatory-dot"></span><strong>Ocoyoacac</strong></td>
+            <td class="cc">1568</td>
+            <td><span class="zona-chip">Toluca Centro</span></td>
+            <td><div class="coach-name"><strong>Dorisdiana Martinez</strong><br>dorisdiana.martinez@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span></td>
+          </tr>
+          <tr>
+            <td>3</td>
+            <td><span class="mandatory-dot"></span><strong>San Mateo Atenco</strong></td>
+            <td class="cc">7273</td>
+            <td><span class="zona-chip">Toluca Centro</span></td>
+            <td><div class="coach-name"><strong>Dorisdiana Martinez</strong><br>dorisdiana.martinez@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span> <span class="grupo-tag g-fin">Serv. Financieros</span></td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td><span class="mandatory-dot"></span><strong>Atarasquillo</strong></td>
+            <td class="cc">8892</td>
+            <td><span class="zona-chip">Toluca Centro</span></td>
+            <td><div class="coach-name"><strong>Dorisdiana Martinez</strong><br>dorisdiana.martinez@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span></td>
+          </tr>
+          <tr>
+            <td>5</td>
+            <td><span class="mandatory-dot"></span><strong>Totoltepec</strong></td>
+            <td class="cc">1611</td>
+            <td><span class="zona-chip">Toluca Oriente</span></td>
+            <td><div class="coach-name"><strong>Sonia Flores Quezada</strong><br>flores.quezada@soyneto.com</div></td>
+            <td><span class="grupo-tag g-com">Soporte Comercial</span> <span class="grupo-tag g-sis">Soporte Sistemas</span></td>
+          </tr>
+          <tr>
+            <td>6</td>
+            <td>Santi</td>
+            <td class="cc">785</td>
+            <td><span class="zona-chip">Toluca Oriente</span></td>
+            <td><div class="coach-name"><strong>Sonia Flores Quezada</strong><br>flores.quezada@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span> <span class="grupo-tag g-ops">Call Center Ops</span></td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td><span class="mandatory-dot"></span><strong>Villa Victoria</strong> <span style="font-size:.71rem;color:var(--muted)">(Héctor Victoria)</span></td>
+            <td class="cc">480</td>
+            <td><span class="zona-chip">Toluca Noreste</span></td>
+            <td><div class="coach-name"><strong>Irenio Reyes Jesus</strong><br>irenio.reyes@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span></td>
+          </tr>
+          <tr>
+            <td>8</td>
+            <td>Zinacantepec</td>
+            <td class="cc">1048</td>
+            <td><span class="zona-chip">Toluca Noreste</span></td>
+            <td><div class="coach-name"><strong>Irenio Reyes Jesus</strong><br>irenio.reyes@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span> <span class="grupo-tag g-ops">Call Center Ops</span></td>
+          </tr>
+          <tr>
+            <td>9</td>
+            <td>Valle de Bravo</td>
+            <td class="cc">1567</td>
+            <td><span class="zona-chip">Toluca Sur</span></td>
+            <td><div class="coach-name"><strong>Uriel Piña Ramirez</strong><br>uriel.pina@soyneto.com</div></td>
+            <td><span class="grupo-tag g-com">Soporte Comercial</span> <span class="grupo-tag g-fin">Serv. Financieros</span></td>
+          </tr>
+          <tr>
+            <td>10</td>
+            <td>Calimaya</td>
+            <td class="cc">648</td>
+            <td><span class="zona-chip">Toluca Sureste</span></td>
+            <td><div class="coach-name"><strong>Isidro Rufino Valverde</strong><br>isidro.noe@soyneto.com</div></td>
+            <td><span class="grupo-tag g-sis">Soporte Sistemas</span> <span class="grupo-tag g-mant">Mantenimiento</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:12px"><span class="mandatory-dot"></span> Tienda indicada como prioritaria · Los agentes se asignan por tipificación del ticket via IA + Round Robin dentro del grupo</p>
+  </div>
+</section>
+
+<!-- EQUIPOS DE ÁREA -->
+<section id="equipos">
+  <div class="wrap">
+    <div class="sec-ey">Quién resuelve</div>
+    <h2 class="sec-h">Equipos de agentes por área</h2>
+    <p class="sec-sub">Los agentes no están asignados por zona — atienden según la tipificación que la IA asigna al ticket. Round Robin dentro de cada grupo.</p>
+    <div class="equipos-grid">
+
+      <div class="equipo-card eq-sis">
+        <div class="equipo-header"><h4>Soporte Sistemas</h4><span class="equipo-count">8</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-sis">KA</div> Karen Aboytes Trejo</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">AV</div> Alexander Vargas Garcia</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">GB</div> Guadalupe Ballesteros Franco</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">JG</div> Joshua Elias Garcia Arruel</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">AM</div> Alejandro Marcial Vite</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">EC</div> Erika Judith Contreras Guzman</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">MB</div> Melanie Sugey Balvanera Mendoza</div>
+          <div class="agente-item"><div class="agente-avatar av-sis">JM</div> Juan Carlos Miranda Godoy</div>
+        </div>
+        <div class="equipo-note">Terminal, POS, red, sistemas, accesos</div>
+      </div>
+
+      <div class="equipo-card eq-com">
+        <div class="equipo-header"><h4>Soporte Comercial</h4><span class="equipo-count">10</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-com">DV</div> Diana Villanueva</div>
+          <div class="agente-item"><div class="agente-avatar av-com">GG</div> Guadalupe Garcia Coronado</div>
+          <div class="agente-item"><div class="agente-avatar av-com">MG</div> Melanny Gutierrez Mendez</div>
+          <div class="agente-item"><div class="agente-avatar av-com">MM</div> Maria G. Mijangos Calderon</div>
+          <div class="agente-item"><div class="agente-avatar av-com">KB</div> Karina Bahena Espina</div>
+          <div class="agente-item"><div class="agente-avatar av-com">AG</div> Areli Gonzalez Rivera</div>
+          <div class="agente-item"><div class="agente-avatar av-com">EM</div> Edgar Saul Martinez Ibarra</div>
+          <div class="agente-item"><div class="agente-avatar av-com">NC</div> Natalia Carranco</div>
+          <div class="agente-item"><div class="agente-avatar av-com">MO</div> Monica Gomez Martin</div>
+          <div class="agente-item"><div class="agente-avatar av-com">MS</div> Michell Alejandra Soto Montes</div>
+        </div>
+        <div class="equipo-note">Precios, promociones, exhibición, abasto comercial</div>
+      </div>
+
+      <div class="equipo-card eq-ops">
+        <div class="equipo-header"><h4>Call Center Operaciones</h4><span class="equipo-count">4</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-ops">RC</div> Raúl Carmona Santos</div>
+          <div class="agente-item"><div class="agente-avatar av-ops">RV</div> Ricardo De La Via Paredes</div>
+          <div class="agente-item"><div class="agente-avatar av-ops">JL</div> Jose Nicolas Lozano Flores</div>
+          <div class="agente-item"><div class="agente-avatar av-ops">MR</div> Mitzi Jesica Rodriguez</div>
+        </div>
+        <div class="equipo-note">Escalaciones, operaciones generales, incidencias de alta prioridad</div>
+      </div>
+
+      <div class="equipo-card eq-fin">
+        <div class="equipo-header"><h4>Servicios Financieros</h4><span class="equipo-count">3</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-fin">NO</div> Natalia Ortiz López</div>
+          <div class="agente-item"><div class="agente-avatar av-fin">MR</div> Maria Del Carmen Ruiz Gonzalez</div>
+          <div class="agente-item"><div class="agente-avatar av-fin">EC</div> Emmanuel Castillo</div>
+        </div>
+        <div class="equipo-note">Caja, cobros, aseguramiento de ingresos, terminal financiera</div>
+      </div>
+
+      <div class="equipo-card eq-mant">
+        <div class="equipo-header"><h4>Mantenimiento</h4><span class="equipo-count">4</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-mant">JC</div> José Guadalupe Cruz</div>
+          <div class="agente-item"><div class="agente-avatar av-mant">OR</div> Omar Rodriguez Reyes</div>
+          <div class="agente-item"><div class="agente-avatar av-mant">ZV</div> Zohara Valdés Pérez</div>
+          <div class="agente-item"><div class="agente-avatar av-mant">EM</div> Everardo Martínez</div>
+        </div>
+        <div class="equipo-note">Equipamiento, instalaciones, fallas físicas de tienda</div>
+      </div>
+
+      <div class="equipo-card eq-rh">
+        <div class="equipo-header"><h4>Otros equipos</h4><span class="equipo-count">8</span></div>
+        <div class="equipo-body">
+          <div class="agente-item"><div class="agente-avatar av-rh">RH</div> RH: Juana Pérez, Luz Corona, Evaristo Escobar</div>
+          <div class="agente-item"><div class="agente-avatar av-rh">SA</div> Abasto: Karina Yañez, Jonathan Mendoza</div>
+          <div class="agente-item"><div class="agente-avatar av-rh">SI</div> SION: Christian Gutiérrez, Stephany Vázquez</div>
+          <div class="agente-item"><div class="agente-avatar av-rh">CO</div> Comunicaciones: Omar Reyes Martínez</div>
+        </div>
+        <div class="equipo-note">RH, Abasto, SION, Comunicaciones — por tipificación específica</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ZONAS -->
+<section id="region">
+  <div class="wrap">
+    <div class="sec-ey">Estructura completa</div>
+    <h2 class="sec-h">8 zonas — cada una con su coach</h2>
+    <p class="sec-sub">El coach ve KPIs y tickets de todas las tiendas de su zona. No atiende tickets — monitorea y escala si necesario.</p>
+    <div class="region-kpis">
+      <div class="kpi-box"><span class="num">8</span><span class="lbl">Zonas</span></div>
+      <div class="kpi-box"><span class="num">8</span><span class="lbl">Coaches</span></div>
+      <div class="kpi-box"><span class="num">67</span><span class="lbl">Tiendas totales</span></div>
+      <div class="kpi-box"><span class="num">10</span><span class="lbl">Tiendas piloto</span></div>
+    </div>
+    <div class="zonas-grid">
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Centro</div>
+        <h4>Dorisdiana Martinez B.</h4>
+        <div class="zona-coach-sm">dorisdiana.martinez@soyneto.com</div>
+        <div class="zona-footer"><span class="zona-pilot-count">4 en piloto</span><span class="zona-count">8</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Oriente</div>
+        <h4>Sonia Flores Quezada</h4>
+        <div class="zona-coach-sm">flores.quezada@soyneto.com</div>
+        <div class="zona-footer"><span class="zona-pilot-count">2 en piloto</span><span class="zona-count">9</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Centro 2</div>
+        <h4>Misael Luna Palacios</h4>
+        <div class="zona-coach-sm">luna.palacios@soyneto.com</div>
+        <div class="zona-footer"><span style="font-size:.7rem;color:var(--muted)">No en piloto fase 1</span><span class="zona-count">8</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Sur</div>
+        <h4>Uriel Piña Ramirez</h4>
+        <div class="zona-coach-sm">uriel.pina@soyneto.com</div>
+        <div class="zona-footer"><span class="zona-pilot-count">1 en piloto</span><span class="zona-count">10</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Norte</div>
+        <h4>Jorge Silva Ruiz</h4>
+        <div class="zona-coach-sm">silva.ruiz@soyneto.com</div>
+        <div class="zona-footer"><span style="font-size:.7rem;color:var(--muted)">No en piloto fase 1</span><span class="zona-count">8</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Poniente</div>
+        <h4>Carlos Cruz Bustos</h4>
+        <div class="zona-coach-sm">carlos.cruz@soyneto.com</div>
+        <div class="zona-footer"><span style="font-size:.7rem;color:var(--muted)">No en piloto fase 1</span><span class="zona-count">8</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Noreste</div>
+        <h4>Irenio Reyes Jesus</h4>
+        <div class="zona-coach-sm">irenio.reyes@soyneto.com</div>
+        <div class="zona-footer"><span class="zona-pilot-count">2 en piloto</span><span class="zona-count">7</span></div>
+      </div>
+      <div class="zona-card">
+        <div class="zona-badge">Toluca Sureste</div>
+        <h4>Isidro Rufino Valverde</h4>
+        <div class="zona-coach-sm">isidro.noe@soyneto.com</div>
+        <div class="zona-footer"><span class="zona-pilot-count">1 en piloto</span><span class="zona-count">9</span></div>
+      </div>
+    </div>
+    <div class="coach-explainer">
+      <div class="icon">👁</div>
+      <div>
+        <h4>¿Qué hace exactamente el coach (COORDINADOR)?</h4>
+        <p>El coach no toma ni resuelve tickets. Su rol es monitorear el desempeño de todas las tiendas de su zona y detectar problemas antes de que se acumulen.</p>
+        <div class="coach-can">
+          <span class="can-yes">✓ Ver todos los tickets de su zona</span>
+          <span class="can-yes">✓ KPIs en tiempo real (SLA, deflexión Dany, tiempos)</span>
+          <span class="can-yes">✓ Ver historial de sesiones con Dany de sus tiendas</span>
+          <span class="can-yes">✓ Consultar a Daniel (IA para coordinadores)</span>
+          <span class="can-no">✗ No puede tomar ni resolver tickets</span>
+          <span class="can-no">✗ No puede agregar notas al ticket</span>
+          <span class="can-no">✗ No puede crear usuarios ni cambiar configuración</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CÓMO FUNCIONA -->
+<section id="como">
+  <div class="wrap">
+    <div class="sec-ey">Flujos completos</div>
+    <h2 class="sec-h">Tres escenarios reales del piloto</h2>
+    <p class="sec-sub">Con tiendas, coaches y agentes reales de la Región Toluca.</p>
+    <div class="flow-tabs">
+      <button class="flow-tab active" onclick="showTab('s1',this)">A — Dany resuelve sin ticket</button>
+      <button class="flow-tab" onclick="showTab('s2',this)">B — Ticket completo hasta cierre</button>
+      <button class="flow-tab" onclick="showTab('s3',this)">C — Tienda rechaza la solución</button>
+    </div>
+
+    <!-- Escenario A -->
+    <div class="scenario-block active" id="s1">
+      <div class="scenario-grid">
+        <div>
+          <div class="chat-window">
+            <div class="chat-header">
+              <div class="avatar">D</div>
+              <div>
+                <div style="font-size:.86rem;font-weight:700;">Dany — Soporte IA</div>
+                <div style="font-size:.72rem;opacity:.7;">Ocoyoacac #1568 · Zona Toluca Centro</div>
+              </div>
+            </div>
+            <div class="chat-body">
+              <div class="msg bot">
+                <div class="msg-label">Dany</div>
+                <div class="msg-bubble">Hola, soy Dany. Cuéntame, ¿qué está pasando en tu tienda hoy?</div>
+              </div>
+              <div class="msg user">
+                <div class="msg-label">Tienda Ocoyoacac</div>
+                <div class="msg-bubble">mi impresora no imprime</div>
+              </div>
+              <div class="msg bot">
+                <div class="msg-label">Dany</div>
+                <div class="msg-bubble">Entendido, vamos a revisarlo juntos. Para comenzar: ¿la impresora está encendida y el piloto de luz está en verde?</div>
+              </div>
+              <div class="msg user"><div class="msg-bubble">sí está encendida pero no hace nada</div></div>
+              <div class="msg bot"><div class="msg-bubble">Bien. Abre la tapa y revisa si hay una hoja atascada a la mitad. ¿Ves algo?</div></div>
+              <div class="msg user"><div class="msg-bubble">sí había una hoja, la saqué</div></div>
+              <div class="msg bot"><div class="msg-bubble">Perfecto. Ahora intenta imprimir un ticket de prueba. ¿Imprimió?</div></div>
+              <div class="msg user"><div class="msg-bubble">sí ya imprimió, gracias!</div></div>
+              <div class="msg bot"><div class="msg-bubble">Excelente, problema resuelto. Si vuelve a pasar, revisa primero el papel. ¡Que siga el día bien!</div></div>
+            </div>
+            <div class="result-badge rb-ok">✓ Resuelto por Dany — sin ticket creado</div>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <h4>¿Quién intervino y qué vio cada uno?</h4>
+          <div class="lc-steps">
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="actor-tag">Tienda Ocoyoacac #1568</span>
+                <p>Abre el chat con Dany desde el portal. No necesita llamar ni llenar formularios.</p>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="actor-tag or">Dany (IA · 24/7)</span>
+                <p>Detecta "impresora" y activa el flujo de diagnóstico de impresora. Guía paso a paso: energía → atascos → prueba de impresión.</p>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="actor-tag tl">Problema resuelto en chat</span>
+                <p>Sin ticket. Sin agente involucrado. Dany cierra la sesión y la marca como <strong>deflectada</strong>.</p>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="actor-tag">Coach Dorisdiana Martinez</span>
+                <p>Ve en su dashboard: <em>1 sesión Dany resuelta sin ticket</em>. Su tasa de deflexión sube. No tuvo que hacer nada.</p>
+              </div>
+            </div>
+          </div>
+          <div class="highlight-box"><strong>Ningún agente fue interrumpido.</strong> La tienda resolvió en &lt;5 min. La sesión queda guardada en el historial para análisis del coach y del admin.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escenario B -->
+    <div class="scenario-block" id="s2">
+      <div class="scenario-grid">
+        <div>
+          <div class="chat-window">
+            <div class="chat-header">
+              <div class="avatar">D</div>
+              <div>
+                <div style="font-size:.86rem;font-weight:700;">Dany — Soporte IA</div>
+                <div style="font-size:.72rem;opacity:.7;">Zinacantepec #1048 · Zona Toluca Noreste</div>
+              </div>
+            </div>
+            <div class="chat-body">
+              <div class="msg user"><div class="msg-bubble">la terminal no abre sesión, pone error de contraseña</div></div>
+              <div class="msg bot"><div class="msg-bubble">Vamos a revisarlo. ¿Confirmaste que la contraseña sea la correcta (mayúsculas/minúsculas)?</div></div>
+              <div class="msg user"><div class="msg-bubble">sí la misma de siempre</div></div>
+              <div class="msg bot"><div class="msg-bubble">Reinicia la terminal: apágala, espera 30 seg y enciéndela. ¿Pudiste entrar?</div></div>
+              <div class="msg user"><div class="msg-bubble">no, sigue igual el error</div></div>
+              <div class="msg bot"><div class="msg-bubble">Entendido. Esto requiere revisión del equipo de sistemas. Voy a registrar el reporte ahora.</div></div>
+            </div>
+            <div class="result-badge rb-ticket">📋 Ticket creado: folio CSN-26-04821</div>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <h4>Ciclo completo — quién hace qué</h4>
+          <div class="lc-steps">
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-nuevo">NUEVO</span>
+                <p><strong>Dany crea el ticket.</strong> Gemini 2.5 clasifica: <em>Terminal / Falla de acceso</em> → grupo <strong>Soporte Sistemas</strong>. Round Robin asigna al siguiente agente disponible.</p>
+                <span class="actor-tag or">Dany (IA)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-asig">ASIGNADO</span>
+                <p>Ticket cae en la cola de <strong>Karen Aboytes Trejo</strong> (Soporte Sistemas). Ve descripción + clasificación IA. Coach Irenio también lo ve en su dashboard de zona.</p>
+                <span class="actor-tag pu">Karen Aboytes — Soporte Sistemas</span>
+                <span class="actor-tag">Coach Irenio Reyes</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-proc">EN PROCESO</span>
+                <p>Karen toma el ticket. Accede remotamente al sistema de la tienda. Detecta que la cuenta estaba bloqueada por intentos fallidos.</p>
+                <span class="actor-tag pu">Karen Aboytes — Soporte Sistemas</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-esp">ESPERANDO TIENDA</span>
+                <p>Karen desbloquea la cuenta y propone solución. La tienda Zinacantepec recibe aviso para confirmar.</p>
+                <span class="actor-tag">Tienda Zinacantepec #1048</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-res">RESUELTO → CERRADO</span>
+                <p>La tienda confirma que ya puede ingresar. Ticket pasa a RESUELTO. A las 72h cierra automáticamente.</p>
+                <span class="actor-tag tl">Caso cerrado · Coach Irenio ve SLA cumplido</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escenario C -->
+    <div class="scenario-block" id="s3">
+      <div class="scenario-grid">
+        <div>
+          <div class="chat-window">
+            <div class="chat-header" style="background:#6B21A8;">
+              <div class="avatar" style="background:#A78BFA;color:#4C1D95;">T</div>
+              <div>
+                <div style="font-size:.86rem;font-weight:700;">Portal Tienda · Ticket CSN-26-05102</div>
+                <div style="font-size:.72rem;opacity:.7;">Santi #785 · Zona Toluca Oriente</div>
+              </div>
+            </div>
+            <div class="chat-body">
+              <div class="msg bot">
+                <div class="msg-label">Alejandro Marcial — Soporte Sistemas</div>
+                <div class="msg-bubble">Revisé el sistema y restablecí la configuración de red de la caja. Intenta procesar una venta y confirma.</div>
+              </div>
+              <div style="text-align:center;font-size:.73rem;color:var(--muted);padding:4px 0">— Estado: ESPERANDO TIENDA —</div>
+              <div class="msg user">
+                <div class="msg-label">Tienda Santi #785</div>
+                <div class="msg-bubble">sigue fallando, la caja no conecta con el servidor</div>
+              </div>
+              <div style="text-align:center;font-size:.73rem;color:#991B1B;padding:4px 0;font-weight:600">— Tienda rechazó → RECHAZADO —</div>
+              <div class="msg bot">
+                <div class="msg-label">Alejandro Marcial — Soporte Sistemas</div>
+                <div class="msg-bubble">Entendido, lo reviso de nuevo. Voy a escalar con operaciones para verificar el servidor de la zona.</div>
+              </div>
+            </div>
+            <div class="result-badge rb-warn">↩ Rechazado — escalado a Call Center Operaciones</div>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <h4>Flujo con rechazo — quién interviene</h4>
+          <div class="lc-steps">
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-esp">ESPERANDO TIENDA</span>
+                <p><strong>Alejandro Marcial Vite</strong> (Soporte Sistemas) propone solución. Ticket queda esperando confirmación de Santi #785.</p>
+                <span class="actor-tag pu">Alejandro Marcial — Soporte Sistemas</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot warn"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-rech">RECHAZADO</span>
+                <p>La tienda rechaza indicando que persiste el problema. El sistema registra el rechazo. <strong>Coach Sonia Flores</strong> lo ve inmediatamente en su dashboard de Toluca Oriente.</p>
+                <span class="actor-tag">Tienda Santi #785</span>
+                <span class="actor-tag tl">Coach Sonia Flores</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-proc">EN PROCESO (2ª vuelta)</span>
+                <p>El ticket vuelve a Alejandro. Agrega nota interna (no visible a la tienda) y decide escalarlo. El motivo de escalación es obligatorio en el sistema.</p>
+                <span class="actor-tag pu">Alejandro Marcial — Soporte Sistemas</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-proc">ESCALADO → Call Center Ops</span>
+                <p>El ticket llega a la cola de <strong>Ricardo De La Via Paredes</strong> (Call Center Operaciones). Identifica que el servidor de la zona estaba caído.</p>
+                <span class="actor-tag or">Ricardo De La Via — Call Center Ops</span>
+                <span class="actor-tag tl">Coach Sonia ve el cambio</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-res">RESUELTO</span>
+                <p>Servidor reiniciado. Tienda confirma que la caja conecta. Ticket cerrado definitivamente. Coach Sonia ve SLA y número de reaberturas en su panel.</p>
+                <span class="actor-tag tl">Caso cerrado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROLES -->
+<section id="roles">
+  <div class="wrap">
+    <div class="sec-ey">Accesos por rol</div>
+    <h2 class="sec-h">¿Quién ve qué en el sistema?</h2>
+    <p class="sec-sub">Cada rol accede solo a lo que necesita. El coach monitorea pero no opera tickets.</p>
+    <div class="roles-table-wrap">
+      <table>
+        <thead>
+          <tr><th>Rol</th><th>Quiénes en el piloto</th><th>Qué ven</th><th>Qué pueden hacer</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="role-chip r-ti">TIENDA</span></td>
+            <td>Las 10 tiendas piloto (Lerma, Ocoyoacac, Zinacantepec…)</td>
+            <td>Sus propios tickets. Chat con Dany. Estado actual de cada caso.</td>
+            <td>Chatear con Dany · Confirmar o rechazar soluciones · Adjuntar fotos/video</td>
+          </tr>
+          <tr>
+            <td><span class="role-chip r-ag">AGENTE</span></td>
+            <td>39 agentes de área distribuidos en 14 grupos (Soporte Sistemas, Comercial, Ops…)</td>
+            <td>Cola de tickets de su grupo. Tickets asignados. Notas internas del ticket.</td>
+            <td>Tomar tickets · Agregar notas públicas e internas · Proponer solución · Escalar con motivo · Consultar Dany copiloto</td>
+          </tr>
+          <tr>
+            <td><span class="role-chip r-co">COORDINADOR</span></td>
+            <td>5 coaches activos en piloto: Dorisdiana, Sonia, Irenio, Uriel, Isidro</td>
+            <td>Todos los tickets de su zona · KPIs en vivo (SLA, tiempos, deflexión Dany) · Sesiones Dany de sus tiendas</td>
+            <td><strong>Solo lectura:</strong> Ver dashboard de zona · Monitorear SLAs · Consultar Daniel (IA para coordinadores) · No puede tomar ni resolver tickets</td>
+          </tr>
+          <tr>
+            <td><span class="role-chip r-ad">ADMIN</span></td>
+            <td>Administración central CSN</td>
+            <td>Todo: tickets, usuarios, tipificaciones, KPIs globales, historial Dany, ruteo.</td>
+            <td>CRUD usuarios · Configurar grupos y ruteo · Ver métricas globales · Gestionar tipificaciones · Historial de conversaciones Dany</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- DIRECTORIO -->
+<section id="directorio" style="background:var(--white)">
+  <div class="wrap">
+    <div class="sec-ey">Todos los involucrados</div>
+    <h2 class="sec-h">Directorio del Piloto</h2>
+    <p class="sec-sub">Participantes organizados por rol. Todos los usuarios de portal cuentan con dominio @soyneto.com y contraseña homologada.</p>
+
+    <style>
+      .dir-bloque{margin-bottom:44px}
+      .dir-rol-badge{display:inline-flex;align-items:center;gap:7px;font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 13px;border-radius:3px;margin-bottom:16px}
+      .dir-rol-badge--obs{background:#F0F4FF;color:var(--navy)}
+      .dir-rol-badge--coach{background:var(--teal-lt);color:#0e7a61}
+      .dir-rol-badge--agente{background:var(--orange-lt);color:#b33900}
+      .dir-rol-badge--tienda{background:var(--navy-lt);color:var(--navy)}
+      .dir-personas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:10px}
+      .dir-persona{display:flex;align-items:center;gap:12px;background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px}
+      .dir-ini{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:700;flex-shrink:0}
+      .dir-ini--obs{background:var(--navy-dk);color:#fff}
+      .dir-ini--coach{background:#0e7a61;color:#fff}
+      .dir-ini--agente{background:var(--orange);color:#fff}
+      .dir-info-text{min-width:0}
+      .dir-nombre{font-size:.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .dir-email{font-size:.75rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+      .dir-sub{font-size:.72rem;color:var(--teal);font-weight:600;margin-top:1px}
+      .dir-nota{font-size:.82rem;color:var(--muted);background:var(--off);border-left:3px solid var(--border);padding:10px 14px;border-radius:0 var(--r) var(--r) 0;margin-top:8px}
+      .dir-table-wrap{overflow-x:auto}
+      .dir-table{width:100%;border-collapse:collapse;font-size:.84rem}
+      .dir-table th{background:var(--navy-dk);color:#fff;padding:9px 14px;text-align:left;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
+      .dir-table td{padding:9px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
+      .dir-table tr:last-child td{border-bottom:none}
+      .dir-table tr:hover td{background:var(--off)}
+      .dir-table .td-email{color:var(--muted);font-size:.8rem}
+      .dir-table .td-zona{color:var(--navy);font-weight:600;font-size:.82rem}
+      .dir-table .td-pwd{font-family:monospace;background:#e9f4ec;color:#1a7a3c;padding:3px 10px;border-radius:4px;font-size:.82rem;font-weight:700;white-space:nowrap}
+      .dir-grupos{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+      .dir-grupo{background:var(--off);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+      .dir-grupo-hdr{padding:9px 14px;background:var(--navy-lt);font-size:.76rem;font-weight:700;color:var(--navy);letter-spacing:.05em;display:flex;justify-content:space-between;align-items:center}
+      .dir-grupo-cnt{font-size:.72rem;background:var(--navy);color:#fff;padding:1px 7px;border-radius:10px}
+      .dir-grupo-body{padding:8px 14px;display:flex;flex-direction:column;gap:5px}
+      .dir-agente-row{font-size:.82rem;color:var(--text);display:flex;justify-content:space-between;align-items:center;gap:8px}
+      .dir-agente-email{font-size:.74rem;color:var(--muted)}
+      .cred-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin-top:8px}
+      .cred-card{background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px}
+      .cred-rol{font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+      .cred-email{font-size:.85rem;font-weight:600;color:var(--navy);margin-bottom:3px}
+      .cred-pwd{font-family:monospace;font-size:.9rem;font-weight:700;color:#1a7a3c;background:#e9f4ec;padding:4px 10px;border-radius:4px;display:inline-block;margin-top:4px}
+      .cred-note{font-size:.74rem;color:var(--muted);margin-top:6px}
+    </style>
+
+    <!-- SUPERVISORES DEL PILOTO -->
+    <div class="dir-bloque">
+      <div class="dir-rol-badge dir-rol-badge--obs">👁 Supervisores del Piloto</div>
+      <div class="dir-personas">
+        <div class="dir-persona">
+          <div class="dir-ini dir-ini--obs">AS</div>
+          <div class="dir-info-text">
+            <div class="dir-nombre">Alejandro Sanchez</div>
+            <div class="dir-email">alejandro.sanchezvi@soyneto.com</div>
+            <div class="dir-sub">Innovación · Líder del Piloto</div>
+          </div>
+        </div>
+        <div class="dir-persona">
+          <div class="dir-ini dir-ini--obs">DV</div>
+          <div class="dir-info-text">
+            <div class="dir-nombre">Daniel Vázquez</div>
+            <div class="dir-email">dvazquezc@soyneto.com</div>
+            <div class="dir-sub">Innovación · Co-supervisor</div>
+          </div>
+        </div>
+        <div class="dir-persona">
+          <div class="dir-ini dir-ini--obs">CA</div>
+          <div class="dir-info-text">
+            <div class="dir-nombre">Cristian Argenis</div>
+            <div class="dir-email">cristian.argenispu@soyneto.com</div>
+            <div class="dir-sub">Innovación · Co-supervisor</div>
+          </div>
+        </div>
+      </div>
+      <p class="dir-nota">Los supervisores observan el piloto — tienen acceso de ADMIN al portal CSN para ver KPIs, conversaciones de Dany y todos los tickets. No atienden ni modifican tickets.</p>
+    </div>
+
+    <!-- COACHES -->
+    <div class="dir-bloque">
+      <div class="dir-rol-badge dir-rol-badge--coach">🏅 Coaches / Coordinadores (8)</div>
+      <div class="dir-table-wrap">
+        <table class="dir-table">
+          <thead>
+            <tr><th>Nombre</th><th>Correo</th><th>Zona</th><th>Contraseña</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Dorisdiana Martinez Barrueta</td><td class="td-email">dorisdiana.martinez@soyneto.com</td><td class="td-zona">Toluca Centro</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Flores Quezada Sonia</td><td class="td-email">flores.quezada@soyneto.com</td><td class="td-zona">Toluca Oriente</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Luna Palacios Misael</td><td class="td-email">luna.palacios@soyneto.com</td><td class="td-zona">Toluca Centro 2</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Uriel Piña Ramirez</td><td class="td-email">uriel.pina@soyneto.com</td><td class="td-zona">Toluca Sur</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Silva Ruiz Jorge Alberto</td><td class="td-email">silva.ruiz@soyneto.com</td><td class="td-zona">Toluca Norte</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Carlos Cruz Bustos</td><td class="td-email">carlos.cruz@soyneto.com</td><td class="td-zona">Toluca Poniente</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Irenio Reyes Jesus</td><td class="td-email">irenio.reyes@soyneto.com</td><td class="td-zona">Toluca Noreste</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+            <tr><td>Isidro Noe Rufino Valverde</td><td class="td-email">isidro.noe@soyneto.com</td><td class="td-zona">Toluca Sureste</td><td><span class="td-pwd">Neto2026!</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="dir-nota">Rol COORDINADOR en el portal. Ven los KPIs y tickets de sus tiendas. No atienden ni resuelven tickets — solo monitorean.</p>
+    </div>
+
+    <!-- AGENTES -->
+    <div class="dir-bloque">
+      <div class="dir-rol-badge dir-rol-badge--agente">🎧 Agentes por Área</div>
+      <div class="dir-grupos">
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Soporte Sistemas <span class="dir-grupo-cnt">8</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>Karen Aboytes Trejo</span></div>
+            <div class="dir-agente-row"><span>Juan Carlos Miranda Godoy</span></div>
+            <div class="dir-agente-row"><span>Alexander Vargas Garcia</span></div>
+            <div class="dir-agente-row"><span>Guadalupe Ballesteros Franco</span></div>
+            <div class="dir-agente-row"><span>Joshua Elias Garcia Arruel</span></div>
+            <div class="dir-agente-row"><span>Alejandro Marcial Vite</span></div>
+            <div class="dir-agente-row"><span>Erika Judith Contreras Guzman</span></div>
+            <div class="dir-agente-row"><span>Melanie Sugey Balvanera Mendoza</span></div>
+          </div>
+        </div>
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Soporte Comercial <span class="dir-grupo-cnt">10</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>Diana Villanueva</span></div>
+            <div class="dir-agente-row"><span>Guadalupe Garcia Coronado</span></div>
+            <div class="dir-agente-row"><span>Melanny Gutierrez Mendez</span></div>
+            <div class="dir-agente-row"><span>Maria G. Mijangos Calderon</span></div>
+            <div class="dir-agente-row"><span>Karina Bahena Espina</span></div>
+            <div class="dir-agente-row"><span>Areli Gonzalez Rivera</span></div>
+            <div class="dir-agente-row"><span>Edgar Saul Martinez Ibarra</span></div>
+            <div class="dir-agente-row"><span>Natalia Carranco</span></div>
+            <div class="dir-agente-row"><span>Monica Gomez Martin</span></div>
+            <div class="dir-agente-row"><span>Michell Alejandra Soto Montes</span></div>
+          </div>
+        </div>
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Call Center Operaciones <span class="dir-grupo-cnt">4</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>Raúl Carmona Santos</span></div>
+            <div class="dir-agente-row"><span>Ricardo De La Via Paredes</span></div>
+            <div class="dir-agente-row"><span>Jose Nicolas Lozano Flores</span></div>
+            <div class="dir-agente-row"><span>Mitzi Jesica Rodriguez</span></div>
+          </div>
+        </div>
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Mantenimiento <span class="dir-grupo-cnt">4</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>José Guadalupe Cruz</span></div>
+            <div class="dir-agente-row"><span>Omar Rodriguez Reyes</span></div>
+            <div class="dir-agente-row"><span>Zohara Valdés Pérez</span></div>
+            <div class="dir-agente-row"><span>Everardo Martínez</span></div>
+          </div>
+        </div>
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Servicios Financieros <span class="dir-grupo-cnt">3</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>Natalia Ortiz López</span></div>
+            <div class="dir-agente-row"><span>Maria Del Carmen Ruiz Gonzalez</span></div>
+            <div class="dir-agente-row"><span>Emmanuel Castillo</span></div>
+          </div>
+        </div>
+        <div class="dir-grupo">
+          <div class="dir-grupo-hdr">Otros Equipos <span class="dir-grupo-cnt">9</span></div>
+          <div class="dir-grupo-body">
+            <div class="dir-agente-row"><span>Christian Gutiérrez</span> <span class="dir-agente-email">SION</span></div>
+            <div class="dir-agente-row"><span>Stephany Vázquez Delgado</span> <span class="dir-agente-email">SION</span></div>
+            <div class="dir-agente-row"><span>Omar Reyes Martínez</span> <span class="dir-agente-email">Comunicaciones</span></div>
+            <div class="dir-agente-row"><span>Juana Pérez Mancilla</span> <span class="dir-agente-email">RH</span></div>
+            <div class="dir-agente-row"><span>Luz Maria Corona Serrano</span> <span class="dir-agente-email">RH</span></div>
+            <div class="dir-agente-row"><span>Evaristo Antonio Escobar</span> <span class="dir-agente-email">RH</span></div>
+            <div class="dir-agente-row"><span>Karina Yañez</span> <span class="dir-agente-email">Sistemas Abasto</span></div>
+            <div class="dir-agente-row"><span>Jonathan Hadi Mendoza</span> <span class="dir-agente-email">Sistemas Abasto</span></div>
+            <div class="dir-agente-row"><span>Brenda Isabel Álvarez</span> <span class="dir-agente-email">Finanzas Inv.</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="dir-nota" style="margin-top:12px">Todos los agentes: correo@soyneto.com / <strong>Neto2026!</strong> — contraseña homologada.</p>
+    </div>
+
+    <!-- CREDENCIALES RESUMEN -->
+    <div class="dir-bloque" style="margin-bottom:0">
+      <div class="dir-rol-badge dir-rol-badge--tienda">🔑 Credenciales de Acceso</div>
+      <div class="cred-grid">
+        <div class="cred-card">
+          <div class="cred-rol">Tiendas Piloto</div>
+          <div class="cred-email">t{cc}@soyneto.com</div>
+          <div class="cred-pwd">Neto2024!</div>
+          <div class="cred-note">Ej: t7909@soyneto.com para Lerma. El CC es el centro de costos de la tienda.</div>
+        </div>
+        <div class="cred-card">
+          <div class="cred-rol">Coaches</div>
+          <div class="cred-email">nombre.apellido@soyneto.com</div>
+          <div class="cred-pwd">Neto2026!</div>
+          <div class="cred-note">Dominio @soyneto.com homologado. Migración realizada vía A-Eva (Slack).</div>
+        </div>
+        <div class="cred-card">
+          <div class="cred-rol">Agentes</div>
+          <div class="cred-email">nombre.apellido@soyneto.com</div>
+          <div class="cred-pwd">Neto2026!</div>
+          <div class="cred-note">Todos migrados a @soyneto.com. Contraseña unificada para el piloto.</div>
+        </div>
+        <div class="cred-card">
+          <div class="cred-rol">Supervisores / Admin</div>
+          <div class="cred-email">admin@soyneto.com</div>
+          <div class="cred-pwd">Neto2024!</div>
+          <div class="cred-note">Cuenta admin general del portal. Acceso total a KPIs y conversaciones Dany.</div>
+        </div>
+      </div>
+      <p class="dir-nota" style="margin-top:14px">El proceso de migración de dominio @soyneto.com se realiza a través del agente <strong>A-Eva</strong> en Slack — solicita con número de empleado y fecha de nacimiento.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- CIERRE -->
+<section id="arranque">
+  <div class="wrap">
+    <h2>Listo para el piloto</h2>
+    <p>La base de datos está cargada, los usuarios creados y el sistema configurado. Todo en verde para las 10 tiendas.</p>
+    <div class="checklist">
+      <div class="check-item"><div class="check-icon">✓</div>10 tiendas piloto identificadas y configuradas</div>
+      <div class="check-item"><div class="check-icon">✓</div>8 coaches con acceso COORDINADOR activo (1 por zona)</div>
+      <div class="check-item"><div class="check-icon">✓</div>39 agentes distribuidos en 14 grupos de área</div>
+      <div class="check-item"><div class="check-icon">✓</div>Dany activo 24/7 con flujos de diagnóstico</div>
+      <div class="check-item"><div class="check-icon">✓</div>IA Gemini 2.5 clasificando tickets automáticamente</div>
+      <div class="check-item"><div class="check-icon">✓</div>Credenciales: dominio @soyneto.com / Neto2026! (coaches y agentes)</div>
+      <div class="check-item"><div class="check-icon">✓</div>Supervisores con acceso ADMIN al panel de KPIs</div>
+    </div>
+    <div class="url-box">csn.soyneto.com</div>
+  </div>
+</section>
+
+<script>
+function showTab(id,btn){
+  document.querySelectorAll('.scenario-block').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.flow-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>

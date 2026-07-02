@@ -1,0 +1,321 @@
+{
+  "name": "CSN: problema hardware",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "descripcion"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e5b4e69a-f1dc-4ab5-98d5-db27c89a502c",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, tipo_problema, keywords, procedimiento \nFROM troubleshooting_hardware \nORDER BY id;\n\n\n  \n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "7d56b717-5a3c-458c-a2aa-2915e3f34993",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "FUPrhwvYBQgx1csz",
+          "name": "Postgres NetoBox"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.all();\nconst descripcion = $('When Executed by Another Workflow').first().json.descripcion;\n\nconst catalogo = rows.map(r => \n  `ID: ${r.json.id} | Problema: ${r.json.tipo_problema} | Keywords: ${r.json.keywords}`\n).join('\\n');\n\nreturn [{ json: { catalogo, descripcion } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "6b815ad3-f100-4fd6-861e-51695f539cf9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un clasificador de problemas de hardware.\n\nSe te dará un catálogo de problemas con su ID, nombre y keywords.\nTambién recibirás la descripción del problema del usuario.\n\nTu tarea: responde ÚNICAMENTE con el número ID del flujo más relevante.\nSi ninguno aplica, responde con el número 0.\nNO expliques nada. Solo el número.\n\nCATÁLOGO:\n{{ $json.catalogo }}\n\nDESCRIPCIÓN DEL USUARIO:\n{{ $json.descripcion }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        624,
+        0
+      ],
+      "id": "19cd7b8b-21bc-45e9-933b-be27d9d3de17",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        560,
+        208
+      ],
+      "id": "45d61f32-983a-42da-88db-8ef3275b0d38",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "AbLmXEpA98GqU1aj",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const idElegido = parseInt($input.first().json.text.trim());\nconst rows = $('Execute a SQL query').all();\n\nif (idElegido === 0) {\n  return [{ json: { \n    procedimiento: 'No encontré un flujo de hardware que coincida con este problema. Por favor describe mejor el equipo o síntoma.' ,\n    tipo_problema: null,\n    media_refs: []\n  }}];\n}\n\nconst match = rows.find(r => r.json.id === idElegido);\n\nif (!match) {\n  return [{ json: { \n    procedimiento: 'No encontré un flujo para este problema.',\n    tipo_problema: null,\n    media_refs: []\n  }}];\n}\n\nconst procedimiento = match.json.procedimiento;\nconst tipo_problema = match.json.tipo_problema;\n\n// Extrae todas las referencias multimedia en el orden en que aparecen\nconst mediaRefs = [];\nconst regex = /(?:🖼️|📹)\\s*((?:Imagen|Video)\\s*[\\d.]+(?:\\s*\\/\\s*(?:Imagen|Video)\\s*[\\d.]+)*)/gi;\nlet m;\nwhile ((m = regex.exec(procedimiento)) !== null) {\n  // Maneja referencias múltiples en un paso: \"Imagen 17 / Video 19 y 20\"\n  const partes = m[1].split(/\\s*[\\/y]\\s*/i);\n  partes.forEach(p => {\n    const ref = p.trim();\n    if (ref && !mediaRefs.includes(ref)) mediaRefs.push(ref);\n  });\n}\n\nreturn [{ json: { procedimiento, tipo_problema, media_refs: mediaRefs } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "67976c69-1b1c-411e-b09c-6aadd8dab556",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c69b2ab9-b5c1-436c-940c-9a2c5453deaf",
+              "name": "procedimiento",
+              "value": "={{ $json.procedimiento }}",
+              "type": "string"
+            },
+            {
+              "id": "087975fe-927c-44fc-a653-cb20faf68a30",
+              "name": "media_refs",
+              "value": "={{ $json.media_refs }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "e4c70258-b3fa-4e1b-8cd2-1e0e368370ec",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "descripcion": "la impresora no imprime"
+        }
+      }
+    ],
+    "Execute a SQL query": [
+      {
+        "json": {
+          "id": 1,
+          "tipo_problema": "CPU no enciende",
+          "keywords": "cpu, no enciende, no prende, no arranca, apagado, corriente, eliminador, regulador, voltaje",
+          "procedimiento": "FASE A – Localizar CPU y cable de corriente\n1. Ubica el CPU que no enciende. 📹 Video 1\n2. Localiza el cable de corriente conectado a la parte trasera del CPU. 📹 Video 2\n3. Desconecta y reconecta el cable de corriente en la parte de atrás del CPU. 📹 Video 2.1\n\n❓ ¿El CPU encendió tras el reinicio?\n   ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Verificar eliminador\n4. Sigue el cable de corriente hasta localizar el eliminador del CPU. 📹 Video 3\n5. Desconecta y reconecta la fuente trasera del CPU (eliminador). 📹 Video 3.1\n\n❓ ¿El CPU encendió?\n   ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Verificar regulador de voltaje\n6. Sigue el cable de corriente hasta llegar a la clavija. Verifica si el CPU está conectado a un regulador. 📹 Video 3.2\n\n❓ ¿El regulador opera con LEDs en verde?\n   ✅ SÍ → Continúa en FASE D (punto 1).\n   ❌ NO → ESCALAR: Sin fuente de alimentación válida. Folio CNS → Mantenimiento. Continúa en FASE E (punto 2).\n\n---\n\nFASE D (punto 1) – Verificar clavija del CPU en regulador\n7. Desconecta y reconecta la clavija del CPU en el regulador. 📹 Video 3.3\n\n❓ ¿El CPU encendió?\n   ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n   ❌ NO → ESCALAR: CPU sin encender tras revisión. Folio CSN → Ingeniero.\n\nFASE E (punto 2) – Verificar contacto de corriente\n8. Verifica si la clavija del regulador está conectada al contacto naranja. Conecta un cargador al mismo contacto para verificar si hay corriente eléctrica. 📹 Video 3.4\n\n❓ ¿El contacto tiene corriente?\n   ✅ SÍ → Continúa al paso 9.\n   ❌ NO → ESCALAR: Sin fuente de alimentación válida. Folio CNS → Mantenimiento.\n\n9. Cambia la clavija del regulador al contacto blanco. 📹 Video 3.5\n\n❓ ¿El CPU encendió tras el cambio?\n   ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n   ❌ NO → Continúa en punto 3.\n\n---\n\nFASE D (punto 3) – Verificar clavija de corriente directo\n10. Desconecta la clavija del CPU del regulador y conéctala directo al contacto naranja. 📹 Video 3.6\n\n❓ ¿El CPU encendió?\n    ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n    ❌ NO → Continúa al paso 11.\n\n11. Desconecta la clavija del CPU y conéctala directo al contacto blanco. 📹 Video 3.7\n\n❓ ¿El CPU encendió?\n    ✅ SÍ → RESUELTO: CPU encendido. Registra Folio CSN estadística.\n    ❌ NO → ESCALAR: CPU sin encender tras revisión. Folio CSN → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 2,
+          "tipo_problema": "Impresora no enciende",
+          "keywords": "impresora, no enciende, no prende, no imprime, papel, rollo, usb, cable, regulador, eliminador, ticket, térmica",
+          "procedimiento": "FASE A – ¿Está encendida?\n1. Ubica la impresora que no enciende. 📹 Video 4\n\n❓ ¿La impresora está encendida?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Reiniciar).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Botón en ON\n2. Revisa que el botón ON esté activado. 📹 Video 4.1\n\n❓ ¿Prendió la impresora?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Reiniciar).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Cable de corriente\n3. Localiza el cable de corriente de la parte de atrás de la impresora. Desconecta y reconecta. 📹 Video 5\n\n❓ ¿Prendió la impresora?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Reiniciar).\n   ❌ NO → Continúa en FASE D.\n\nFASE D – Eliminador\n4. Sigue el cable de corriente y localiza el eliminador. Desconecta y reconecta. 📹 Video 5.1\n\n❓ ¿Prendió la impresora?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Reiniciar).\n   ❌ NO → Continúa en FASE E (regulador).\n\nFASE E – Regulador\n5. Verifica si la impresora está conectada a un regulador. 📹 Video 5.2\n\n❓ ¿Regulador operando con LEDs en verde?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Reiniciar).\n   ❌ NO → Continúa en punto 2 (FASE H).\n\n---\n\nFASE E (punto 1) – Reiniciar\n6. Reinicia la impresora (apaga y enciende). 📹 Video 5.3\n\n❓ ¿La impresora imprime correctamente?\n   ✅ SÍ → RESUELTO: Impresora encendida. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE F.\n\nFASE F – Cable USB\n7. Localiza en el CPU el cable USB con cincho AZUL. Desconecta y reconecta de ambos extremos. 📹 Video 6\n\n❓ ¿La impresora imprime correctamente?\n   ✅ SÍ → RESUELTO: Impresora encendida. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE G.\n\nFASE G – Rollo térmico y daño físico\n8. Verifica: ¿rollo térmico bien colocado? ¿papel atorado? ¿puerto sin daños? 📹 Video 6.1\n\n❓ ¿Hay daño físico confirmado?\n   ✅ SÍ → ESCALAR: Daño físico confirmado. Folio CSN → Ingeniero.\n   ❌ NO → Continúa en punto 3 (FASE I – Validar impresión).\n\n---\n\nFASE H (punto 2) – Contacto de corriente\n9. Verifica si el Regulador está conectado al enchufe naranja; si sí, cámbialo al blanco. 📹 Video 6.2\n\n❓ ¿Prendió el regulador y la impresora?\n   ✅ SÍ → Continúa en punto 3 (FASE I – Validar impresión).\n   ❌ NO → Continúa al paso 10.\n\n10. Conecta otro equipo al contacto naranja para verificar si tiene corriente. 📹 Video 6.3\n\n❓ ¿El contacto tiene corriente?\n    ✅ SÍ → Continúa en punto 3 (FASE I – Validar impresión).\n    ❌ NO → ESCALAR: Sin energía en contacto. Folio CSN → Mantenimiento.\n\n---\n\nFASE I (punto 3) – Reiniciar CPU y validar impresión\n11. Reinicia el CPU completamente y realiza prueba de impresión. 📹 Video 6.4\n\n❓ ¿La impresora imprime correctamente?\n    ✅ SÍ → RESUELTO: Impresora encendida. Registra Folio CSN estadística.\n    ❌ NO → Continúa al paso 12.\n\n❓ ¿Es un ticket de Venta / Servicios?\n    ✅ SÍ → RESUELTO: Impresora encendida. Registra Folio CSN estadística.\n    ❌ NO → Continúa al paso 12.\n\n❓ ¿Es un ticket de Orden de Compra (OC)?\n    ✅ SÍ → ESCALAR: Ticket de OC de proveedor. Folio CSN → Sistemas Abasto.\n    ❌ NO → ESCALAR: Ticket de caja electrónica. Folio CSN → Venteks."
+        }
+      },
+      {
+        "json": {
+          "id": 3,
+          "tipo_problema": "Terminal bancaria sin cobro",
+          "keywords": "terminal, bancaria, no enciende, sin cobro, no cobra, tarjeta, chip, usb, rojo, pago, cobro, datafono",
+          "procedimiento": "FASE A – ¿Está encendida?\n1. Ubica la terminal que no enciende. 🖼️ Imagen 1\n\n❓ ¿La pantalla de la terminal está encendida?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Prueba de cobro).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Revisar cable USB cincho rojo\n2. Localiza en el CPU el cable USB con cincho ROJO. Desconecta y reconecta. 🖼️ Imagen 2\n\n❓ ¿Encendió la terminal?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Prueba de cobro).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Revisar daño físico\n3. Revisa visualmente el cable USB cincho rojo y la terminal. 🖼️ Imagen 2.1\n\n❓ ¿Hay daño físico visible?\n   ✅ SÍ → ESCALAR: Daño físico confirmado. Folio CSN → Ingeniero.\n   ❌ NO → Continúa en punto 2 (FASE D).\n\n---\n\nFASE D (punto 2) – Reconectar\n4. Verifica que el cable no esté aplastado ni doblado. Reconecta firmemente al CPU.\n\n❓ ¿Encendió la terminal?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Prueba de cobro).\n   ❌ NO → ESCALAR: Terminal sin encender tras revisión. Folio CSN → Ingeniero.\n\n---\n\nFASE E (punto 1) – Pruebas de cobro\n5. Verifica la configuración de la terminal, reinicia el servicio y realiza prueba de cobro.\n\n❓ ¿Se realizó el cobro?\n   ✅ SÍ → RESUELTO: Cobro realizado. Registra Folio CSN estadística.\n   ❌ NO → Continúa al paso 6.\n\n6. Identifica el error en pantalla. Limpia el chip de la terminal con toallita húmeda. Reintenta prueba de cobro.\n\n❓ ¿Se realizó el cobro?\n   ✅ SÍ → RESUELTO: Cobro realizado. Registra Folio CSN estadística.\n   ❌ NO → Continúa al paso 7.\n\n7. Prueba con otra tarjeta bancaria para descartar que sea la tarjeta del cliente. Reintenta prueba de cobro.\n\n❓ ¿Se realizó el cobro?\n   ✅ SÍ → RESUELTO: Cobro realizado. Registra Folio CSN estadística.\n   ❌ NO → Continúa al paso 8.\n\n8. Reinicia el CPU completamente y vuelve a intentar el cobro con tarjeta.\n\n❓ ¿Se realizó el cobro?\n   ✅ SÍ → RESUELTO: Cobro realizado. Registra Folio CSN estadística.\n   ❌ NO → ESCALAR: Sin cobro tras todos los pasos. Folio CSN → Agente especializado en terminal bancaria."
+        }
+      },
+      {
+        "json": {
+          "id": 4,
+          "tipo_problema": "Teclado sin funcionamiento",
+          "keywords": "teclado, no funciona, no escribe, teclas, usb, rosa, led, derrame, liquido, roto, no responde",
+          "procedimiento": "FASE A – Verificar conexión física al CPU\n1. Ubica el teclado sin funcionamiento. 🖼️ Imagen 3\n2. Verifica que el teclado esté bien conectado al CPU (USB cincho rosa). 🖼️ Imagen 3.1\n\n❓ ¿Los LEDs del teclado están encendidos?\n   ✅ SÍ → Continúa en punto 1 (FASE D – Probar funcionalidad).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Reconectar teclado\n3. Desconecta y reconecta el cable USB cincho rosa del CPU. 🖼️ Imagen 4\n\n❓ ¿Los LEDs encendieron?\n   ✅ SÍ → Continúa en punto 1 (FASE D – Probar funcionalidad).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Revisar cable del teclado\n4. Revisa el cable USB del teclado en toda su longitud buscando daño físico visible. 🖼️ Imagen 4.1\n\n❓ ¿Hay daño físico en el cable?\n   ✅ SÍ → ESCALAR: Daño físico en cable. Folio CNS → Ingeniero.\n   ❌ NO → ESCALAR: Sin causa evidente. Folio CNS → Ingeniero para reemplazo.\n\n---\n\nFASE D (punto 1) – Probar funcionalidad\n5. Realiza prueba de teclado: escribe en el buscador. 📹 Video 7\n\n❓ ¿Funciona todo el teclado?\n   ✅ SÍ → RESUELTO: Teclado operando. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE E.\n\nFASE E – Identificar causa del fallo\n❓ ¿Hay derrame de líquido o suciedad visible?\n   ✅ SÍ → ESCALAR: Derrame de líquido. Folio CSN → Ingeniero.\n   ❌ NO → Continúa al paso 6.\n\n6. Revisa si alguna tecla específica falla. 🖼️ Imagen 5\n\n❓ ¿Falla una tecla específica?\n   ✅ SÍ → ESCALAR: Tecla rota. Folio CSN → Ingeniero.\n   ❌ NO → ESCALAR: Sin causa evidente. Folio CNS → Ingeniero para reemplazo."
+        }
+      },
+      {
+        "json": {
+          "id": 5,
+          "tipo_problema": "Lector de huella sin funcionamiento",
+          "keywords": "lector, huella, biometrico, no funciona, no enciende, no lee, usb, morado, opaco, parpadeo, mica",
+          "procedimiento": "FASE A – Verificar encendido del lector\n1. Ubica el lector de huella que no funciona. 📹 Video 8\n\n❓ ¿El lector de huella está encendido?\n   ✅ SÍ → Continúa en punto 1 (FASE B – Verificar funcionamiento óptico).\n   ❌ NO → Continúa al paso 2.\n\n2. Localiza en el CPU el cable USB cincho MORADO. Desconecta y reconecta. 📹 Video 9\n\n❓ ¿Encendió el lector?\n   ✅ SÍ → Continúa en punto 1 (FASE B – Verificar funcionamiento óptico).\n   ❌ NO → Continúa al paso 3.\n\n3. Prueba el lector en otro puerto USB disponible del CPU. 📹 Video 9.1\n\n❓ ¿Encendió el lector?\n   ✅ SÍ → Continúa en punto 1 (FASE B – Verificar funcionamiento óptico).\n   ❌ NO → ESCALAR: Sin encender tras revisión USB. Folio CNS → Ingeniero.\n\n---\n\nFASE B (punto 1) – Verificar funcionamiento óptico\n4. Observa el lector. 🖼️ Imagen 6\n\n❓ ¿El lector se ve opaco (sin brillo)?\n   ✅ SÍ → Continúa al paso 5.\n   ❌ NO → Continúa al paso 6.\n\n5. Retira la mica de goma (protector) del lector, limpia residuos con alcohol y vuelve a intentar. 📹 Video 10\n\n❓ ¿El lector funciona?\n   ✅ SÍ → RESUELTO: Lector operando. Registra Folio CSN estadística.\n   ❌ NO → ESCALAR: Lector inestable o sin función. Folio CNS → Ingeniero.\n\n6. Verifica que el lector NO parpadee más de 2 segundos. Desconecta y reconecta. 📹 Video 10.1\n\n❓ ¿El lector funciona estable sin parpadeo?\n   ✅ SÍ → RESUELTO: Lector operando. Registra Folio CSN estadística.\n   ❌ NO → ESCALAR: Lector inestable o sin función. Folio CNS → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 6,
+          "tipo_problema": "Scanner sin escaneo",
+          "keywords": "scanner, escaner, no escanea, no enciende, no lee, usb, verde, lan, cable, eliminador, regulador, ruido",
+          "procedimiento": "FASE A – ¿Está encendido?\n1. Ubica el scanner sin funcionalidad. 🖼️ Imagen 7\n\n❓ ¿El scanner está encendido?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Verificar cables\n2. Verifica que ambos cables estén bien conectados: USB cincho verde al CPU y cable LAN al scanner. 📹 Video 11 / 🖼️ Imagen 8 y 8.1\n\n❓ ¿El scanner encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Cable de corriente\n3. Localiza el cable de corriente del scanner. Desconecta y reconecta. 📹 Video 12\n\n❓ ¿El scanner encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → Continúa en FASE D.\n\nFASE D – Verificar eliminador\n4. Sigue el cable de corriente y localiza el eliminador. Desconecta y reconecta. 📹 Video 13\n\n❓ ¿El scanner encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → Continúa en punto 2 (FASE E).\n\n---\n\nFASE E (punto 2) – Verificar regulador y corriente\n5. Verifica si el scanner está conectado a un regulador. Desconecta y reconecta. 📹 Video 14\n\n❓ ¿El scanner encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → Continúa al paso 6.\n\n6. Verifica que el enchufe tenga corriente. Si no tiene, cambia a otro enchufe. 📹 Video 15\n\n❓ ¿El scanner encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE F – Validar escaneo).\n   ❌ NO → ESCALAR: Sin encender tras revisión eléctrica. Folio CSN → Mantenimiento.\n\n---\n\nFASE F (punto 1) – Validar escaneo\n7. Intenta escanear un artículo. Escucha si hace ruidos extraños. 📹 Video 16\n\n❓ ¿Escanea bien y sin ruidos?\n   ✅ SÍ → RESUELTO: Scanner operando. Registra Folio CSN Estadística.\n   ❌ NO → ESCALAR: Scanner sin escaneo tras revisión. Folio CSN → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 7,
+          "tipo_problema": "Monitor sin imagen",
+          "keywords": "monitor, pantalla, sin imagen, no enciende, no prende, azul, vga, cable, video, negro, regulador, iniciando sistema",
+          "procedimiento": "FASE A – ¿Está encendido?\n1. Ubica el monitor sin funcionalidad. 🖼️ Imagen 19\n\n❓ ¿El monitor está encendido?\n   ✅ SÍ → Continúa en punto 1 (FASE D – ¿Muestra mensaje?).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Verificar cable de corriente\n2. Localiza el cable de corriente de la parte de atrás del monitor. Desconecta y reconecta. 🖼️ Imagen 10\n\n❓ ¿El monitor encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE D – ¿Muestra mensaje?).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Verificar regulador de voltaje\n3. Sigue el cable de corriente. Verifica si el monitor está conectado a un regulador. Desconecta y reconecta. 📹 Video 17\n\n❓ ¿El monitor encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE D – ¿Muestra mensaje?).\n   ❌ NO → ESCALAR: Monitor sin encendido eléctrico. Folio CNS → Mantenimiento.\n\n---\n\nFASE D (punto 1) – ¿Muestra mensaje?\n❓ ¿El monitor muestra algún mensaje en pantalla?\n   ❌ NO → RESUELTO: Monitor operando. Registra Folio CSN estadística.\n   ✅ SÍ → Continúa en FASE E.\n\nFASE E – Pantalla azul\n4. Observa el mensaje en pantalla. 🖼️ Imagen 11\n\n❓ ¿Está la pantalla azul?\n   ✅ SÍ → ESCALAR: Número de intentos. Folio CSN → Ingeniero.\n   ❌ NO → Continúa en FASE F.\n\nFASE F – Número de intentos\n5. Lee el mensaje en pantalla. 🖼️ Imagen 12\n\n❓ ¿Dice \"número de intentos\"?\n   ✅ SÍ → ESCALAR: Pantalla azul. Folio CSN → Ingeniero.\n   ❌ NO → Continúa en punto 2 (FASE G).\n\n---\n\nFASE G (punto 2) – Cable de video\n6. Lee el mensaje en pantalla. 🖼️ Imagen 13\n\n❓ ¿Dice \"iniciando Sistema, espere...\"?\n   ✅ SÍ → Reinicia la aplicación en punto de venta → RESUELTO: Monitor operando. Registra Folio CSN estadística.\n   ❌ NO → Continúa al paso 7.\n\n7. Verifica que el CPU esté encendido. Desconecta y reconecta el cable de video VGA (azul o negro) tanto del CPU como del monitor. 🖼️ Imagen 14\n\n❓ ¿Hay imagen en el monitor?\n   ✅ SÍ → RESUELTO: Monitor operando. Registra Folio CSN estadística.\n   ❌ NO → ESCALAR: Monitor sin imagen tras revisión. Folio CSN → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 8,
+          "tipo_problema": "Cajón de dinero sin apertura",
+          "keywords": "cajon, dinero, no abre, no expulsa, no se abre, serial, impresora, chapa, llave, resorte, rieles, perno",
+          "procedimiento": "FASE A – Verificar apertura\n1. Ubica el cajón sin apertura. 📹 Video 18\n\n❓ ¿El cajón abre automáticamente al cobrar?\n   ✅ SÍ → RESUELTO: Cajón operando. Registra Folio CSN estadística.\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Verificar cable serial\n2. Verifica que el cable SERIAL esté conectado a la impresora. Desconecta y reconecta. 🖼️ Imagen 15\n\n❓ ¿El cajón expulsó tras reconectar serial?\n   ✅ SÍ → RESUELTO: Cajón operando. Registra Folio CSN estadística.\n   ❌ NO → Continúa en punto 1 (FASE D).\n\n---\n\nFASE D (punto 1) – Verificar chapa\n3. Verifica la chapa del cajón. ¿Tiene llave? ¿Está dañada? 🖼️ Imagen 16\n\n❓ ¿La chapa está dañada?\n   ✅ SÍ → ESCALAR: Sin chapa o con daño. Folio CSN → Mantenimiento.\n   ❌ NO → Continúa en FASE E.\n\nFASE E – Daño físico\n4. Verifica el funcionamiento interno: resorte, rieles, perno. 🖼️ Imagen 17 / 📹 Video 19 y 20\n\n❓ ¿Presenta daño físico?\n   ✅ SÍ → ESCALAR: Cajón con daño físico. Folio CSN → Ingeniero.\n   ❌ NO → ESCALAR: Cajón sin expulsar tras revisión. Folio CSN → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 9,
+          "tipo_problema": "Firewall sin red",
+          "keywords": "firewall, red, sin internet, sin red, no conecta, fortinet, juniper, led, rack, comunicaciones, switch, modem, router",
+          "procedimiento": "FASE A – ¿Está encendido?\n1. Ubica el Firewall en el rack de comunicaciones. 🖼️ Imagen 19\n\n❓ ¿El firewall está encendido?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Verificar LEDs).\n   ❌ NO → Continúa en FASE B.\n\nFASE B – Verificar cable de corriente\n2. Localiza el cable de corriente de la parte de atrás del firewall. Desconecta y reconecta.\n\n❓ ¿El firewall encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Verificar LEDs).\n   ❌ NO → Continúa en FASE C.\n\nFASE C – Verificar regulador\n3. Sigue el cable de corriente. Verifica si el firewall está conectado a un regulador. Desconecta y reconecta.\n\n❓ ¿El firewall encendió?\n   ✅ SÍ → Continúa en punto 1 (FASE E – Verificar LEDs).\n   ❌ NO → Continúa en FASE D.\n\nFASE D – Verificar corriente\n4. Sigue el cable de corriente hasta localizar la clavija. Verifica que el contacto naranja tenga corriente. Si no tiene, cambia a otro enchufe.\n\n❓ ¿El contacto tiene corriente?\n   ✅ SÍ → ESCALAR: Firewall con falla física. Folio CSN → Ingeniero.\n   ❌ NO → ESCALAR: Sin corriente eléctrica. Folio CNS → Mantenimiento.\n\n---\n\nFASE E (punto 1) – Verificar LEDs\n❓ ¿El Firewall es de la marca FORTINET?\n   ❌ NO → Continúa al paso 5 (rama Juniper).\n   ✅ SÍ → Continúa al paso 6 (rama Fortinet).\n\n— Rama Juniper —\n5. Observa el status del dispositivo. 🖼️ Imagen 21\n\n❓ ¿El Juniper tiene el status en verde?\n   ✅ SÍ → RESUELTO: Firewall operando OK. Fin del flujo.\n   ❌ NO → Continúa al paso 7.\n\n— Rama Fortinet —\n6. Observa las columnas de LEDs del lado derecho. 🖼️ Imagen 20\n\n❓ ¿Hay más de una columna de LEDs prendida del lado derecho?\n   ✅ SÍ → Continúa al paso 7.\n   ❌ NO → Valida si el cable de red se desconectó, o si el SWITCH o el modem están apagados → RESUELTO: Firewall operando OK. Fin del flujo.\n\n7. Observa el color de los LEDs. 🖼️ Imagen 21\n\n❓ ¿Algún LED está en rojo o ámbar?\n   ✅ SÍ → ESCALAR: Sin Comunicación. Folio CSN → Comunicaciones.\n   ❌ NO → ESCALAR: LEDs apagados - Falla del Firewall. Folio CSN → Ingeniero."
+        }
+      },
+      {
+        "json": {
+          "id": 10,
+          "tipo_problema": "Módem falla de datos",
+          "keywords": "modem, internet, sin internet, falla datos, online, led, satelital, rack, comunicaciones, no conecta",
+          "procedimiento": "1. Ubica el rack de comunicaciones. 🖼️ Imagen 29\n2. Solicita al usuario una foto de su módem. 🖼️ Imagen 30\n\n❓ ¿El módem es satelital?\n   ✅ SÍ → Desconecta el cable de energía del módem. Continúa al paso 3.\n   ❌ NO → Continúa al paso 3 directamente.\n\n3. Observa los LEDs del módem. 🖼️ Imagen 31\n\n❓ ¿El LED de internet / online está encendido?\n   ❌ NO → ESCALAR: Folio CSN → Comunicaciones. Equipo de comunicaciones - Módem - FALLA DE DATOS.\n   ✅ SÍ → Continúa al paso 4.\n\n4. Desconecta el módem de la energía eléctrica, espera 5 minutos y vuelve a conectar. 🖼️ Imagen 32\n\n❓ ¿Restableció la comunicación?\n   ✅ SÍ → FIN. 🖼️ Imagen 33\n   ❌ NO → ESCALAR: Folio CSN → Comunicaciones. Equipo de comunicaciones - Módem - FALLA DE DATOS.\n\n— Rama satelital —\n❓ ¿Restableció la comunicación tras desconectar cable de energía?\n   ✅ SÍ → FIN. 🖼️ Imagen 33\n   ❌ NO → ESCALAR: Folio CSN → Comunicaciones. Equipo de comunicaciones - Módem - FALLA DE DATOS."
+        }
+      },
+      {
+        "json": {
+          "id": 11,
+          "tipo_problema": "Módem apagado",
+          "keywords": "modem, apagado, no enciende, sin energia, cable, alimentacion, foquitos, rack, comunicaciones",
+          "procedimiento": "1. Ubica el módem en el rack de comunicaciones.\n2. Solicita al usuario una foto de su módem. 🖼️ Imagen 34\n\n❓ ¿El módem tiene energía?\n   ❌ NO → ESCALAR: General Folio CFE. Sucursal Folio CSN → Mantenimiento.\n   ✅ SÍ → Continúa al paso 3.\n\n3. Valida que el cable de alimentación esté correctamente conectado. 🖼️ Imagen 35\n\n❓ ¿Prendió el módem?\n   ❌ NO → ESCALAR: Folio CSN → Comunicaciones. MODEM - DAÑADO NO PRENDE.\n   ✅ SÍ → Continúa al paso 4.\n\n4. Espera que carguen los foquitos y valida comunicación. 🖼️ Imagen 36\n\n❓ ¿Restableció la comunicación?\n   ✅ SÍ → FIN.\n   ❌ NO → ESCALAR: Folio CSN → Comunicaciones. MODEM - FALLA DE DATOS."
+        }
+      },
+      {
+        "json": {
+          "id": 12,
+          "tipo_problema": "Intermitencia antena",
+          "keywords": "antena, roja, intermitencia, antena roja, pagos, servicio, no conecta, huella, punto de venta, sion, energia, CFE",
+          "procedimiento": "1. Solicita al usuario que ingrese su huella en el punto de venta. 🖼️ Imagen 37\n2. Solicita al usuario una foto de su punto de venta con la antena en rojo. 🖼️ Imagen 38\n\n❓ ¿Tienes variación de energía?\n   ✅ SÍ → ESCALAR:\n            - Si es solo en sucursal: validar con mantenimiento. Folio CSN → Mantenimiento.\n            - Si es general: validar con CFE.\n   ❌ NO → Continúa al paso 3.\n\n3. Reinicia la aplicación y espera 5 minutos a que cargue el sistema de nuevo. 🖼️ Imagen 39\n\n❓ ¿La antena de pagos de servicio se activó en verde?\n   ✅ SÍ → FIN. 🖼️ Imagen 40\n   ❌ NO → ESCALAR: SION DESARROLLO. Folio CSN → ANTENA ROJA."
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "4b900942-283c-4443-b09c-baa05871a6e9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "lDuzgwGMk7DzBVG6",
+  "tags": []
+}

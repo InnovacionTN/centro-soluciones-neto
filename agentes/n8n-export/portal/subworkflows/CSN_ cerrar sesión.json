@@ -1,0 +1,84 @@
+{
+  "name": "CSN: cerrar sesión",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "sesion_id"
+            },
+            {
+              "name": "resuelto_sin_ticket"
+            },
+            {
+              "name": "mensajes_count"
+            },
+            {
+              "name": "area_detectada"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5ac067e1-0215-4964-9ef4-f91b5bcf879e",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://csn-api-prod-xdngdvdxua-uc.a.run.app/api/v1/dany/sesion/cerrar",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sesion_id\": \"{{ $json.sesion_id }}\",\n  \"resuelto_sin_ticket\": {{ $json.resuelto_sin_ticket }},\n  \"mensajes_count\": {{ $json.mensajes_count }},\n  \"tipificacion_detectada\": \"{{ $json.area_detectada }}\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d7c10dba-36f0-43b7-a8c0-1e0ae8db3a8d",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "91WQp1DzpIyS2Yti",
+          "name": "CSN Dany Token"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "1a6f96c1-9d01-4f2a-8836-0100acece4c8",
+  "meta": {
+    "instanceId": "1538070c3e92290ec4084e4ecdda985ce8b7fa43f6795ea7faf2140089affc61"
+  },
+  "id": "DCTGEQ4H26cmFfVw",
+  "tags": []
+}

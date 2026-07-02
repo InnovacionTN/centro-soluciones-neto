@@ -44,11 +44,21 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "10kb",
+                  "maximumError": "20kb"
                 }
               ],
               "outputHashing": "all"
+            },
+            "staging": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.staging.ts"
+                }
+              ],
+              "outputHashing": "all",
+              "sourceMap": false
             },
             "development": {
               "optimization": false,
@@ -64,6 +74,9 @@
             "production": {
               "buildTarget": "centro-soluciones:build:production"
             },
+            "staging": {
+              "buildTarget": "centro-soluciones:build:staging"
+            },
             "development": {
               "buildTarget": "centro-soluciones:build:development"
             }
@@ -75,5 +88,8 @@
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }

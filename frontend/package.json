@@ -4,7 +4,9 @@
   "scripts": {
     "start": "ng serve --proxy-config proxy.conf.json",
     "build": "ng build --configuration production",
-    "build:staging": "ng build --configuration staging"
+    "build:staging": "ng build --configuration staging",
+    "deploy:staging": "ng build --configuration staging && cd .. && firebase deploy --only hosting:staging --project gen-lang-client-0189172552",
+    "deploy:prod": "ng build --configuration production && cd .. && firebase deploy --only hosting:prod --project gen-lang-client-0189172552"
   },
   "dependencies": {
     "@angular/animations": "^17.3.0",
@@ -15,6 +17,7 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "@supabase/supabase-js": "^2.110.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.0"
