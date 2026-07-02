@@ -297,6 +297,56 @@ def swagger_login(
     )
 
 
+@router.post("/auth/slack", response_model=TokenResponse)
+async def slack_login(request: Request, db: Session = Depends(get_db)):
+    """Intercambia un token Supabase (Slack OAuth) por un JWT de CSN."""
+    body = await request.json()
+    supabase_token = body.get("supabase_token", "").strip()
+    if not supabase_token:
+        raise HTTPException(status_code=400, detail="supabase_token requerido")
+
+    s = get_settings()
+    if not s.SUPABASE_URL or not s.SUPABASE_ANON_KEY:
+        raise HTTPException(status_code=501, detail="Slack OAuth no configurado en este entorno")
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(
+            f"{s.SUPABASE_URL}/auth/v1/user",
+            headers={
+                "Authorization": f"Bearer {supabase_token}",
+                "apikey": s.SUPABASE_ANON_KEY,
+            },
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Token Supabase inválido o expirado")
+
+    supabase_user = resp.json()
+    email = (supabase_user.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="No se pudo obtener el correo de Slack")
+
+    user = db.query(Usuario).filter(Usuario.email == email, Usuario.activo == True).first()
+    if not user:
+        raise HTTPException(
+            status_code=403,
+            detail=f"El correo {email} no está registrado en CSN. Contacta al administrador.",
+        )
+
+    user.last_login = datetime.utcnow()
+    db.commit()
+
+    tienda = db.query(Tienda).filter(Tienda.id == user.tienda_id).first() if user.tienda_id else None
+    token = create_token({"sub": str(user.id), "rol": user.rol.value})
+    return TokenResponse(
+        access_token=token,
+        rol=user.rol,
+        nombre=user.nombre,
+        tienda_id=user.tienda_id,
+        tienda_nombre=tienda.nombre if tienda else None,
+    )
+
+
 @router.get("/auth/me")
 def me(
     current_user: Usuario = Depends(get_current_user),

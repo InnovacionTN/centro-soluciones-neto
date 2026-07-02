@@ -2,6 +2,6 @@ export const environment = {
   production: true,
   env: 'prod',
   apiUrl: '/api/v1',
-  // En producción Firebase Hosting reescribe /api/** → Cloud Run csn-api-prod
-  // No se necesita URL absoluta del backend aquí.
+  supabaseUrl: 'REEMPLAZA_CON_TU_SUPABASE_URL',
+  supabaseAnonKey: 'REEMPLAZA_CON_TU_SUPABASE_ANON_KEY',
 };

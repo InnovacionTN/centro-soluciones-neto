@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { SupabaseService } from '../../core/services/supabase.service';
 
 @Component({
   selector: 'app-login',
@@ -162,6 +163,29 @@ import { AuthService } from '../../core/services/auth.service';
             </button>
 
           </form>
+
+          <!-- Divisor Slack -->
+          <div class="divider"><span>o continúa con</span></div>
+
+          <!-- Botón Slack -->
+          <button
+            type="button"
+            class="btn-slack"
+            (click)="loginWithSlack()"
+            [disabled]="loading()"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52z" fill="#E01E5A"/>
+              <path d="M6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313z" fill="#E01E5A"/>
+              <path d="M8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834z" fill="#36C5F0"/>
+              <path d="M8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312z" fill="#36C5F0"/>
+              <path d="M18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834z" fill="#2EB67D"/>
+              <path d="M17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312z" fill="#2EB67D"/>
+              <path d="M15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52z" fill="#ECB22E"/>
+              <path d="M15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z" fill="#ECB22E"/>
+            </svg>
+            Entrar con Slack
+          </button>
 
           <!-- Footer -->
           <p class="form-footer">
@@ -468,6 +492,54 @@ import { AuthService } from '../../core/services/auth.service';
 
     .btn-submit--loading > * { position: relative; z-index: 1; }
 
+    /* ── Divisor ────────────────────────────────────────── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0 16px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: #E0E0E0;
+    }
+    .divider span {
+      font-size: 12px;
+      color: #AAAAAA;
+      white-space: nowrap;
+    }
+
+    /* ── Botón Slack ─────────────────────────────────────── */
+    .btn-slack {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 24px;
+      background: #fff;
+      color: #1d1c1d;
+      border: 1.5px solid #E0E0E0;
+      border-radius: 12px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 200ms ease;
+      margin-bottom: 4px;
+    }
+    .btn-slack:not(:disabled):hover {
+      border-color: #4A154B;
+      background: #fdf6ff;
+      box-shadow: 0 4px 12px rgba(74,21,75,.1);
+    }
+    .btn-slack:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
     /* ── Footer ─────────────────────────────────────────── */
     .form-footer {
       margin-top: 24px;
@@ -603,10 +675,24 @@ export class LoginComponent {
   error = signal('');
   showPwd = signal(false);
 
-  constructor(private auth: AuthService, private router: Router) {
+  constructor(
+    private auth: AuthService,
+    private router: Router,
+    private supabase: SupabaseService,
+  ) {
     if (this.auth.isLoggedIn()) {
       this.auth['redirectByRole'](this.auth.rol()!);
     }
+  }
+
+  loginWithSlack() {
+    this.loading.set(true);
+    this.error.set('');
+    const redirectTo = window.location.origin + '/auth/callback';
+    this.supabase.signInWithSlack(redirectTo).catch(() => {
+      this.loading.set(false);
+      this.error.set('No se pudo iniciar sesión con Slack. Intenta de nuevo.');
+    });
   }
 
   submit() {

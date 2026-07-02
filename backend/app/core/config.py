@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     # Ponlo también en el .env y en las credenciales de n8n
     DANY_SYSTEM_TOKEN: str = ""
 
+    # ── Supabase (Slack OAuth) ────────────────────────────────────────────────
+    SUPABASE_URL: str = ""
+    SUPABASE_ANON_KEY: str = ""
+
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]

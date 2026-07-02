@@ -50,6 +50,24 @@ export class AuthService {
     });
   }
 
+  loginWithSlack(supabaseToken: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http
+        .post<TokenResponse>(`${this.api}/auth/slack`, { supabase_token: supabaseToken })
+        .subscribe({
+          next: res => {
+            localStorage.setItem(TOKEN_KEY, res.access_token);
+            this.loadProfile();
+            resolve();
+          },
+          error: err => {
+            const msg = err.error?.detail ?? 'Error al autenticar con Slack';
+            reject(new Error(msg));
+          },
+        });
+    });
+  }
+
   logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);

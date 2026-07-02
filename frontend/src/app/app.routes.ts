@@ -8,6 +8,11 @@ export const routes: Routes = [
       import('./features/auth/login.component').then(m => m.LoginComponent),
   },
   {
+    path: 'auth/callback',
+    loadComponent: () =>
+      import('./features/auth/slack-callback.component').then(m => m.SlackCallbackComponent),
+  },
+  {
     path: 'tienda',
     canActivate: [authGuard(['TIENDA'])],
     loadChildren: () =>
