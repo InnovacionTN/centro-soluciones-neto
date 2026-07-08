@@ -873,7 +873,7 @@ tr:nth-child(even) td{background:var(--off)}
     <!-- Escenario D -->
     <div class="scenario-block" id="s4">
       <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
-        <strong style="color:var(--navy)">Tipificación:</strong> Comercial &gt; Precios &gt; Discrepancia entre sistema y exhibición &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Mesa de Ayuda → escala Comercial (global) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Oztolotepec #586 · Toluca Centro 2
+        <strong style="color:var(--navy)">Tipificación:</strong> Comercial &gt; Precios &gt; Discrepancia entre sistema y exhibición &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Soporte Comercial (directo) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Oztolotepec #586 · Toluca Centro 2
       </div>
       <div class="scenario-grid">
         <div>
@@ -895,13 +895,13 @@ tr:nth-child(even) td{background:var(--off)}
           </div>
         </div>
         <div class="lifecycle">
-          <h4>Ruteo a grupo global Comercial</h4>
+          <h4>Ruteo directo a Soporte Comercial</h4>
           <div class="lc-steps">
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
-                <span class="lc-status st-nuevo">NUEVO</span>
-                <p>Gemini clasifica: <em>Comercial &gt; Precios &gt; Discrepancia</em> → grupo global <strong>Mesa de Ayuda</strong> como primer filtro.</p>
+                <span class="lc-status st-nuevo">NUEVO · Asignado automáticamente</span>
+                <p>Gemini clasifica: <em>Comercial &gt; Precios &gt; Discrepancia</em> → la matriz de ruteo apunta directo a <strong>Soporte Comercial</strong>. No pasa por ningún grupo intermedio.</p>
                 <span class="actor-tag or">Dany (IA)</span>
               </div>
             </div>
@@ -909,21 +909,13 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-asig">ASIGNADO</span>
-                <p><strong>Donovan Avila</strong> (Mesa de Ayuda) toma el ticket. Valida el sistema y confirma que el precio en exhibición es anterior a la última actualización.</p>
-                <span class="actor-tag or">Donovan — Mesa de Ayuda</span>
+                <p>Agente de <strong>Soporte Comercial</strong> toma el ticket. Valida en sistema que el precio correcto es $22 (actualización del mes en curso).</p>
+                <span class="actor-tag" style="background:#FEF3C7;color:#92400E;">Soporte Comercial</span>
                 <span class="actor-tag">Coach Misael Luna</span>
               </div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="lc-status st-proc">ESCALADO → Comercial</span>
-                <p>Donovan escala con nota al grupo global <strong>Comercial</strong> para autorización del ajuste.</p>
-                <span class="actor-tag" style="background:#FEF3C7;color:#92400E;">Grupo Comercial (global)</span>
-              </div>
-            </div>
-            <div class="lc-step">
-              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-esp">ESPERANDO TIENDA</span>
                 <p>Comercial autoriza actualizar la etiqueta a $22. Notifica a Oztolotepec para confirmar ajuste visual.</p>
@@ -945,7 +937,7 @@ tr:nth-child(even) td{background:var(--off)}
     <!-- Escenario E -->
     <div class="scenario-block" id="s5">
       <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
-        <strong style="color:var(--navy)">Tipificación:</strong> Mantenimiento &gt; Instalaciones &gt; Luminaria fundida &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Mesa de Ayuda → Mantenimiento (global) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Los Gigantes #190 · Toluca Norte
+        <strong style="color:var(--navy)">Tipificación:</strong> Mantenimiento &gt; Instalaciones &gt; Luminaria fundida &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Mantenimiento Centro-Oriente (directo) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Los Gigantes #190 · Toluca Norte
       </div>
       <div class="scenario-grid">
         <div>
@@ -967,13 +959,13 @@ tr:nth-child(even) td{background:var(--off)}
           </div>
         </div>
         <div class="lifecycle">
-          <h4>Ruteo a grupo global Mantenimiento</h4>
+          <h4>Ruteo directo a Mantenimiento Centro-Oriente</h4>
           <div class="lc-steps">
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
-                <span class="lc-status st-nuevo">NUEVO · Prioridad Alta</span>
-                <p>Gemini clasifica: <em>Mantenimiento &gt; Instalaciones &gt; Luminaria fundida</em> → grupo global <strong>Mesa de Ayuda</strong>. IA detecta keyword "clientes no pueden ver" y sube prioridad a Alta.</p>
+                <span class="lc-status st-nuevo">NUEVO · Prioridad Alta · Asignado automáticamente</span>
+                <p>Gemini clasifica: <em>Mantenimiento &gt; Instalaciones &gt; Luminaria fundida</em>. La regla de región Toluca apunta directo a <strong>Mantenimiento Centro-Oriente</strong>. Sin grupo intermedio.</p>
                 <span class="actor-tag or">Dany (IA)</span>
               </div>
             </div>
@@ -981,23 +973,15 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-asig">ASIGNADO</span>
-                <p><strong>Erika Contreras</strong> (Mesa de Ayuda) toma el caso. Confirma con la tienda la zona exacta y urgencia.</p>
-                <span class="actor-tag or">Erika — Mesa de Ayuda</span>
+                <p>Agente de <strong>Mantenimiento Centro-Oriente</strong> toma el caso. Confirma con la tienda zona exacta y solicita foto del área.</p>
+                <span class="actor-tag" style="background:#F1F5F9;color:#334155;">Mantenimiento Centro-Oriente</span>
                 <span class="actor-tag">Coach Jorge Silva</span>
               </div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
               <div class="lc-content">
-                <span class="lc-status st-proc">ESCALADO → Mantenimiento</span>
-                <p>Erika escala al grupo global <strong>Mantenimiento</strong> con foto adjunta y coordenadas del área afectada.</p>
-                <span class="actor-tag" style="background:#F1F5F9;color:#334155;">Grupo Mantenimiento (global)</span>
-              </div>
-            </div>
-            <div class="lc-step">
-              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="lc-status st-esp">ESPERANDO TIENDA</span>
+                <span class="lc-status st-proc">PROGRAMADO VISITA</span>
                 <p>Mantenimiento programa visita para el día siguiente AM. Notifica a Los Gigantes #190 con hora estimada.</p>
               </div>
             </div>
@@ -1005,8 +989,8 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-res">RESUELTO</span>
-                <p>Tienda confirma reparación completada. Coach Jorge Silva ve el ticket cerrado en Toluca Norte.</p>
-                <span class="actor-tag tl">Caso cerrado · Visita programada y ejecutada</span>
+                <p>Técnico cambia luminaria. Tienda confirma reparación. Coach Jorge Silva ve el ticket cerrado en Toluca Norte.</p>
+                <span class="actor-tag tl">Caso cerrado · Visita ejecutada</span>
               </div>
             </div>
           </div>
