@@ -75,7 +75,6 @@ section{padding:80px 0 64px}
 
 /* TIENDAS PILOTO */
 #piloto{background:var(--off)}
-.piloto-note{display:inline-block;background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;font-size:.78rem;padding:6px 14px;border-radius:var(--r);margin-bottom:28px}
 .piloto-table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow)}
 table{width:100%;border-collapse:collapse;background:var(--white)}
 thead tr{background:var(--navy)}
@@ -143,8 +142,9 @@ tr:nth-child(even) td{background:var(--off)}
 
 /* CÓMO FUNCIONA */
 #como{background:var(--white)}
-.flow-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px}
-.flow-tab{padding:10px 22px;font-size:.84rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s}
+.flow-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.flow-tabs::-webkit-scrollbar{display:none}
+.flow-tab{padding:10px 18px;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s,border-color .15s;white-space:nowrap;flex-shrink:0}
 .flow-tab.active{color:var(--navy);border-bottom-color:var(--navy)}
 .scenario-block{display:none}
 .scenario-block.active{display:block}
@@ -242,8 +242,10 @@ tr:nth-child(even) td{background:var(--off)}
   .flow-tabs { display: none !important; }
   .scenario-block { display: block !important; break-before: page; page-break-before: always; }
   #s1::before { content: 'Escenario A — Dany resuelve sin ticket'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
-  #s2::before { content: 'Escenario B — Ticket completo hasta cierre'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
-  #s3::before { content: 'Escenario C — Tienda rechaza la solución'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s2::before { content: 'Escenario B — Falla de terminal → Soporte Sistemas'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s3::before { content: 'Escenario C — Red / Conectividad + rechazo'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s4::before { content: 'Escenario D — Discrepancia de precio → Comercial'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
+  #s5::before { content: 'Escenario E — Instalación / Mantenimiento'; display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: #FF5100; margin-bottom: 14px; }
   .cambio-card, .zona-card, .equipo-card, .chat-window, .lifecycle,
   .scenario-grid, .coach-explainer, .highlight-box, .lc-step,
   .piloto-table-wrap, .roles-table-wrap, .hero-stats, .checklist,
@@ -374,8 +376,10 @@ tr:nth-child(even) td{background:var(--off)}
   <div class="wrap">
     <div class="sec-ey">Alcance del piloto</div>
     <h2 class="sec-h">Las 16 tiendas del piloto — 2 por zona</h2>
-    <p class="sec-sub">Selección de las 8 zonas de la Región Toluca. Cada zona aporta 2 tiendas representativas con su coach asignado.</p>
-    <div class="piloto-note">&#9733; Tiendas de cajón confirmadas: <strong>Lerma #7909</strong>, <strong>Ocoyoacac #1568</strong>, <strong>Villa Victoria #480</strong> y <strong>San Mateo Atenco #7273</strong>. Las tres primeras están incluidas en la tabla. San Mateo Atenco (#7273) también está en Toluca Centro — puede reemplazar a Ocoyoacac si se decide cambiar.</div>
+    <p class="sec-sub">Selección de las 8 zonas del piloto en la Región Toluca. Cada zona aporta 2 tiendas con su coach asignado.</p>
+    <div style="background:var(--navy-lt);border:1px solid var(--border);border-left:3px solid var(--navy);border-radius:var(--r);padding:10px 16px;margin-bottom:20px;font-size:.82rem;color:var(--muted)">
+      Los grupos <strong>Mesa de Ayuda</strong>, <strong>Sistemas Comunicación</strong>, <strong>Soporte Sistemas</strong>, <strong>Comercial</strong>, <strong>Financiero</strong>, <strong>Mantenimiento</strong> y demás son <strong>globales</strong> — atienden a todas las tiendas piloto (y al liberarse, a toda la red) según la tipificación que la IA asigna automáticamente. No se listan por tienda.
+    </div>
     <div class="piloto-table-wrap">
       <table>
         <thead>
@@ -383,39 +387,35 @@ tr:nth-child(even) td{background:var(--off)}
             <th>#</th>
             <th>Tienda</th>
             <th>ID (BQ)</th>
-            <th>Zona</th>
+            <th>Zona piloto</th>
             <th>Coach de zona</th>
-            <th>Grupos que atienden</th>
           </tr>
         </thead>
         <tbody>
           <!-- TOLUCA CENTRO -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Centro <span>— Coach: Dorisdiana Martinez Barrueta</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Centro <span>— Coach: Dorisdiana Martinez Barrueta</span></td></tr>
           <tr>
             <td>1</td>
-            <td><span class="mandatory-dot"></span><strong>Lerma</strong></td>
+            <td>Lerma</td>
             <td class="cc">7909</td>
             <td><span class="zona-chip">Toluca Centro</span></td>
             <td><div class="coach-name"><strong>Dorisdiana Martinez B.</strong><br>dorisdiana.martinezba@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>2</td>
-            <td><span class="mandatory-dot"></span><strong>Ocoyoacac</strong></td>
+            <td>Ocoyoacac</td>
             <td class="cc">1568</td>
             <td><span class="zona-chip">Toluca Centro</span></td>
             <td><div class="coach-name"><strong>Dorisdiana Martinez B.</strong><br>dorisdiana.martinezba@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA ORIENTE -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Oriente <span>— Coach: Sonia Flores Quezada</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Oriente <span>— Coach: Sonia Flores Quezada</span></td></tr>
           <tr>
             <td>3</td>
             <td>Cacalomacan</td>
             <td class="cc">585</td>
             <td><span class="zona-chip">Toluca Oriente</span></td>
             <td><div class="coach-name"><strong>Sonia Flores Quezada</strong><br>sonia.floresqa@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>4</td>
@@ -423,17 +423,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">657</td>
             <td><span class="zona-chip">Toluca Oriente</span></td>
             <td><div class="coach-name"><strong>Sonia Flores Quezada</strong><br>sonia.floresqa@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA CENTRO 2 -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Centro 2 <span>— Coach: Misael Luna Palacios</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Centro 2 <span>— Coach: Misael Luna Palacios</span></td></tr>
           <tr>
             <td>5</td>
             <td>El Lobito</td>
             <td class="cc">172</td>
             <td><span class="zona-chip">Toluca Centro 2</span></td>
             <td><div class="coach-name"><strong>Misael Luna Palacios</strong><br>misael.lunapz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>6</td>
@@ -441,17 +439,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">586</td>
             <td><span class="zona-chip">Toluca Centro 2</span></td>
             <td><div class="coach-name"><strong>Misael Luna Palacios</strong><br>misael.lunapz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA SUR -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Sur <span>— Coach: Uriel Piña Ramirez</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Sur <span>— Coach: Uriel Piña Ramirez</span></td></tr>
           <tr>
             <td>7</td>
             <td>Luvianos</td>
             <td class="cc">341</td>
             <td><span class="zona-chip">Toluca Sur</span></td>
             <td><div class="coach-name"><strong>Uriel Piña Ramirez</strong><br>uriel.pinarz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>8</td>
@@ -459,17 +455,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">672</td>
             <td><span class="zona-chip">Toluca Sur</span></td>
             <td><div class="coach-name"><strong>Uriel Piña Ramirez</strong><br>uriel.pinarz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA NORTE -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Norte <span>— Coach: Jorge Alberto Silva Ruiz</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Norte <span>— Coach: Jorge Alberto Silva Ruiz</span></td></tr>
           <tr>
             <td>9</td>
             <td>Los Gigantes</td>
             <td class="cc">190</td>
             <td><span class="zona-chip">Toluca Norte</span></td>
             <td><div class="coach-name"><strong>Jorge Alberto Silva Ruiz</strong><br>jorge.silvarz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>10</td>
@@ -477,17 +471,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">203</td>
             <td><span class="zona-chip">Toluca Norte</span></td>
             <td><div class="coach-name"><strong>Jorge Alberto Silva Ruiz</strong><br>jorge.silvarz@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA PONIENTE -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Poniente <span>— Coach: Carlos Cruz Bustos</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Poniente <span>— Coach: Carlos Cruz Bustos</span></td></tr>
           <tr>
             <td>11</td>
             <td>Villa Guerrero</td>
             <td class="cc">318</td>
             <td><span class="zona-chip">Toluca Poniente</span></td>
             <td><div class="coach-name"><strong>Carlos Cruz Bustos</strong><br>carlos.cruzbs@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>12</td>
@@ -495,17 +487,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">814</td>
             <td><span class="zona-chip">Toluca Poniente</span></td>
             <td><div class="coach-name"><strong>Carlos Cruz Bustos</strong><br>carlos.cruzbs@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA NORESTE -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Noreste <span>— Coach: Irenio Reyes Jesus</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Noreste <span>— Coach: Irenio Reyes Jesus</span></td></tr>
           <tr>
             <td>13</td>
-            <td><span class="mandatory-dot"></span><strong>Villa Victoria</strong></td>
+            <td>Villa Victoria</td>
             <td class="cc">480</td>
             <td><span class="zona-chip">Toluca Noreste</span></td>
             <td><div class="coach-name"><strong>Irenio Reyes Jesus</strong><br>jesus.reyesrs@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>14</td>
@@ -513,17 +503,15 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">187</td>
             <td><span class="zona-chip">Toluca Noreste</span></td>
             <td><div class="coach-name"><strong>Irenio Reyes Jesus</strong><br>jesus.reyesrs@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <!-- TOLUCA SURESTE -->
-          <tr class="zone-group-row"><td colspan="6">Toluca Sureste <span>— Coach: Isidro Noe Rufino Valverde</span></td></tr>
+          <tr class="zone-group-row"><td colspan="5">Toluca Sureste <span>— Coach: Isidro Noe Rufino Valverde</span></td></tr>
           <tr>
             <td>15</td>
             <td>Calimaya</td>
             <td class="cc">648</td>
             <td><span class="zona-chip">Toluca Sureste</span></td>
             <td><div class="coach-name"><strong>Isidro Noe Rufino Valverde</strong><br>isidro.noeru@soyneto.com</div></td>
-            <td><span class="grupo-tag g-sis">Sistemas</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
           <tr>
             <td>16</td>
@@ -531,12 +519,11 @@ tr:nth-child(even) td{background:var(--off)}
             <td class="cc">970</td>
             <td><span class="zona-chip">Toluca Sureste</span></td>
             <td><div class="coach-name"><strong>Isidro Noe Rufino Valverde</strong><br>isidro.noeru@soyneto.com</div></td>
-            <td><span class="grupo-tag g-comu">Comunicaciones</span> <span class="grupo-tag g-mh">Mesa de Ayuda</span></td>
           </tr>
         </tbody>
       </table>
     </div>
-    <p style="font-size:.78rem;color:var(--muted);margin-top:12px"><span class="mandatory-dot"></span> Tienda de cajón confirmada · Los agentes se asignan por tipificación del ticket via IA + Round Robin dentro del grupo</p>
+    <p style="font-size:.78rem;color:var(--muted);margin-top:12px">Ruteo automático: Dany + Gemini 2.5 clasifican el ticket y lo asignan al grupo global correspondiente por Round Robin.</p>
   </div>
 </section>
 
@@ -590,9 +577,9 @@ tr:nth-child(even) td{background:var(--off)}
 <!-- ZONAS -->
 <section id="region">
   <div class="wrap">
-    <div class="sec-ey">Estructura de la región</div>
-    <h2 class="sec-h">8 zonas — cada una con su coach</h2>
-    <p class="sec-sub">El coach monitorea los KPIs y tickets de todas las tiendas de su zona. No atiende tickets — supervisa y escala cuando es necesario.</p>
+    <div class="sec-ey">Zonas del piloto</div>
+    <h2 class="sec-h">8 zonas participantes — 8 coaches</h2>
+    <p class="sec-sub">Estas son las 8 zonas incluidas en el piloto. La región Toluca completa tiene más zonas; al liberar el sistema, todos los coaches de la región tendrán acceso. Cada coach monitorea sus tiendas en tiempo real — no atiende tickets, solo supervisa.</p>
     <div class="region-kpis">
       <div class="kpi-box"><span class="num">8</span><span class="lbl">Zonas</span></div>
       <div class="kpi-box"><span class="num">8</span><span class="lbl">Coaches</span></div>
@@ -672,16 +659,21 @@ tr:nth-child(even) td{background:var(--off)}
 <section id="como">
   <div class="wrap">
     <div class="sec-ey">Flujos completos</div>
-    <h2 class="sec-h">Tres escenarios reales del piloto</h2>
-    <p class="sec-sub">Con tiendas, coaches y agentes reales de la Región Toluca.</p>
+    <h2 class="sec-h">5 escenarios reales del piloto</h2>
+    <p class="sec-sub">Distintas tipificaciones, ruteos y actores. Los grupos son globales — atienden según lo que clasifica la IA, no según la zona de la tienda.</p>
     <div class="flow-tabs">
-      <button class="flow-tab active" onclick="showTab('s1',this)">A — Dany resuelve sin ticket</button>
-      <button class="flow-tab" onclick="showTab('s2',this)">B — Ticket completo hasta cierre</button>
-      <button class="flow-tab" onclick="showTab('s3',this)">C — Tienda rechaza la solución</button>
+      <button class="flow-tab active" onclick="showTab('s1',this)">A — Dany resuelve</button>
+      <button class="flow-tab" onclick="showTab('s2',this)">B — Falla terminal</button>
+      <button class="flow-tab" onclick="showTab('s3',this)">C — Red + rechazo</button>
+      <button class="flow-tab" onclick="showTab('s4',this)">D — Precio / Comercial</button>
+      <button class="flow-tab" onclick="showTab('s5',this)">E — Mantenimiento</button>
     </div>
 
     <!-- Escenario A -->
     <div class="scenario-block active" id="s1">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
+        <strong style="color:var(--navy)">Tipificación:</strong> Hardware &gt; Impresora &gt; Atasco de papel &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Dany deflecta — sin ticket &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Lerma #7909 · Toluca Centro
+      </div>
       <div class="scenario-grid">
         <div>
           <div class="chat-window">
@@ -689,71 +681,53 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="avatar">D</div>
               <div>
                 <div style="font-size:.86rem;font-weight:700;">Dany — Soporte IA</div>
-                <div style="font-size:.72rem;opacity:.7;">Ocoyoacac #1568 · Zona Toluca Centro</div>
+                <div style="font-size:.72rem;opacity:.7;">Lerma #7909 · Zona Toluca Centro</div>
               </div>
             </div>
             <div class="chat-body">
-              <div class="msg bot">
-                <div class="msg-label">Dany</div>
-                <div class="msg-bubble">Hola, soy Dany. Cuéntame, ¿qué está pasando en tu tienda hoy?</div>
-              </div>
-              <div class="msg user">
-                <div class="msg-label">Tienda Ocoyoacac</div>
-                <div class="msg-bubble">mi impresora no imprime</div>
-              </div>
-              <div class="msg bot">
-                <div class="msg-label">Dany</div>
-                <div class="msg-bubble">Entendido, vamos a revisarlo juntos. Para comenzar: ¿la impresora está encendida y el piloto de luz está en verde?</div>
-              </div>
+              <div class="msg bot"><div class="msg-label">Dany</div><div class="msg-bubble">Hola, soy Dany. ¿Qué está pasando en tu tienda hoy?</div></div>
+              <div class="msg user"><div class="msg-label">Tienda Lerma</div><div class="msg-bubble">la impresora no imprime nada</div></div>
+              <div class="msg bot"><div class="msg-bubble">Vamos a revisarlo. ¿La impresora está encendida y el piloto de luz está en verde?</div></div>
               <div class="msg user"><div class="msg-bubble">sí está encendida pero no hace nada</div></div>
-              <div class="msg bot"><div class="msg-bubble">Bien. Abre la tapa y revisa si hay una hoja atascada a la mitad. ¿Ves algo?</div></div>
-              <div class="msg user"><div class="msg-bubble">sí había una hoja, la saqué</div></div>
-              <div class="msg bot"><div class="msg-bubble">Perfecto. Ahora intenta imprimir un ticket de prueba. ¿Imprimió?</div></div>
+              <div class="msg bot"><div class="msg-bubble">Abre la tapa y revisa si hay una hoja atascada a la mitad. ¿Ves algo?</div></div>
+              <div class="msg user"><div class="msg-bubble">sí había una hoja, ya la saqué</div></div>
+              <div class="msg bot"><div class="msg-bubble">Intenta imprimir un ticket de prueba. ¿Imprimió?</div></div>
               <div class="msg user"><div class="msg-bubble">sí ya imprimió, gracias!</div></div>
-              <div class="msg bot"><div class="msg-bubble">Excelente, problema resuelto. Si vuelve a pasar, revisa primero el papel. ¡Que siga el día bien!</div></div>
+              <div class="msg bot"><div class="msg-bubble">Perfecto, problema resuelto. ¡Que siga el día bien!</div></div>
             </div>
             <div class="result-badge rb-ok">✓ Resuelto por Dany — sin ticket creado</div>
           </div>
         </div>
         <div class="lifecycle">
-          <h4>¿Quién intervino y qué vio cada uno?</h4>
+          <h4>¿Quién intervino?</h4>
           <div class="lc-steps">
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="actor-tag">Tienda Ocoyoacac #1568</span>
-                <p>Abre el chat con Dany desde el portal. No necesita llamar ni llenar formularios.</p>
-              </div>
+              <div class="lc-content"><span class="actor-tag">Tienda Lerma #7909</span><p>Abre el chat con Dany desde el portal. Sin llamadas, sin formularios.</p></div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="actor-tag or">Dany (IA · 24/7)</span>
-                <p>Detecta "impresora" y activa el flujo de diagnóstico. Guía paso a paso: energía → atascos → prueba de impresión.</p>
-              </div>
+              <div class="lc-content"><span class="actor-tag or">Dany (IA · 24/7)</span><p>Detecta "impresora" → activa flujo <em>Hardware &gt; Atasco</em>. Guía en 4 pasos hasta confirmar impresión exitosa.</p></div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="actor-tag tl">Problema resuelto en chat</span>
-                <p>Sin ticket. Sin agente involucrado. Dany cierra la sesión y la marca como <strong>deflectada</strong>.</p>
-              </div>
+              <div class="lc-content"><span class="actor-tag tl">Sesión cerrada como deflectada</span><p>Sin ticket. Ningún agente interrumpido. Resuelto en &lt;4 min.</p></div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
-                <span class="actor-tag">Coach Dorisdiana Martinez</span>
-                <p>Ve en su dashboard: <em>1 sesión Dany resuelta sin ticket</em>. Su tasa de deflexión sube. No tuvo que hacer nada.</p>
-              </div>
+              <div class="lc-content"><span class="actor-tag">Coach Dorisdiana Martinez</span><p>Ve <em>+1 sesión deflectada</em> en su dashboard de Toluca Centro. Tasa de deflexión sube.</p></div>
             </div>
           </div>
-          <div class="highlight-box"><strong>Ningún agente fue interrumpido.</strong> La tienda resolvió en &lt;5 min. La sesión queda guardada en el historial para análisis del coach y del admin.</div>
+          <div class="highlight-box"><strong>Ningún agente fue interrumpido.</strong> La sesión queda en historial para análisis del coach y del admin.</div>
         </div>
       </div>
     </div>
 
     <!-- Escenario B -->
     <div class="scenario-block" id="s2">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
+        <strong style="color:var(--navy)">Tipificación:</strong> Sistema &gt; Terminal POS &gt; Falla de autenticación &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Soporte Sistemas (global) → Juan Carlos Miranda &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Villa Victoria #480 · Toluca Noreste
+      </div>
       <div class="scenario-grid">
         <div>
           <div class="chat-window">
@@ -766,23 +740,23 @@ tr:nth-child(even) td{background:var(--off)}
             </div>
             <div class="chat-body">
               <div class="msg user"><div class="msg-bubble">la terminal no abre sesión, pone error de contraseña</div></div>
-              <div class="msg bot"><div class="msg-bubble">Vamos a revisarlo. ¿Confirmaste que la contraseña sea la correcta (mayúsculas/minúsculas)?</div></div>
-              <div class="msg user"><div class="msg-bubble">sí la misma de siempre</div></div>
+              <div class="msg bot"><div class="msg-bubble">¿Confirmaste que la contraseña sea correcta (mayúsculas/minúsculas)?</div></div>
+              <div class="msg user"><div class="msg-bubble">sí, la misma de siempre</div></div>
               <div class="msg bot"><div class="msg-bubble">Reinicia la terminal: apágala, espera 30 seg y enciéndela. ¿Pudiste entrar?</div></div>
-              <div class="msg user"><div class="msg-bubble">no, sigue igual el error</div></div>
-              <div class="msg bot"><div class="msg-bubble">Entendido. Esto requiere revisión del equipo de sistemas. Voy a registrar el reporte ahora.</div></div>
+              <div class="msg user"><div class="msg-bubble">no, sigue igual</div></div>
+              <div class="msg bot"><div class="msg-bubble">Esto requiere revisión del equipo de sistemas. Voy a registrar el reporte ahora.</div></div>
             </div>
-            <div class="result-badge rb-ticket">📋 Ticket creado: folio CSN-26-04821</div>
+            <div class="result-badge rb-ticket">📋 Ticket CSN-26-04821 · Sistema &gt; Terminal POS &gt; Falla de autenticación</div>
           </div>
         </div>
         <div class="lifecycle">
-          <h4>Ciclo completo — quién hace qué</h4>
+          <h4>Ciclo completo</h4>
           <div class="lc-steps">
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-nuevo">NUEVO</span>
-                <p><strong>Dany crea el ticket.</strong> Gemini 2.5 clasifica: <em>Terminal / Falla de acceso</em> → grupo <strong>Soporte Sistemas</strong>. Round Robin asigna al agente disponible.</p>
+                <p>Gemini clasifica: <em>Sistema &gt; Terminal POS &gt; Falla de autenticación</em> → grupo global <strong>Soporte Sistemas</strong>. Round Robin asigna a Juan Carlos Miranda.</p>
                 <span class="actor-tag or">Dany (IA)</span>
               </div>
             </div>
@@ -790,7 +764,7 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-asig">ASIGNADO</span>
-                <p>Ticket cae en la cola de <strong>Juan Carlos Miranda Godoy</strong> (Soporte Sistemas). Coach Irenio también lo ve en su dashboard de zona.</p>
+                <p>Cae en la cola de <strong>Juan Carlos Miranda</strong>. Coach Irenio lo ve en su dashboard de Toluca Noreste.</p>
                 <span class="actor-tag pu">Juan Carlos — Soporte Sistemas</span>
                 <span class="actor-tag">Coach Irenio Reyes</span>
               </div>
@@ -799,7 +773,7 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-proc">EN PROCESO</span>
-                <p>Juan Carlos toma el ticket. Accede remotamente al sistema. Detecta cuenta bloqueada por intentos fallidos.</p>
+                <p>Juan Carlos accede remotamente. Detecta cuenta bloqueada por intentos fallidos. La desbloquea.</p>
                 <span class="actor-tag pu">Juan Carlos — Soporte Sistemas</span>
               </div>
             </div>
@@ -807,16 +781,15 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-esp">ESPERANDO TIENDA</span>
-                <p>Desbloquea la cuenta y propone solución. Villa Victoria #480 recibe aviso para confirmar.</p>
-                <span class="actor-tag">Tienda Villa Victoria #480</span>
+                <p>Propone solución. Villa Victoria #480 recibe aviso y confirma ingreso exitoso.</p>
               </div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-res">RESUELTO → CERRADO</span>
-                <p>La tienda confirma que ya puede ingresar. Ticket pasa a RESUELTO. A las 72h cierra automáticamente.</p>
-                <span class="actor-tag tl">Caso cerrado · Coach Irenio ve SLA cumplido</span>
+                <p>Cierre automático a las 72h. Coach Irenio ve SLA cumplido en su panel.</p>
+                <span class="actor-tag tl">Caso cerrado</span>
               </div>
             </div>
           </div>
@@ -826,43 +799,45 @@ tr:nth-child(even) td{background:var(--off)}
 
     <!-- Escenario C -->
     <div class="scenario-block" id="s3">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
+        <strong style="color:var(--navy)">Tipificación:</strong> Red &gt; Conectividad &gt; Falla de servidor local &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Sistemas Comunicación → rechazado → Mesa de Ayuda &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Calimaya #648 · Toluca Sureste
+      </div>
       <div class="scenario-grid">
         <div>
           <div class="chat-window">
             <div class="chat-header" style="background:#0F766E;">
-              <div class="avatar" style="background:var(--teal);color:#fff;">T</div>
+              <div class="avatar" style="background:var(--teal);">T</div>
               <div>
                 <div style="font-size:.86rem;font-weight:700;">Portal Tienda · Ticket CSN-26-05102</div>
                 <div style="font-size:.72rem;opacity:.7;">Calimaya #648 · Zona Toluca Sureste</div>
               </div>
             </div>
             <div class="chat-body">
-              <div class="msg bot">
-                <div class="msg-label">Guadalupe Ballesteros — Comunicaciones</div>
-                <div class="msg-bubble">Revisé el sistema y restablecí la configuración de red de la caja. Intenta procesar una venta y confirma.</div>
-              </div>
-              <div style="text-align:center;font-size:.73rem;color:var(--muted);padding:4px 0">— Estado: ESPERANDO TIENDA —</div>
-              <div class="msg user">
-                <div class="msg-label">Tienda Calimaya #648</div>
-                <div class="msg-bubble">sigue fallando, la caja no conecta con el servidor</div>
-              </div>
+              <div class="msg bot"><div class="msg-label">Guadalupe Ballesteros — Comunicaciones</div><div class="msg-bubble">Restablecí la configuración de red de la caja. Intenta procesar una venta y confirma.</div></div>
+              <div style="text-align:center;font-size:.73rem;color:var(--muted);padding:4px 0">— ESPERANDO TIENDA —</div>
+              <div class="msg user"><div class="msg-label">Tienda Calimaya</div><div class="msg-bubble">sigue fallando, la caja no conecta con el servidor</div></div>
               <div style="text-align:center;font-size:.73rem;color:#991B1B;padding:4px 0;font-weight:600">— Tienda rechazó → RECHAZADO —</div>
-              <div class="msg bot">
-                <div class="msg-label">Guadalupe Ballesteros — Comunicaciones</div>
-                <div class="msg-bubble">Entendido, lo reviso de nuevo. Voy a escalar a Mesa de Ayuda para verificar el servidor de la zona.</div>
-              </div>
+              <div class="msg bot"><div class="msg-label">Guadalupe Ballesteros</div><div class="msg-bubble">Entendido. Escalo a Mesa de Ayuda para revisar el servidor de la zona.</div></div>
             </div>
-            <div class="result-badge rb-warn">↩ Rechazado — escalado a Mesa de Ayuda</div>
+            <div class="result-badge rb-warn">↩ Rechazado · escalado → Mesa de Ayuda</div>
           </div>
         </div>
         <div class="lifecycle">
-          <h4>Flujo con rechazo — quién interviene</h4>
+          <h4>Flujo con rechazo</h4>
           <div class="lc-steps">
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
               <div class="lc-content">
+                <span class="lc-status st-nuevo">NUEVO</span>
+                <p>Gemini clasifica: <em>Red &gt; Conectividad &gt; Falla de servidor local</em> → grupo global <strong>Sistemas Comunicación</strong>.</p>
+                <span class="actor-tag or">Dany (IA)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
                 <span class="lc-status st-esp">ESPERANDO TIENDA</span>
-                <p><strong>Guadalupe Ballesteros</strong> (Comunicaciones) propone solución. Ticket espera confirmación de Calimaya #648.</p>
+                <p><strong>Guadalupe Ballesteros</strong> propone configuración de red. Calimaya la prueba y falla.</p>
                 <span class="actor-tag pu">Guadalupe — Comunicaciones</span>
               </div>
             </div>
@@ -870,34 +845,168 @@ tr:nth-child(even) td{background:var(--off)}
               <div class="lc-connector"><div class="lc-dot warn"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-rech">RECHAZADO</span>
-                <p>La tienda rechaza indicando que persiste el problema. <strong>Coach Isidro Rufino</strong> lo ve inmediatamente en su dashboard de Toluca Sureste.</p>
-                <span class="actor-tag">Tienda Calimaya #648</span>
+                <p>Tienda rechaza. <strong>Coach Isidro Rufino</strong> ve el rechazo en su panel al instante.</p>
                 <span class="actor-tag tl">Coach Isidro Rufino</span>
               </div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
               <div class="lc-content">
-                <span class="lc-status st-proc">EN PROCESO (2ª vuelta)</span>
-                <p>El ticket vuelve a Guadalupe. Agrega nota interna y escala a Mesa de Ayuda con motivo obligatorio.</p>
-                <span class="actor-tag pu">Guadalupe — Comunicaciones</span>
-              </div>
-            </div>
-            <div class="lc-step">
-              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
-              <div class="lc-content">
                 <span class="lc-status st-proc">ESCALADO → Mesa de Ayuda</span>
-                <p>El ticket llega a <strong>Alejandro Marcial Vite</strong> (Mesa de Ayuda). Identifica que el servidor de la zona estaba caído.</p>
+                <p>Guadalupe escala con motivo. El ticket llega a <strong>Alejandro Marcial</strong> quien detecta el servidor caído.</p>
                 <span class="actor-tag or">Alejandro Marcial — Mesa de Ayuda</span>
-                <span class="actor-tag tl">Coach Isidro ve el cambio</span>
               </div>
             </div>
             <div class="lc-step">
               <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
               <div class="lc-content">
                 <span class="lc-status st-res">RESUELTO</span>
-                <p>Servidor reiniciado. Tienda confirma que la caja conecta. Coach Isidro ve SLA y número de reaberturas en su panel.</p>
+                <p>Servidor reiniciado. Tienda confirma conectividad. Coach Isidro ve reaperturas en SLA.</p>
                 <span class="actor-tag tl">Caso cerrado</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escenario D -->
+    <div class="scenario-block" id="s4">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
+        <strong style="color:var(--navy)">Tipificación:</strong> Comercial &gt; Precios &gt; Discrepancia entre sistema y exhibición &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Mesa de Ayuda → escala Comercial (global) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Oztolotepec #586 · Toluca Centro 2
+      </div>
+      <div class="scenario-grid">
+        <div>
+          <div class="chat-window">
+            <div class="chat-header" style="background:#92400E;">
+              <div class="avatar" style="background:var(--amber);color:#000;">D</div>
+              <div>
+                <div style="font-size:.86rem;font-weight:700;">Dany — Soporte IA</div>
+                <div style="font-size:.72rem;opacity:.7;">Oztolotepec #586 · Zona Toluca Centro 2</div>
+              </div>
+            </div>
+            <div class="chat-body">
+              <div class="msg user"><div class="msg-bubble">el sistema marca el refresco a $22 pero la etiqueta de exhibición dice $18, ¿cuál es el correcto?</div></div>
+              <div class="msg bot"><div class="msg-bubble">Entiendo. Esto requiere validación del área Comercial ya que involucra un ajuste de precio en sistema. Voy a registrar el reporte.</div></div>
+              <div class="msg user"><div class="msg-bubble">¿cuánto tardan?</div></div>
+              <div class="msg bot"><div class="msg-bubble">El SLA para temas comerciales es de 4 horas. Recibirás una notificación cuando el agente tome el caso. Folio CSN-26-06347.</div></div>
+            </div>
+            <div class="result-badge rb-ticket">📋 Ticket CSN-26-06347 · Comercial &gt; Precios &gt; Discrepancia</div>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <h4>Ruteo a grupo global Comercial</h4>
+          <div class="lc-steps">
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-nuevo">NUEVO</span>
+                <p>Gemini clasifica: <em>Comercial &gt; Precios &gt; Discrepancia</em> → grupo global <strong>Mesa de Ayuda</strong> como primer filtro.</p>
+                <span class="actor-tag or">Dany (IA)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-asig">ASIGNADO</span>
+                <p><strong>Donovan Avila</strong> (Mesa de Ayuda) toma el ticket. Valida el sistema y confirma que el precio en exhibición es anterior a la última actualización.</p>
+                <span class="actor-tag or">Donovan — Mesa de Ayuda</span>
+                <span class="actor-tag">Coach Misael Luna</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-proc">ESCALADO → Comercial</span>
+                <p>Donovan escala con nota al grupo global <strong>Comercial</strong> para autorización del ajuste.</p>
+                <span class="actor-tag" style="background:#FEF3C7;color:#92400E;">Grupo Comercial (global)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-esp">ESPERANDO TIENDA</span>
+                <p>Comercial autoriza actualizar la etiqueta a $22. Notifica a Oztolotepec para confirmar ajuste visual.</p>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-res">RESUELTO</span>
+                <p>Tienda actualiza etiqueta y confirma. SLA Comercial cumplido en 2:45 h.</p>
+                <span class="actor-tag tl">Caso cerrado · Coach Misael ve resolución</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Escenario E -->
+    <div class="scenario-block" id="s5">
+      <div style="background:var(--off);border:1px solid var(--border);border-radius:var(--r);padding:8px 14px;margin-bottom:16px;font-size:.78rem;color:var(--muted)">
+        <strong style="color:var(--navy)">Tipificación:</strong> Mantenimiento &gt; Instalaciones &gt; Luminaria fundida &nbsp;·&nbsp; <strong style="color:var(--navy)">Ruteo:</strong> Mesa de Ayuda → Mantenimiento (global) &nbsp;·&nbsp; <strong style="color:var(--navy)">Tienda:</strong> Los Gigantes #190 · Toluca Norte
+      </div>
+      <div class="scenario-grid">
+        <div>
+          <div class="chat-window">
+            <div class="chat-header" style="background:#334155;">
+              <div class="avatar" style="background:#64748B;">M</div>
+              <div>
+                <div style="font-size:.86rem;font-weight:700;">Dany — Soporte IA</div>
+                <div style="font-size:.72rem;opacity:.7;">Los Gigantes #190 · Zona Toluca Norte</div>
+              </div>
+            </div>
+            <div class="chat-body">
+              <div class="msg user"><div class="msg-bubble">se fundió la iluminación del pasillo principal, los clientes no pueden ver bien los productos</div></div>
+              <div class="msg bot"><div class="msg-bubble">Entendido, es una solicitud de mantenimiento urgente. ¿El área afectada es solo ese pasillo o hay más zonas sin luz?</div></div>
+              <div class="msg user"><div class="msg-bubble">solo ese pasillo, los demás están bien</div></div>
+              <div class="msg bot"><div class="msg-bubble">Registraré esto como Mantenimiento &gt; Luminaria con prioridad alta. El equipo de mantenimiento coordinará la visita. Folio CSN-26-07188.</div></div>
+            </div>
+            <div class="result-badge rb-ticket">📋 Ticket CSN-26-07188 · Mantenimiento &gt; Luminaria · Prioridad Alta</div>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <h4>Ruteo a grupo global Mantenimiento</h4>
+          <div class="lc-steps">
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-nuevo">NUEVO · Prioridad Alta</span>
+                <p>Gemini clasifica: <em>Mantenimiento &gt; Instalaciones &gt; Luminaria fundida</em> → grupo global <strong>Mesa de Ayuda</strong>. IA detecta keyword "clientes no pueden ver" y sube prioridad a Alta.</p>
+                <span class="actor-tag or">Dany (IA)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-asig">ASIGNADO</span>
+                <p><strong>Erika Contreras</strong> (Mesa de Ayuda) toma el caso. Confirma con la tienda la zona exacta y urgencia.</p>
+                <span class="actor-tag or">Erika — Mesa de Ayuda</span>
+                <span class="actor-tag">Coach Jorge Silva</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot curr"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-proc">ESCALADO → Mantenimiento</span>
+                <p>Erika escala al grupo global <strong>Mantenimiento</strong> con foto adjunta y coordenadas del área afectada.</p>
+                <span class="actor-tag" style="background:#F1F5F9;color:#334155;">Grupo Mantenimiento (global)</span>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot done"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-esp">ESPERANDO TIENDA</span>
+                <p>Mantenimiento programa visita para el día siguiente AM. Notifica a Los Gigantes #190 con hora estimada.</p>
+              </div>
+            </div>
+            <div class="lc-step">
+              <div class="lc-connector"><div class="lc-dot good"></div><div class="lc-line"></div></div>
+              <div class="lc-content">
+                <span class="lc-status st-res">RESUELTO</span>
+                <p>Tienda confirma reparación completada. Coach Jorge Silva ve el ticket cerrado en Toluca Norte.</p>
+                <span class="actor-tag tl">Caso cerrado · Visita programada y ejecutada</span>
               </div>
             </div>
           </div>
@@ -1045,6 +1154,22 @@ tr:nth-child(even) td{background:var(--off)}
             <div class="dir-sub">Innovación · Co-responsable del Piloto</div>
           </div>
         </div>
+        <div class="dir-persona">
+          <div class="dir-ini dir-ini--obs">ZV</div>
+          <div class="dir-info-text">
+            <div class="dir-nombre">Zohara Valdes Perez</div>
+            <div class="dir-email">zohara.valdespe@soyneto.com</div>
+            <div class="dir-sub">Supervisora del Piloto</div>
+          </div>
+        </div>
+        <div class="dir-persona">
+          <div class="dir-ini dir-ini--obs">AH</div>
+          <div class="dir-info-text">
+            <div class="dir-nombre">Antonio Heriberto Dominguez</div>
+            <div class="dir-email">ahdominguez@tiendasneto.com</div>
+            <div class="dir-sub">Supervisor del Piloto</div>
+          </div>
+        </div>
       </div>
       <p class="dir-nota">Acceso ADMIN al portal CSN — ven KPIs, conversaciones Dany y todos los tickets. No atienden ni modifican tickets.</p>
     </div>
@@ -1106,7 +1231,19 @@ tr:nth-child(even) td{background:var(--off)}
           </div>
         </div>
       </div>
-      <p class="dir-nota" style="margin-top:12px">Todos los agentes inician sesión con su correo @soyneto.com a través de Slack. Si no tienes dominio @soyneto.com, pídelo a <strong>A-Eva</strong> en Slack con tu número de empleado.</p>
+      <div style="margin-top:12px;background:var(--off);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:var(--r);padding:12px 16px">
+        <div style="font-size:.8rem;font-weight:700;color:var(--navy-dk);margin-bottom:8px">¿No tienes cuenta @soyneto.com? Solicítala a <strong>A-Eva</strong> en Slack</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <a href="https://tiendasnetocorpo.slack.com/archives/D09979CBP5K" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:var(--violet);color:#fff;font-size:.78rem;font-weight:700;padding:8px 16px;border-radius:var(--r);text-decoration:none;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+            A-Eva Corporativo
+          </a>
+          <a href="https://tiendasnetooperacion.slack.com/archives/D0BEJB5D78V" target="_blank" style="display:inline-flex;align-items:center;gap:7px;background:var(--navy);color:#fff;font-size:.78rem;font-weight:700;padding:8px 16px;border-radius:var(--r);text-decoration:none;transition:opacity .15s" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg>
+            A-Eva Operaciones
+          </a>
+        </div>
+      </div>
     </div>
 
     <!-- CREDENCIALES -->
@@ -1151,7 +1288,6 @@ tr:nth-child(even) td{background:var(--off)}
     <p>La base de datos está cargada con los IDs oficiales de BQ, los 8 coaches configurados y los 3 grupos de agentes activos.</p>
     <div class="checklist">
       <div class="check-item"><div class="check-icon">✓</div>16 tiendas piloto — 2 por zona, 8 zonas Toluca</div>
-      <div class="check-item"><div class="check-icon">✓</div>4 tiendas de cajón confirmadas: #7909, #1568, #480 (+ #7273 por asignar)</div>
       <div class="check-item"><div class="check-icon">✓</div>8 coaches con acceso COORDINADOR activo (1 por zona)</div>
       <div class="check-item"><div class="check-icon">✓</div>14 agentes en 3 grupos: Sistemas · Comunicaciones · Mesa de Ayuda</div>
       <div class="check-item"><div class="check-icon">✓</div>IDs de tiendas sincronizados con BigQuery (fuente de verdad Neto)</div>
